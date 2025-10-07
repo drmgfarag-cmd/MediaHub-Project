@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Subcategory</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.wrap{padding:16px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}</style></head>
+<body><div class="wrap">
+<a href="home.html">&larr; Home</a>
+<h1 id="t">Subcategory</h1>
+<div id="grid" class="grid"></div>
+</div>
+<script>
+const Q=new URLSearchParams(location.search); const ID=Q.get('id');
+let DATA={rails:[]};
+async function load(){
+  try{ const r=await fetch('/api/library/rails'); DATA=await r.json(); }catch(e){ DATA={rails:[]}; }
+  const rail = (DATA.rails||[]).find(r=> r.id===ID) || {title:'',items:[]};
+  document.getElementById('t').textContent = rail.title || 'Subcategory';
+  const grid=document.getElementById('grid'); grid.innerHTML='';
+  rail.items.forEach(it=>{
+    const div=document.createElement('div'); div.className='card';
+    const img=it.backdrop||it.poster||it.cover||'sample/poster.jpg';
+    div.innerHTML = `<img src=""><div class='info'><div class='title'>${it.title||it.name||''}</div></div>`;
+    div.onclick = ()=> location.href = (it.type==='track'?'audio_player.html':'item.html')+`?id=${encodeURIComponent(it.id||it.path||'')}`;
+    grid.appendChild(div);
+  });
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

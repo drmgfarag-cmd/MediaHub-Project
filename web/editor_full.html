@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Editor</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+#ed{width:100%;height:60vh;white-space:pre;tab-size:2}
+.status{display:flex;gap:12px;align-items:center;font-size:12px;opacity:.85}
+.popup{position:fixed;right:12px;top:60px;background:#111827;border:1px solid #1f2537;border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.popup input{width:200px}
+</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Editor</strong>
+    <span style="margin-left:6px">Encoding: <select id="enc"><option>UTF-8</option><option>UTF-16</option><option>ISO-8859-1</option></select></span>
+    <span style="margin-left:6px">Language: <select id="lang"><option value="plaintext">Plain Text</option><option>json</option><option>yaml</option><option>xml</option><option>javascript</option><option>python</option><option>markdown</option></select></span>
+    <label style="margin-left:6px"><input type="checkbox" id="wrap"> Wrap</label>
+    <label style="margin-left:6px"><input type="checkbox" id="ln"> Line #</label>
+    <button id="find" style="margin-left:6px">Find/Replace</button>
+  </div>
+  <div class="card">
+    <textarea id="ed" spellcheck="false"></textarea>
+    <div class="status" id="st">Line 1, Col 1 · UTF-8 · plaintext</div>
+  </div>
+</div>
+<div id="pop" class="popup" style="display:none">
+  <div>Find: <input id="f"><label><input type="checkbox" id="ci" checked> Case‑insensitive</label></div>
+  <div style="margin-top:6px">Replace: <input id="r"></div>
+  <div style="margin-top:6px"><button id="next">Next</button> <button id="rep">Replace</button> <button id="repa">Replace All</button> <button id="close">Close</button></div>
+</div>
+<script>
+let pos=0, matches=[];
+function caret(e){
+  const t=e.value.substr(0, e.selectionStart).split('\n'); 
+  const line=t.length, col=t[t.length-1].length+1;
+  st.textContent=`Line ${line}, Col ${col} · ${enc.value} · ${lang.value}`;
+}
+ed.addEventListener('keyup', ()=>caret(ed)); ed.addEventListener('click', ()=>caret(ed)); ed.addEventListener('keydown', ()=>caret(ed));
+document.getElementById('find').onclick=()=>{ pop.style.display='block'; f.focus(); };
+close.onclick=()=>{ pop.style.display='none'; };
+function buildMatches(){
+  const txt=ed.value, q=f.value; if(!q){ matches=[]; pos=0; return; }
+  const flags=ci.checked?'gi':'g'; try{ var re=new RegExp(q, flags);}catch(e){ return; }
+  matches=[...txt.matchAll(re)]; pos=0;
+}
+next.onclick=()=>{
+  buildMatches(); if(!matches.length) return;
+  const m=matches[pos%matches.length]; pos++;
+  ed.focus(); ed.setSelectionRange(m.index, m.index+m[0].length);
+  caret(ed);
+};
+rep.onclick=()=>{
+  if(!f.value) return; if(ed.selectionStart===ed.selectionEnd) next.click(); 
+  document.execCommand('insertText', false, r.value);
+  caret(ed);
+};
+repa.onclick=()=>{
+  if(!f.value) return; 
+  const flags=ci.checked?'gi':'g'; try{ var re=new RegExp(f.value, flags);}catch(e){ return; }
+  ed.value = ed.value.replace(re, r.value); caret(ed);
+};
+async function load(){
+  const s=await (await fetch('/api/editor/settings_get')).json();
+  enc.value=s.encoding||'UTF-8'; lang.value=s.language||'plaintext'; wrap.checked=!!s.wrap; ln.checked=!!s.show_line_numbers;
+  ed.style.whiteSpace = wrap.checked?'pre-wrap':'pre';
+  caret(ed);
+}
+enc.onchange=save; lang.onchange=save; wrap.onchange=()=>{ ed.style.whiteSpace = wrap.checked?'pre-wrap':'pre'; save(); }; ln.onchange=save;
+async function save(){
+  await fetch('/api/editor/settings_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({encoding:enc.value,language:lang.value,wrap:wrap.checked,show_line_numbers:ln.checked})});
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

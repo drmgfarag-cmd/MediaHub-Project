@@ -1,0 +1,196 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Settings — Control Center</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+  body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  .tabs{display:flex;gap:8px;margin-bottom:8px}
+  .tabs button{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:8px 12px;cursor:pointer}
+  .pane{display:none;border:1px solid #334155;border-radius:12px;background:#0f172a;padding:12px}
+  .pane.active{display:block}
+  .row{margin:8px 0;display:flex;gap:8px;align-items:center}
+  input[type=text], input[type=number]{background:#0b1220;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:6px 8px}
+  label{min-width:200px}
+  .hint{opacity:.8;font-size:12px}
+</style><script src="assets/auth.js"></script>
+</head><body>
+<div class="wrap">
+  <a href="home.html">&larr; Home</a>
+  <h1>Settings — Control Center</h1>
+  <div class="tabs">
+    <button data-tab="dl">Downloader & RSS</button>
+    <button data-tab="limits2">Rate Limit & Server</button>
+    <button data-tab="backups">Backups</button>
+    <button data-tab="security">Security</button>
+    <button data-tab="integrations">Integrations</button>
+    <button data-tab="features">Features</button>
+    <button data-tab="limits">Limits</button>
+    <button data-tab="scheduler">Scheduler</button>
+  </div>
+
+  <div id="security" class="pane">
+    <div class="row"><label>API Key (X-API-Key)</label><input id="sec_api" type="text" placeholder="leave blank to disable gating"></div>
+    <div class="row hint">POST routes require this header if set. Stored in integrations; no code edits.</div>
+    <button onclick="saveSecurity()">Save</button> <span id="sec_msg"></span>
+  </div>
+
+  <div id="integrations" class="pane">
+    <div class="row"><label>TMDb API Key</label><input id="tmdb" type="text"></div>
+    <div class="row"><label>Trakt Client ID</label><input id="trakt" type="text"></div>
+    <button onclick="saveIntegrations()">Save</button> <span id="int_msg"></span>
+  </div>
+
+  <div id="features" class="pane">
+    <div class="row"><label><input id="f_logs" type="checkbox"> Logs Tail (/api/logs/tail)</label></div>
+    <div class="row"><label><input id="f_pkg" type="checkbox"> Bundles (multi-file sets)</label><span class="hint">Gate only; UI appears when implemented.</span></div>
+    <div class="row"><label><input id="f_row" type="checkbox"> Per-row Progress</label></div>
+    <div class="row"><label><input id="f_bw" type="checkbox"> Bandwidth Limiter</label></div>
+    <div class="row"><label><input id="f_lg" type="checkbox"> LinkGrabber Wizard</label></div>
+    <div class="row"><label><input id="f_met" type="checkbox"> Local Metrics (Suggestions)</label></div>
+    <div class="row"><label><input id="f_footer" type="checkbox"> Status Footer</label></div>
+    <button onclick="saveFlags()">Save</button> <span id="flags_msg"></span>
+  </div>
+
+  <div id="limits" class="pane">
+    <div class="row"><label>Enable Limiter</label><input id="lim_en" type="checkbox"></div>
+    <div class="row"><label>Global Limit (kbps)</label><input id="lim_g" type="number" min="0" step="50"></div>
+    <div class="row"><label>Per-Task Limit (kbps)</label><input id="lim_t" type="number" min="0" step="50"></div>
+    <div class="row hint">Set zero for unlimited. Takes effect where limiter is supported.</div>
+    <button onclick="saveLimits()">Save</button> <span id="lim_msg"></span>
+  
+  <div id="limits2" class="pane">
+    <h3>Request Rate Limit</h3>
+    <div class="row"><label>Window (sec)</label><input id="rl_win" type="number" min="5" step="5"></div>
+    <div class="row"><label>Max Requests (per IP)</label><input id="rl_cap" type="number" min="10" step="10"></div>
+    <button onclick="saveRateLimit()">Save</button> <span id="rl_msg"></span>
+    <h3 style="margin-top:16px">Server</h3>
+    <div class="row"><label>Local-only mode</label><input id="srv_local" type="checkbox"></div>
+    <button onclick="saveServer()">Save</button> <span id="srv_msg"></span>
+  </div>
+
+  <div id="backups" class="pane">
+    <h3>Backups</h3>
+    <button onclick="createBackup()">Create Backup</button> <span id="bkp_msg"></span>
+    <div id="bkp_list" class="row" style="flex-direction:column;margin-top:8px"></div>
+  </div>
+
+  <div id="scheduler"  class="pane">
+    <div class="row"><label>Presets Auto-Refresh</label><span id="sch_state">--</span><button onclick="togglePause()">Pause/Resume</button></div>
+    <div class="row"><a href="collections_import.html">Open Presets Manager</a></div>
+  </div>
+
+</div>
+<script>
+const panes=[...document.querySelectorAll('.pane')];
+document.querySelectorAll('.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    panes.forEach(p=>p.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+document.querySelector('.tabs button').click();
+
+async function loadIntegrations(){
+  const r=await fetch('/api/integrations'); const j=await r.json();
+  document.getElementById('tmdb').value=j.tmdb_api_key||'';
+  document.getElementById('trakt').value=j.trakt_client_id||'';
+  document.getElementById('sec_api').value=j.api_key||'';
+}
+async function saveIntegrations(){
+  const tmdb=document.getElementById('tmdb').value.trim();
+  const trakt=document.getElementById('trakt').value.trim();
+  const r=await fetch('/api/integrations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tmdb_api_key:tmdb,trakt_client_id:trakt})});
+  document.getElementById('int_msg').textContent = r.ok ? 'Saved' : 'Error';
+}
+async function saveSecurity(){
+  const api_key=document.getElementById('sec_api').value.trim();
+  const r=await fetch('/api/integrations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key})});
+  document.getElementById('sec_msg').textContent = r.ok ? 'Saved' : 'Error';
+}
+async function loadFlags(){
+  const r=await fetch('/api/flags'); const j=await r.json();
+  document.getElementById('f_logs').checked=!!j.enable_logs_tail;
+  document.getElementById('f_pkg').checked=!!j.enable_package_grouping;
+  document.getElementById('f_row').checked=!!j.enable_per_row_progress;
+  document.getElementById('f_bw').checked=!!j.enable_bandwidth_limiter;
+  document.getElementById('f_lg').checked=!!j.enable_linkgrabber_wizard;
+  document.getElementById('f_met').checked=!!j.enable_metrics_local;
+  document.getElementById('f_footer').checked=!!j.enable_status_footer;
+}
+async function saveFlags(){
+  const body={
+    enable_logs_tail: document.getElementById('f_logs').checked,
+    enable_package_grouping: document.getElementById('f_pkg').checked,
+    enable_per_row_progress: document.getElementById('f_row').checked,
+    enable_bandwidth_limiter: document.getElementById('f_bw').checked,
+    enable_linkgrabber_wizard: document.getElementById('f_lg').checked,
+    enable_metrics_local: document.getElementById('f_met').checked,
+    enable_status_footer: document.getElementById('f_footer').checked
+  };
+  const r=await fetch('/api/flags',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  document.getElementById('flags_msg').textContent = r.ok ? 'Saved' : 'Error (need X-API-Key?)';
+}
+async function loadLimits(){
+  const r=await fetch('/api/config'); const j=await r.json();
+  document.getElementById('lim_en').checked=!!(j.bandwidth && j.bandwidth.enabled);
+  document.getElementById('lim_g').value=(j.bandwidth && j.bandwidth.global_limit_kbps)||0;
+  document.getElementById('lim_t').value=(j.bandwidth && j.bandwidth.per_task_limit_kbps)||0;
+}
+async function saveLimits(){
+  const body={ bandwidth:{
+    enabled: document.getElementById('lim_en').checked,
+    global_limit_kbps: parseInt(document.getElementById('lim_g').value||0),
+    per_task_limit_kbps: parseInt(document.getElementById('lim_t').value||0)
+  }};
+  const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  document.getElementById('lim_msg').textContent = r.ok ? 'Saved' : 'Error (need X-API-Key?)';
+}
+async function loadScheduler(){
+  const r=await fetch('/api/presets/state'); const j=await r.json();
+  if(j && j.ok!==false){ document.getElementById('sch_state').textContent = j.paused ? 'Paused' : 'Running'; }
+}
+async function togglePause(){
+  const cur=(document.getElementById('sch_state').textContent||'').toLowerCase().includes('paused');
+  const r=await fetch('/api/presets/pause', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paused: !cur})});
+  await loadScheduler();
+}
+
+async function loadRateLimit(){ const j=await (await fetch('/api/config')).json(); document.getElementById('rl_win').value=(j.rate_limit && j.rate_limit.window_sec)||60; document.getElementById('rl_cap').value=(j.rate_limit && j.rate_limit.max_requests)||120; document.getElementById('srv_local').checked=!!(j.server && j.server.local_only); }
+async function saveRateLimit(){ const body={ rate_limit:{ window_sec: parseInt(document.getElementById('rl_win').value||60), max_requests: parseInt(document.getElementById('rl_cap').value||120) } }; const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); document.getElementById('rl_msg').textContent = r.ok ? 'Saved' : 'Error'; }
+async function saveServer(){ const body={ server:{ local_only: document.getElementById('srv_local').checked } }; const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); document.getElementById('srv_msg').textContent = r.ok ? 'Saved' : 'Error'; }
+async function refreshBackups(){ const j=await (await fetch('/api/backup/list')).json(); const div=document.getElementById('bkp_list'); div.innerHTML=''; (j.items||[]).forEach(n=>{ const a=document.createElement('a'); a.href='#'; a.textContent=n; a.addEventListener('click', async (e)=>{ e.preventDefault(); if(confirm('Restore backup '+n+'?')){ const r=await fetch('/api/backup/restore?name='+encodeURIComponent(n), {method:'POST'}); alert(r.ok?'Restored.':'Restore failed'); } }); const row=document.createElement('div'); row.className='row'; row.appendChild(a); div.appendChild(row); }); }
+async function createBackup(){ const r=await fetch('/api/backup/create',{method:'POST'}); document.getElementById('bkp_msg').textContent = r.ok ? 'Backup created' : 'Error'; await refreshBackups(); }
+
+async function loadDL(){
+  const f=await (await fetch('/api/flags')).json();
+  document.getElementById('f_dl').checked=!!f.enable_downloader;
+  document.getElementById('f_rss').checked=!!f.enable_rss;
+  document.getElementById('f_dldrawer').checked=!!f.enable_download_drawer;
+  const cfg=await (await fetch('/api/downloader/config')).json();
+  document.getElementById('dl_client').value=cfg.client||'local';
+  document.getElementById('aria2_url').value=(cfg.aria2||{}).rpc_url||'';
+  document.getElementById('aria2_secret').value=(cfg.aria2||{}).secret||'';
+  document.getElementById('qb_base').value=(cfg.qb||{}).base||'';
+  document.getElementById('qb_user').value=(cfg.qb||{}).username||'';
+  document.getElementById('qb_pass').value=(cfg.qb||{}).password||'';
+}
+async function saveDL(){
+  // flags
+  await fetch('/api/flags',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    enable_downloader: document.getElementById('f_dl').checked,
+    enable_rss: document.getElementById('f_rss').checked,
+    enable_download_drawer: document.getElementById('f_dldrawer').checked
+  })});
+  // config
+  const body={ enabled: document.getElementById('f_dl').checked, client: document.getElementById('dl_client').value,
+    aria2: {rpc_url: document.getElementById('aria2_url').value, secret: document.getElementById('aria2_secret').value},
+    qb: {base: document.getElementById('qb_base').value, username: document.getElementById('qb_user').value, password: document.getElementById('qb_pass').value} };
+  const r=await fetch('/api/downloader/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  document.getElementById('dl_msg').textContent = r.ok ? 'Saved' : 'Error';
+}
+document.addEventListener('DOMContentLoaded', ()=>{ loadIntegrations(); loadFlags(); loadLimits(); loadRateLimit(); loadScheduler(); refreshBackups(); loadDL(); });
+
+
+</script>
+</body></html>

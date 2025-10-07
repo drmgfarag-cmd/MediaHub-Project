@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Collections Browser</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Collections Browser</strong> <button id="refresh">Refresh</button></div>
+  <div class="card">
+    <table class="tbl" id="t"><thead><tr><th>Name</th><th>Rules</th><th></th></tr></thead><tbody></tbody></table>
+  </div>
+  <div class="card">
+    <h3>Shortcuts</h3>
+    <a class="btn" href="collections_import.html">Import Presets</a>
+    <a class="btn" href="timelines.html">Timelines</a>
+  </div>
+</div>
+<script>
+// simple mosaic builder: show 3 poster placeholders as a mosaic next to each collection card (if grid is present)
+</script>
+async function load(){
+  const j=await (await fetch('/api/collections/list')).json();
+  const tb=document.querySelector('#t tbody'); tb.innerHTML='';
+  (j.collections||[]).forEach(c=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${c.name}</td><td>${(c.rules||[]).length}</td><td><button class="pin" data-name="${c.name}">Pin</button> <button class="want" data-name="${c.name}">Want</button> <a class="btn" href="timeline_collection.html?name=${encodeURIComponent(c.name)}">Timeline</a></td>`;
+    tb.appendChild(tr);
+  });
+}
+document.addEventListener('click', async (e)=>{
+  const w=e.target.closest('button.want'); if(w){ await fetch('/api/wanted/seed_collection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:w.dataset.name, max:25})}); alert('Seeded from '+w.dataset.name); }
+  const b=e.target.closest('button.pin'); if(b){ await fetch('/api/pin/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'collection', name:b.dataset.name})}); alert('Pinned '+b.dataset.name); }
+});
+refresh.onclick=load; document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

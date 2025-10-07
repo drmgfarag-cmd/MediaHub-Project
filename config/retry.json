@@ -1,0 +1,16 @@
+{
+  "policy": {
+    "429": {
+      "backoff_ms": 4000,
+      "retries": 6
+    },
+    "timeout": {
+      "backoff_ms": 3000,
+      "retries": 5
+    },
+    "default": {
+      "backoff_ms": 1200,
+      "retries": 5
+    }
+  }
+}

@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Recipes</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Recipes</strong> <button id="save">Save</button> <button id="emit">Emit test</button></div>
+  <div class="card">
+    <table id="tbl"><thead><tr><th>Event</th><th>Match (regex)</th><th>Action</th><th>Arg</th><th></th></tr></thead><tbody></tbody></table>
+    <button id="add">Add recipe</button>
+  </div>
+</div>
+<script>
+const ACTIONS=['webhook','notify'];
+const EVENTS=['download_completed','rss_refreshed','list_updated','collection_updated'];
+function row(r){ const tr=document.createElement('tr'); tr.innerHTML=`
+  <td><select>${EVENTS.map(e=>`<option ${e===r.event?'selected':''}>${e}</option>`).join('')}</select></td>
+  <td><input value="${r.match||''}" placeholder="optional regex"></td>
+  <td><select>${ACTIONS.map(a=>`<option ${a===r.action?'selected':''}>${a}</option>`).join('')}</select></td>
+  <td><input value="${r.arg||''}" placeholder="e.g. https://hook..."></td>
+  <td><button class="del">✕</button></td>`; return tr; }
+async function load(){ const j=await (await fetch('/api/recipes/list')).json(); const tb=document.querySelector('#tbl tbody'); tb.innerHTML=''; (j.recipes||[]).forEach(r=>tb.appendChild(row(r))); }
+document.getElementById('add').onclick=()=>{ document.querySelector('#tbl tbody').appendChild(row({event:'rss_refreshed', action:'notify'})); };
+document.getElementById('save').onclick=async ()=>{
+  const rows=[...document.querySelectorAll('#tbl tbody tr')].map(tr=>{ const s=tr.querySelectorAll('select'); const i=tr.querySelectorAll('input'); return {event:s[0].value, match:i[0].value, action:s[1].value, arg:i[1].value}; });
+  await fetch('/api/recipes/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recipes:rows})});
+  alert('Saved.');
+};
+document.getElementById('emit').onclick=async ()=>{ await fetch('/api/recipes/emit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:'download_completed', title:'Test Item'})}); alert('Emitted.'); };
+document.addEventListener('click', (e)=>{ const b=e.target.closest('button.del'); if(!b) return; b.closest('tr')?.remove(); });
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

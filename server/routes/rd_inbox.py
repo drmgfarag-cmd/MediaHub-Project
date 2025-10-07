@@ -1,0 +1,140 @@
+from flask import Blueprint, jsonify, request
+import os, json, time
+in_bp = Blueprint('inbox', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+INB=os.path.join(STO,'rd_inbox.json')
+
+def _load(path, default):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+    except Exception: return default
+def _save(path, obj):
+    tmp=path+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, path)
+
+@in_bp.route('/api/rd/inbox')
+def inbox_get():
+    return jsonify(_load(INB, {'items': []}))
+
+@in_bp.route('/api/rd/inbox_add', methods=['POST'])
+def inbox_add():
+    js=request.get_json(silent=True) or {}
+    items = js.get('items') or []  # [{type:'link|magnet|file|name', value:'...', save_to:'', note:''}]
+    db=_load(INB, {'items': []})
+    now=int(time.time())
+    for it in items:
+        it['id']=str(now)+it.get('value','')[:16]
+        it.setdefault('save_to','/Downloads')
+        it.setdefault('type','link')
+        db['items'].insert(0, it)
+    _save(INB, db)
+    return jsonify({'ok':True,'count': len(items)})
+
+@in_bp.route('/api/rd/inbox_remove', methods=['POST'])
+def inbox_rm():
+    js=request.get_json(silent=True) or {}
+    ids=js.get('ids') or []
+    db=_load(INB, {'items': []})
+    db['items']=[x for x in db['items'] if x.get('id') not in ids]
+    _save(INB, db); return jsonify({'ok':True})
+
+@in_bp.route('/api/rd/inbox_dedupe', methods=['POST'])
+def inbox_dd():
+    db=_load(INB, {'items': []})
+    seen=set(); keep=[]
+    for it in db['items']:
+        k=(it.get('type','')+':'+(it.get('value','') or '')).lower()
+        if k in seen: continue
+        seen.add(k); keep.append(it)
+    db['items']=keep; _save(INB, db); return jsonify({'ok':True,'kept': len(keep)})
+
+@in_bp.route('/api/rd/inbox_copy_paths')
+def inbox_copy_paths():
+    # Returns concatenated save_to paths for clipboard
+    db=_load(INB, {'items': []})
+    paths='\\n'.join(sorted(set([it.get('save_to','/Downloads') for it in db['items']])))
+    return jsonify({'paths': paths})
+
+
+@in_bp.route('/api/rd/inbox_dedupe_report', methods=['POST'])
+def inbox_dd_report():
+    db=_load(INB, {'items': []})
+    seen=set(); keep=[]; removed=[]
+    for it in db['items']:
+        k=(it.get('type','')+':'+(it.get('value','') or '')).lower()
+        if k in seen:
+            removed.append(it); continue
+        seen.add(k); keep.append(it)
+    stats={'link':0,'magnet':0,'file':0,'name':0}
+    for it in removed:
+        t=it.get('type','name')
+        stats[t]=stats.get(t,0)+1
+    db['items']=keep
+    _save(INB, db)
+    return jsonify({'ok':True,'removed_total': len(removed), 'removed_by_type': stats, 'kept': len(keep)})
+
+def _export_lines(kind):
+    db=_load(INB, {'items': []})
+    if kind=='link':
+        arr=[it['value'] for it in db['items'] if it.get('type')=='link']
+        name='rd_links.txt'
+    elif kind=='magnet':
+        arr=[it['value'] for it in db['items'] if it.get('type')=='magnet']
+        name='magnets.txt'
+    elif kind=='file':
+        arr=[it['value'] for it in db['items'] if it.get('type')=='file']
+        name='torrents_list.txt'
+    else:
+        arr=[it['value'] for it in db['items'] if it.get('type')=='name']
+        name='filenames.txt'
+    out=os.path.join(STO,'exports'); os.makedirs(out, exist_ok=True)
+    fp=os.path.join(out,name)
+    with open(fp,'w',encoding='utf-8') as f: f.write("\n".join(arr))
+    return fp
+
+@in_bp.route('/api/rd/inbox_export')
+def inbox_export():
+    kind=(request.args.get('kind') or 'link').lower()
+    fp=_export_lines(kind)
+    return jsonify({'ok':True,'kind': kind, 'file': fp})
+
+
+@in_bp.route('/api/rd/inbox_add_files', methods=['POST'])
+def inbox_add_files():
+    # Accept FormData files[]; store filenames in uploads; add to inbox as type=file
+    os.makedirs(os.path.join(STO,'uploads'), exist_ok=True)
+    db=_load(INB, {'items': []})
+    files = request.files.getlist('files')
+    added = 0
+    for f in files:
+        fn = f.filename or 'upload.torrent'
+        path = os.path.join(STO,'uploads', fn)
+        f.save(path)
+        db['items'].append({'id': str(time.time())+fn, 'type':'file', 'value': fn, 'path': path, 'save_to': request.form.get('save_to','')})
+        added += 1
+    _save(INB, db)
+    return jsonify({'ok':True, 'added': added})
+
+@in_bp.route('/api/rd/inbox_queue', methods=['POST'])
+def inbox_queue():
+    # Move selected items into downloader queue stub
+    js=request.get_json(force=True) or {}
+    ids=set(js.get('ids',[]))
+    save_to=js.get('save_to','')
+    db=_load(INB, {'items': []})
+    keep=[]; picked=[]
+    for it in db['items']:
+        if it.get('id') in ids:
+            picked.append(it)
+        else:
+            keep.append(it)
+    db['items']=keep; _save(INB, db)
+    # downloader queue file
+    qf=os.path.join(STO,'downloader_queue.json')
+    q={'packages': []}
+    if os.path.exists(qf):
+        try: q=json.load(open(qf,'r',encoding='utf-8'))
+        except: pass
+    pkg={'name': os.path.basename(save_to) or 'RD Inbox', 'save_to': save_to, 'items': picked, 'ts': time.time()}
+    q['packages'].append(pkg)
+    with open(qf,'w',encoding='utf-8') as f: json.dump(q,f,indent=2)
+    return jsonify({'ok':True, 'queued': len(picked), 'packages': len(q['packages'])})

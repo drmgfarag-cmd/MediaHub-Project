@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommendations - MediaHub</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #fff; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { margin-bottom: 30px; }
+        .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+        .header p { color: #999; font-size: 16px; }
+        .recommendations-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .rec-item { background: #1a1a1a; border-radius: 8px; overflow: hidden; position: relative; transition: transform 0.2s; }
+        .rec-item:hover { transform: scale(1.05); }
+        .poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #333; cursor: pointer; }
+        .info { padding: 12px; }
+        .title { font-size: 14px; font-weight: 600; margin-bottom: 5px; cursor: pointer; }
+        .reason { font-size: 12px; color: #999; margin-bottom: 8px; line-height: 1.4; }
+        .score { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #e50914; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .dismiss-btn { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); border: none; border-radius: 50%; width: 32px; height: 32px; color: #fff; cursor: pointer; font-size: 18px; display: none; }
+        .rec-item:hover .dismiss-btn { display: block; }
+        .dismiss-btn:hover { background: #666; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+        .empty-state svg { width: 80px; height: 80px; margin-bottom: 20px; opacity: 0.3; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .source-badge { position: absolute; top: 10px; left: 10px; padding: 4px 8px; background: rgba(0,0,0,0.8); border-radius: 4px; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Recommended for You</h1>
+            <p>Personalized recommendations based on your viewing history and preferences</p>
+        </div>
+        
+        <div id="recommendations-container" class="recommendations-grid">
+            <div class="loading">Loading recommendations...</div>
+        </div>
+        
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+            <h2>No Recommendations</h2>
+            <p>Watch some content to get personalized recommendations!</p>
+        </div>
+    </div>
+    
+    <script>
+        let allRecommendations = [];
+        
+        async function loadRecommendations() {
+            try {
+                const response = await fetch('/api/recommendations');
+                const data = await response.json();
+                allRecommendations = data.recommendations || [];
+                renderRecommendations();
+            } catch (error) {
+                console.error('Error loading recommendations:', error);
+                document.getElementById('recommendations-container').innerHTML = '<div class="loading">Error loading recommendations</div>';
+            }
+        }
+        
+        function renderRecommendations() {
+            const container = document.getElementById('recommendations-container');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (allRecommendations.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            container.style.display = 'grid';
+            emptyState.style.display = 'none';
+            
+            container.innerHTML = allRecommendations.map(item => {
+                const scorePercent = Math.round(item.score * 100);
+                const sourceIcon = item.source === 'tmdb' ? '🎬' : item.source === 'user' ? '👤' : '🤖';
+                
+                return `
+                    <div class="rec-item">
+                        <button class="dismiss-btn" onclick="dismissRecommendation(${item.id}, event)" title="Not interested">×</button>
+                        <div class="source-badge">${sourceIcon} ${item.source || 'System'}</div>
+                        <img class="poster" src="${item.poster_url || '/static/img/placeholder.jpg'}" alt="${item.title}" onclick="playMedia('${item.media_id}')">
+                        <div class="info">
+                            <div class="title" onclick="playMedia('${item.media_id}')">${item.title}</div>
+                            <div class="reason">${item.reason || 'Recommended for you'}</div>
+                            <div class="score">📊 ${scorePercent}% Match</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function dismissRecommendation(recId, event) {
+            event.stopPropagation();
+            
+            try {
+                await fetch(`/api/recommendations/${recId}/dismiss`, { method: 'POST' });
+                allRecommendations = allRecommendations.filter(item => item.id !== recId);
+                renderRecommendations();
+            } catch (error) {
+                console.error('Error dismissing recommendation:', error);
+            }
+        }
+        
+        function playMedia(mediaId) {
+            window.location.href = `/player?id=${mediaId}`;
+        }
+        
+        // Load on page load
+        loadRecommendations();
+    </script>
+</body>
+</html>

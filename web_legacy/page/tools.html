@@ -1,0 +1,21 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Tools</title>
+<link rel="stylesheet" href="/web/ui/common.css"><script src="/web/ui/common.js"></script></head>
+<body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header><div class="shell"><main class="content">
+<div class="card"><h3>External Tools</h3>
+<pre>Configure paths; toggle enabled when available.</pre>
+<div id="form"></div>
+<div style="margin-top:6px"><button onclick="save()">Save</button></div>
+</main></div>
+<script>
+async function load(){ const j=await (await fetch('/api/tools/config')).json(); const f=document.getElementById('form');
+  function row(key, obj){ return `<div style='margin:6px 0'><b>${key}</b><br>Path: <input id='p_${key}' value='${obj.path||''}' style='width:60%'> Enabled <input id='e_${key}' type='checkbox' ${obj.enabled?'checked':''}></div>`; }
+  f.innerHTML = row('seven_zip', j.seven_zip||{}) + row('unrar', j.unrar||{}) + row('container_decrypter', j.container_decrypter||{});
+}
+async function save(){ const body={
+  seven_zip:{path:document.getElementById('p_seven_zip').value, enabled:document.getElementById('e_seven_zip').checked},
+  unrar:{path:document.getElementById('p_unrar').value, enabled:document.getElementById('e_unrar').checked},
+  container_decrypter:{path:document.getElementById('p_container_decrypter').value, enabled:document.getElementById('e_container_decrypter').checked}
+}; await fetch('/api/tools/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); UI.toast('Saved'); }
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

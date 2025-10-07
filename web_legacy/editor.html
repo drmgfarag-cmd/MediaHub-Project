@@ -1,0 +1,98 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Text Editor</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.bar{display:flex;gap:8px;align-items:center;margin:8px 0}.status{opacity:.8;margin-left:auto}</style>
+</head><body>
+<div class="wrap">
+  <a href="home.html">&larr; Home</a>
+  <h1>Text Editor</h1><button id='fr'>Find / Replace</button>
+  <div class="bar">
+    <select id="enc"><option>UTF-8</option><option>UTF-16</option><option>ISO-8859-1</option></select>
+    <select id="lang"><option>Plain Text</option><option>JSON</option><option>YAML</option><option>Markdown</option></select>
+    <div class="status" id="st">Ln 1, Col 1 — 1 lines</div>
+  </div>
+  <textarea id="ed" style="width:100%;height:70vh;background:#0b1220;color:#e5e7eb;border:1px solid #334155;border-radius:12px;padding:10px;font-family:ui-monospace, SFMono-Regular, Menlo, monospace"></textarea>
+</div>
+<script>
+const ed=document.getElementById('ed'); const st=document.getElementById('st');
+function upd(){
+  const text=ed.value; const pos=ed.selectionStart;
+  const upTo=text.slice(0,pos);
+  const lines=upTo.split('\n'); const line=lines.length; const col=lines[lines.length-1].length+1;
+  const total=text.split('\n').length;
+  st.textContent = `Ln ${line}, Col ${col} — ${total} lines`;
+}
+ed.addEventListener('keyup', upd); ed.addEventListener('click', upd); ed.addEventListener('keydown', upd);
+upd();
+</script>
+
+<div id="frModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5)">
+  <div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:12px;max-width:520px;width:92%">
+    <h3>Find & Replace</h3>
+    <label>Find <input id="fnd" style="width:100%"></label><br>
+    <label>Replace <input id="rep" style="width:100%"></label><br>
+    <label><input type="checkbox" id="case"> Case-sensitive</label>
+    <label><input type="checkbox" id="regex"> Regex</label>
+    <label><input type="checkbox" id="word"> Whole word</label>
+    <label><input type="checkbox" id="sel"> Selection only</label>
+    <div style="margin-top:8px">
+      <button id="fn">Find Next</button>
+      <button id="rp">Replace</button>
+      <button id="ra">Replace All</button>
+      <button id="cl">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+const modal=document.getElementById('frModal'); document.getElementById('fr').onclick=()=>{ modal.style.display='flex'; document.getElementById('fnd').focus(); };
+document.getElementById('cl').onclick=()=>{ modal.style.display='none'; };
+
+function buildRegex(q, caseSens, word, isRegex){
+  let s = isRegex? q : q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if(word) s = `\\b${s}\\b`;
+  return new RegExp(s, caseSens? 'g' : 'gi');
+}
+function findNext(){
+  const q=document.getElementById('fnd').value; if(!q) return;
+  const isR=document.getElementById('regex').checked;
+  const cs=document.getElementById('case').checked;
+  const ww=document.getElementById('word').checked;
+  const sel=document.getElementById('sel').checked;
+  const text=ed.value; const start=ed.selectionEnd||0;
+  const scope = sel && ed.selectionStart!==ed.selectionEnd ? ed.value.substring(ed.selectionStart, ed.selectionEnd) : text.substring(start);
+  const re=buildRegex(q, cs, ww, isR);
+  const m = re.exec(scope);
+  if(m){
+    const idx = (sel && ed.selectionStart!==ed.selectionEnd) ? ed.selectionStart + m.index : start + m.index;
+    ed.setSelectionRange(idx, idx + m[0].length); ed.focus();
+  }
+}
+function replaceOne(){
+  const q=document.getElementById('fnd').value; const r=document.getElementById('rep').value;
+  if(!q) return; const isR=document.getElementById('regex').checked;
+  const cs=document.getElementById('case').checked; const ww=document.getElementById('word').checked;
+  const {selectionStart:s, selectionEnd:e} = ed; if(s===e){ findNext(); return; }
+  const selText=ed.value.substring(s,e);
+  const re=buildRegex(q, cs, ww, isR);
+  const rep=selText.replace(re, r);
+  ed.setRangeText(rep, s, e, 'end');
+}
+function replaceAll(){
+  const q=document.getElementById('fnd').value; const r=document.getElementById('rep').value;
+  if(!q) return; const isR=document.getElementById('regex').checked;
+  const cs=document.getElementById('case').checked; const ww=document.getElementById('word').checked;
+  if(document.getElementById('sel').checked && ed.selectionStart!==ed.selectionEnd){
+    const s=ed.selectionStart, e=ed.selectionEnd;
+    const part=ed.value.substring(s,e); const re=buildRegex(q, cs, ww, isR);
+    const rep=part.replace(re, r); ed.setRangeText(rep, s, e, 'end');
+  }else{
+    const re=buildRegex(q, cs, ww, isR);
+    ed.value = ed.value.replace(re, r);
+  }
+}
+document.getElementById('fn').onclick=findNext;
+document.getElementById('rp').onclick=replaceOne;
+document.getElementById('ra').onclick=replaceAll;
+</script>
+</body></html>

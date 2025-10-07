@@ -1,0 +1,33 @@
+{
+  "Default": {
+    "Movies": [
+      "imdb",
+      "tmdb",
+      "omdb"
+    ],
+    "TV": [
+      "tvdb",
+      "tmdb",
+      "imdb"
+    ],
+    "AnimeMovies": [
+      "anilist",
+      "tmdb",
+      "omdb"
+    ],
+    "AnimeSeries": [
+      "tvdb",
+      "tmdb",
+      "anilist"
+    ],
+    "Books": [
+      "googlebooks"
+    ],
+    "Audio": [
+      "discogs",
+      "acoustid",
+      "musicbrainz"
+    ]
+  },
+  "UserDefined": {}
+}

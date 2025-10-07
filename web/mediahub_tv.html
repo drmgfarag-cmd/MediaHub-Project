@@ -1,0 +1,79 @@
+<!doctype html><html><head><meta charset="utf-8"><title>MediaHub — TV</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"><link rel="stylesheet" href="css/format_badges.css">
+<style>.rail{margin:10px 0}</style>
+<style>
+.icon-rail{position:fixed;left:12px;top:80px;display:flex;flex-direction:column;gap:12px;opacity:.9}
+.icon-rail a{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.08);display:grid;place-items:center}
+.dots{display:flex;gap:6px;justify-content:center;margin:10px 0}
+.dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.35)}
+.dots .dot.on{background:#fff}
+.progress{height:3px;background:rgba(255,255,255,.18);border-radius:2px;overflow:hidden;margin-top:4px}
+.progress > i{display:block;height:100%;width:0;background:rgba(255,255,255,.8)}
+</style>
+
+<script>
+function mountDots(n){const c=document.querySelector('.dots'); if(!c) return; c.innerHTML=''; 
+  for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='dot'+(i==0?' on':''); c.appendChild(d); } }
+
+renderPinned('TV');
+</script>
+</head>
+<style>.ctx{position:absolute;display:none;background:#222;border:1px solid #444;border-radius:8px;padding:6px;z-index:9999}</style>
+<body><div class='icon-rail'><a href='home.html' title='Home'>🏠</a><a href='search.html' title='Search'>🔎</a><a href='profile.html' title='Me'>👤</a></div><div class="wrap">
+<div class="toolbar"><a href="home.html">← MediaHub</a> · <strong>TV</strong></div>
+<div class="subbar"><a class="tab" href="mediahub_movies.html">Movies</a><a class="tab" href="mediahub_tv.html">TV</a><a class="tab" href="mediahub_books.html">Books</a><a class="tab" href="mediahub_audio.html">Audio</a><a class="tab" href="mediahub_kids.html">Kids</a></div>
+
+<div class="card">
+  <h3>Pinned Rails</h3>
+  <div id="pinnedRails"></div>
+</div>
+<script>
+async function renderPinned(cat){
+  const res = await (await fetch('/api/pinned/list?cat='+encodeURIComponent(cat))).json();
+  const host = document.getElementById('pinnedRails'); host.innerHTML='';
+  for(const r of (res.rails||[])){
+    const sec=document.createElement('div'); sec.className='rail card';
+    sec.innerHTML = `<h4>${r.title}</h4><div class='rows' id='r_${r.title.replace(/\W+/g,'_')}'></div>`;
+    host.appendChild(sec);
+    const rr = await (await fetch('/api/ui/search',{method:'POST',headers:{'Content-Type':'application/json'}, body: JSON.stringify({q:r.q, limit:48})})).json();
+    const el = sec.querySelector('.rows');
+    el.innerHTML = (rr.items||[]).slice(0,12).map(x=> `<div class='row' data-path='${x.path||''}'>${x.title||x.path}</div>`).join('') || 'None';
+  }
+}
+
+renderPinned('TV');
+</script>
+<div class="card">
+  <h3>Supported TV Show Formats</h3>
+  <div class="format-support">
+    <span class="format-badge">MKV</span>
+    <span class="format-badge">MP4</span>
+    <span class="format-badge">AVI</span>
+    <span class="format-badge">MOV</span>
+    <span class="format-badge">WMV</span>
+    <span class="format-badge">FLV</span>
+    <span class="format-badge">WEBM</span>
+  </div>
+</div>
+<div class="card"><h3>Pinned TV Cards</h3><div>Right‑click any item → Pin to rail</div></div>
+<div class="rail card"><h3>Smart Rails · TV</h3><div id="rail">Loading…</div></div>
+<script>
+(async()=>{const j=await (await fetch('/api/ui/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:'s01',limit:400})})).json(); 
+rail.innerHTML=(j.items||[]).slice(0,40).map(x=>{const pct=Math.min(100, Math.max(0, (x.progress||0)*100)); return `<div class='row'>${x.title||x.path}<div class='progress'><i style='width:${pct}%' ></i></div></div>`}).join('')||'None';})();
+
+renderPinned('TV');
+</script>
+</div><div class='dots'></div>
+<div class="ctx" id="ctx"><a href="#" id="ctxOrg">Organize…</a></div>
+<script>
+let ctx=document.getElementById('ctx'), ctxSelPath=null;
+document.addEventListener('contextmenu', e=>{
+  const row=e.target.closest('.row'); if(!row) return;
+  e.preventDefault(); ctxSelPath=row.dataset.path||row.textContent.trim();
+  ctx.style.left=e.pageX+'px'; ctx.style.top=e.pageY+'px'; ctx.style.display='block';
+});
+document.addEventListener('click', ()=> ctx.style.display='none');
+ctxOrg.onclick=(e)=>{ e.preventDefault(); const p=ctxSelPath||''; const q=new URL('organizer.html', location.href); q.searchParams.set('roots', p? osEscape(p):''); location.href=q.toString(); };
+function osEscape(s){ return s; }
+</script>
+</body></html>

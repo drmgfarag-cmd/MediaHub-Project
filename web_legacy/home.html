@@ -1,0 +1,553 @@
+<!doctype html><html><head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"><meta charset="utf-8"><title>MediaHub — Home</title>
+<link rel="icon" href="assets/favicon.svg">
+<link rel="stylesheet" href="assets/normalize.css">
+<link rel="stylesheet" href="assets/ui.css">
+<style>
+.hero{position:relative; border-radius:20px; overflow:hidden; background:#0b1220; height:360px; display:flex; align-items:flex-end; padding:16px; margin:16px 16px 8px 16px; border:1px solid rgba(148,163,184,.15);}
+.hero .meta{position:absolute; bottom:16px; left:16px; max-width:48%;}
+.hero .title{font-size:2rem; font-weight:800; text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.hero .badges span{border:1px solid rgba(148,163,184,.25); border-radius:999px; padding:2px 8px; margin-right:6px; font-size:.8rem; background:rgba(2,6,23,.6)}
+.hero .ctas button{margin-right:8px}
+.hero img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:brightness(.7);}
+.rails{padding:0 16px 40px 16px}
+.rail{margin-top:16px}
+.rail h3{margin:0 0 8px 4px}
+.cards{display:flex; gap:12px; overflow:auto; padding-bottom:6px}
+.card{min-width:220px; width:220px; border-radius:16px; overflow:hidden; background:#101827; border:1px solid rgba(148,163,184,.15); cursor:pointer; position:relative;}
+.card img{width:100%; height:320px; object-fit:cover; display:block}
+.card .info{padding:8px; display:flex; align-items:center; justify-content:space-between; gap:6px}
+.card .progress{position:absolute; left:0; bottom:0; height:3px; background:var(--accent); width:0}
+.topnav{display:flex; gap:16px; align-items:center; padding:12px 16px; border-bottom:1px solid rgba(148,163,184,.15); position:sticky; top:0; background:rgba(15,23,42,.85); backdrop-filter: blur(8px); z-index:50}
+.topnav a{color:var(--text); text-decoration:none; opacity:.9}
+.topnav a:hover{opacity:1}
+.search{margin-left:auto}
+.kbd{color:var(--muted); font-size:.9rem; margin:8px 16px}
+</style>
+<script src="assets/auth.js"></script>
+</head><body>
+<nav class="topnav">
+  <div class="title">MediaHub</div>
+  <a href="home.html">Home</a>
+  <a href="library.html">Movies</a>
+  <a href="library_series.html">TV Shows</a>
+  <a href="library_music.html">Music</a><a href="library_books.html">Books</a>
+  <a href="library_comics.html">Comics/Manga</a>
+  <a href="library_audio.html">Audiobooks</a>
+  <a href="#" onclick="toggleSearch();return false;">Search</a><a href="downloader.html">Downloads</a>
+  <a href="hub.html" class="search"><a href='collections_import.html'>Tools ▸ Collections Import</a></a>
+<button style="margin-left:8px" onclick="openCustomizer()">Customize Home</button></nav>
+<div id="searchDrawer" style="display:none;position:fixed;top:56px;right:16px;left:16px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:12px;padding:12px;z-index:1000">
+  <div style="display:flex;gap:8px"><input id="q" placeholder="Search your library…" style="flex:1;padding:8px;border-radius:8px;background:#0b1220;border:1px solid #222632;color:#e7ecf1"><select id="qt"><option value="">All</option><option>movie</option><option>series</option><option>episode</option><option>album</option><option>track</option><option>book</option><option>comic</option><option>manga</option><option>audiobook</option></select><button onclick="doSearch()">Search</button><button onclick="toggleSearch()">Close</button></div>
+  <div id="res" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px"></div>
+</div>
+<section id="hero" class="hero" aria-label="Featured" style="position:relative;height:60vh;border-radius:16px;overflow:hidden">
+  <video id="hero_video" muted playsinline autoplay loop style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.75);display:none"></video>
+  <img id="hero_img" alt="">
+  <div class="hero-overlay" style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(15,23,42,0) 0%, rgba(15,23,42,.8) 65%, rgba(15,23,42,1) 100%);"></div>
+  <div id="hero_meta" style="position:absolute;left:24px;right:24px;bottom:24px;display:flex;flex-direction:column;gap:6px">
+    <div id="hero_title" style="font-size:28px;font-weight:700;text-shadow:0 2px 12px rgba(0,0,0,.6)"></div>
+    <div id="hero_sub" style="color:#9fb0c8"></div>
+    <div id="hero_actions"><button onclick="heroPlay()">Play</button> <button onclick="heroMore()">More</button></div>
+  </div>
+  <div class="meta">
+    <div class="title" id="hero_title">Welcome to MediaHub</div>
+    <div class="badges" id="hero_badges" style="margin:6px 0"></div>
+    <div class="ctas">
+      <button onclick="heroPlay()">Play</button>
+      <button onclick="heroDetails()">More details</button>
+    </div>
+  </div>
+</section>
+<section class="rails" id="rails"></section>
+<div class="kbd">Tips: Use ↑/↓ to switch rails, ←/→ to move inside a rail, Enter to open, Esc to go back.</div>
+<script>
+let DATA={rails:[]}, HERO=null;
+function badgeSpan(t){ return `<span>${t}</span>`; }
+function heroPlay(){ if(!HERO) return; const id=encodeURIComponent(HERO.id||HERO.path||''); if(HERO.type==='track') location.href='audio_player.html?id='+id; else location.href='item.html?id='+id; }
+function heroMore(){ if(!HERO) return; const id=encodeURIComponent(HERO.id||HERO.path||''); location.href='item.html?id='+id; }
+function pickHero(){
+  const v=document.getElementById('hero_video');
+  const cont=(DATA.rails.find(r=>r.id==='continue')||{}).items||[];
+  const rec=(DATA.rails.find(r=>r.id==='recent')||{}).items||[];
+  HERO = cont[0] || rec[0] || null;
+  const img=document.getElementById('hero_img'), title=document.getElementById('hero_title'), bad=document.getElementById('hero_badges');
+  if(!HERO){ title.textContent='Add media paths and scan to populate Home.'; img.style.display='none'; v.style.display='none'; return; } document.getElementById('hero_title').textContent = (HERO.title||HERO.name||''); document.getElementById('hero_sub').textContent = [HERO.year, (HERO.genres||[]).slice(0,3).join(' • ')].filter(Boolean).join(' • ');
+  if(HERO.trailer){ v.src = HERO.trailer; v.style.display='block'; img.style.display='none'; }
+  else { v.style.display='none'; img.style.display='block'; img.src=HERO.backdrop||HERO.poster||'sample/poster.jpg'; }
+  title.textContent = HERO.title || HERO.name || 'Untitled';
+  const b=(HERO.badges||[]).join(' ');
+  bad.innerHTML=''; (HERO.badges||[]).forEach(x=> bad.innerHTML += badgeSpan(x));
+}
+function heroPlay(){ if(!HERO) return; location.href = `player.html?id=${encodeURIComponent(HERO.id||HERO.path||'')}`; }
+function heroDetails(){ if(!HERO) return; location.href = `title.html?id=${encodeURIComponent(HERO.id||HERO.path||'')}`; }
+async function applyPinnedOrder(){
+  try{ const r=await fetch('/api/home/rails/order'); const s=await r.json();
+    const pinSet = new Set(s.pinned||[]);
+    if((s.order||[]).length){
+      const map = {}; DATA.rails.forEach(x=> map[x.id]=x);
+      const ordered = []; s.order.forEach(id=> { if(map[id]) ordered.push(map[id]); delete map[id]; });
+      Object.keys(map).forEach(id=> ordered.push(map[id]));
+      DATA.rails = ordered;
+    }
+    // pinned strip
+    const box=document.getElementById('pinned'); box.innerHTML='';
+    const pins=(s.pinned||[]).map(id=> (DATA.rails||[]).find(r=>r.id===id)).filter(Boolean);
+    pins.forEach(pr=>{
+      const card=document.createElement('div'); card.style='min-width:220px;border:1px solid rgba(148,163,184,.2);border-radius:10px;padding:10px;background:#0f172a;cursor:pointer';
+      card.innerHTML = `<div style='font-weight:700'>${pr.title}</div><div style='color:#9fb0c8;font-size:.9rem'>${(pr.items||[]).length} items</div>`;
+      card.onclick=()=>{ location.href='subcategory.html?id='+encodeURIComponent(pr.id); };
+      box.appendChild(card);
+    });
+    if((s.pinned||[]).length){ DATA.rails = DATA.rails.filter(r=> pinSet.has(r.id)); }
+  }catch(e){}
+}
+  try{ const r=await fetch('/api/home/rails/order'); const s=await r.json();
+    const pinSet = new Set(s.pinned||[]);
+    if((s.order||[]).length){
+      const map = {}; DATA.rails.forEach(x=> map[x.id]=x);
+      const ordered = []; s.order.forEach(id=> { if(map[id]) ordered.push(map[id]); delete map[id]; });
+      Object.keys(map).forEach(id=> ordered.push(map[id]));
+      DATA.rails = ordered;
+    }
+    if((s.pinned||[]).length){ DATA.rails = DATA.rails.filter(r=> pinSet.has(r.id)); }
+  }catch(e){}
+}
+function renderRails(){
+  const box=document.getElementById('rails'); box.innerHTML='';
+  DATA.rails.forEach((r,ri)=>{
+    if(!r.items || !r.items.length) return;
+    const sec=document.createElement('section'); sec.className='rail'; sec.innerHTML=`<h3>${r.title}</h3><div class='cards' id='rail_${ri}'></div>`;
+    const cards=sec.querySelector('.cards');
+    r.items.forEach((it,i)=>{
+      const c=document.createElement('div'); c.className='card'; c.setAttribute('tabindex','0');
+      c.innerHTML = `<img src='${it.poster||'sample/poster.jpg'}' alt='${(it.title||'')}'><div class='info'><div style='font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>${it.title||it.name||'Untitled'}</div><button title='Play' onclick="event.stopPropagation(); location.href='player.html?id=${encodeURIComponent(it.id||it.path||'')}'">▶</button></div><div class='progress'></div>`;
+      const pr = c.querySelector('.progress'); const p = it.progress||0; pr.style.width = Math.min(100, Math.floor(p*100)) + '%';
+      c.onclick = ()=> location.href = `title.html?id=${encodeURIComponent(it.id||it.path||'')}`;
+      cards.appendChild(c);
+    });
+    box.appendChild(sec);
+  });
+}
+async function loadRails(){
+  let base = {rails:[]};
+  try{ const r=await fetch('/api/library/rails'); base = await r.json(); }catch(e){ base={rails:[]}; }
+  try{ const e=await fetch('/api/library/rails_extra'); const x=await e.json(); base.rails = (base.rails||[]).concat(x.rails||[]); }catch(_){}
+  DATA = base;
+
+  try{
+    const r=await fetch('/api/library/rails'); DATA=await r.json();
+  }catch(e){ DATA={rails:[]}; }
+  pickHero(); await applyPinnedOrder(); renderRails();
+}
+document.addEventListener('DOMContentLoaded', loadRails);
+// simple keyboard nav
+document.addEventListener('keydown', (e)=>{
+  const rails = Array.from(document.querySelectorAll('.rail .cards'));
+  let row = rails.findIndex(r=> r.contains(document.activeElement));
+  if(e.key==='ArrowDown'){ e.preventDefault(); const next = rails[Math.min(rails.length-1, (row<0?0:row+1))]; if(next) (next.querySelector('.card')||next).focus(); }
+  if(e.key==='ArrowUp'){ e.preventDefault(); const prev = rails[Math.max(0, (row<=0?0:row-1))]; if(prev) (prev.querySelector('.card')||prev).focus(); }
+  if(e.key==='ArrowRight'){ if(document.activeElement && document.activeElement.nextElementSibling) document.activeElement.nextElementSibling.focus(); }
+  if(e.key==='ArrowLeft'){ if(document.activeElement && document.activeElement.previousElementSibling) document.activeElement.previousElementSibling.focus(); }
+});
+
+async function loadFacets(){ const r=await fetch('/api/library/facets'); const f=await r.json(); const box=document.getElementById('facetsBox'); box.innerHTML=''; const types=Object.keys(f.type||{}); types.forEach(t=>{ const id='t_'+t; box.innerHTML += `<label><input type='radio' name='facetType' value='${t}' onclick=facetType('${t}')> ${t} (${f.type[t]})</label>`; }); }
+function facetType(t){ document.getElementById('qt').value = t; doSearch(); }
+function toggleSearch(){ const d=document.getElementById('searchDrawer'); d.style.display = (d.style.display==='none'?'block':'none'); if(d.style.display==='block'){ document.getElementById('q').focus(); loadFacets(); }}
+async function doSearch(){
+  const q=document.getElementById('q').value||''; const t=document.getElementById('qt').value||'';
+  const r=await fetch('/api/library/search?q='+encodeURIComponent(q)+'&type='+encodeURIComponent(t)); const j=await r.json(); const box=document.getElementById('res'); box.innerHTML='';
+  (j.items||[]).forEach(it=>{
+    const c=document.createElement('div'); c.className='card'; c.innerHTML = `<img src='${it.poster||it.cover||'sample/poster.jpg'}'><div class='info'><div style='font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>${it.title||it.name||''}</div><button onclick="event.stopPropagation(); location.href='${(it.type==='track'?'audio_player.html':'title.html')}?id=${encodeURIComponent(it.id||it.path||'')}'">Open</button></div>`;
+    c.onclick = ()=> location.href = (it.type==='track'?'audio_player.html':'title.html')+`?id=${encodeURIComponent(it.id||it.path||'')}`;
+    box.appendChild(c);
+  });
+}
+</script>
+<script>
+let MP={open:false, lastShow:Date.now()};
+async function mpRefresh(){
+  const r=await fetch('/api/music/queue'); const s=await r.json();
+  const bar=document.getElementById('miniPlayer'); if(!bar) return;
+  if(!bar) return;
+  const now=s.now; const q=s.queue||[];
+  bar.querySelector('.cover').src = (now && (now.cover||'')) || 'assets/favicon.svg';
+  bar.querySelector('.title').textContent = (now && now.title) || 'Queue is empty';
+  const a=bar.querySelector('audio');
+  if(now && now.stream && a.src!==location.origin+now.stream){ a.src = now.stream; a.play().catch(()=>{}); }
+  const list=bar.querySelector('.q'); list.innerHTML='';
+  q.forEach((it,i)=>{ const li=document.createElement('div'); li.textContent=(i+1)+'. '+(it.title||''); li.onclick=()=>fetch('/api/music/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'playnow', id: it.id})}).then(mpRefresh); list.appendChild(li); });
+}
+function mpNext(){ fetch('/api/music/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'next'})}).then(mpRefresh); }
+function mpToggle(){ const p=document.getElementById('miniPlayer'); p.style.display = (p.style.display==='none'?'grid':'none'); }
+document.addEventListener('DOMContentLoaded', ()=>{
+  function applyAutoHide(){
+    const bar=document.getElementById('miniPlayer'); if(!bar) return;
+    const hasAudio = !!(bar.querySelector('audio').src);
+    const visible = bar.dataset.visible==='1';
+    // Hide if no audio src or nothing in queue/now
+    if(!hasAudio){ bar.style.display='none'; bar.dataset.visible='0'; return; }
+    // Hide after inactivity (6s) when paused
+    const a=bar.querySelector('audio');
+    const inactive = (Date.now()-MP.lastShow)>6000 && a.paused;
+    if(inactive){ bar.style.display='none'; bar.dataset.visible='0'; } else { bar.style.display='grid'; bar.dataset.visible='1'; }
+  }
+  window.addEventListener('mousemove', ()=>{ MP.lastShow=Date.now(); });
+  window.addEventListener('keydown',  ()=>{ MP.lastShow=Date.now(); });
+  setInterval(applyAutoHide, 700);
+
+  const tpl = `<div id="miniPlayer" style="position:fixed;left:12px;right:12px;bottom:12px;display:grid;grid-template-columns:60px 1fr auto;gap:10px;align-items:center;background:#0b1220;border:1px solid rgba(148,163,184,.25);border-radius:12px;padding:8px;z-index:60">
+    <img class="cover" alt="" style="width:60px;height:60px;border-radius:8px;border:1px solid rgba(148,163,184,.2)">
+    <div>
+      <div class="title" style="font-weight:600"></div>
+      <div class="q" style="display:flex;gap:8px;overflow:auto;font-size:.9rem;color:var(--muted)"></div>
+      <audio controls preload="metadata" style="width:100%"></audio>
+    </div>
+    <div><button onclick="mpNext()">Next ▶</button> <button onclick="mpToggle()">Hide</button></div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', tpl);
+  setInterval(mpRefresh, 2000);
+  mpRefresh();
+});
+</script>
+
+
+<div id="customizer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;align-items:center;justify-content:center">
+  <div style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:12px;padding:12px;min-width:420px;max-width:600px">
+    <h3 style="margin-top:0">Customize Home</h3>
+    <div id="railsList" style="max-height:320px;overflow:auto"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button onclick="saveCustomizer()">Save</button>
+      <button onclick="closeCustomizer()">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+async function openCustomizer(){
+  const d=document.getElementById('customizer'); d.style.display='flex';
+  const box=document.getElementById('railsList'); box.innerHTML='';
+  const r=DATA.rails||[];
+  r.forEach((x,i)=>{
+    const row=document.createElement('div'); row.style='display:flex;gap:8px;align-items:center;margin:6px 0';
+    row.innerHTML = `<input type='checkbox' ${true?'checked':''} data-id='${x.id}'> <div style='flex:1'>${x.title}</div> <button onclick='moveRail(${i},-1)'>↑</button> <button onclick='moveRail(${i},1)'>↓</button>`;
+    box.appendChild(row);
+  });
+}
+function closeCustomizer(){ document.getElementById('customizer').style.display='none'; }
+function moveRail(idx,dir){
+  const arr=DATA.rails; const ni=Math.max(0, Math.min(arr.length-1, idx+dir)); if(ni===idx) return;
+  const t=arr[idx]; arr[idx]=arr[ni]; arr[ni]=t; openCustomizer();
+}
+async function saveCustomizer(){
+  const box=document.getElementById('railsList');
+  const ids = Array.from(box.querySelectorAll('input[type=checkbox]')).map((i)=>({id:i.getAttribute('data-id'), pinned:i.checked}));
+  const order = (DATA.rails||[]).map(x=>x.id);
+  const pinned = ids.filter(x=>x.pinned).map(x=>x.id);
+  await fetch('/api/home/rails/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order,pinned})});
+  closeCustomizer(); await loadRails();
+}
+</script>
+
+
+<div id="status-footer" data-has-limit="1" data-has-toggle="1" style="position:fixed;left:0;right:0;bottom:0;background:rgba(2,6,23,.9);color:#cbd5e1;padding:6px 10px;font:12px/1.4 system-ui;display:flex;gap:16px;align-items:center;border-top:1px solid rgba(148,163,184,.2)">
+  <span id="sf-collections">Collections: --</span>
+  <span id="sf-lastpreset">Last Preset: --</span>
+  <span id="sf-limit">Limit: --</span>
+  <span id="sf-clock" style="margin-left:auto"></span>
+<button id="sf-toggle" style="margin-left:8px">Pause Presets</button></div>
+<script src="assets/home_status.js"></script>
+<div style='position:fixed;right:12px;top:12px'><a href='settings.html'>Settings — Control Center</a></div>
+<script src="assets/shortcuts.js"></script>
+
+<script>
+(async function(){
+  try{
+    const f=await (await fetch('/api/flags')).json();
+    if(f.enable_package_grouping){
+      const a=document.createElement('a'); a.href='packages.html'; a.id='packages-link'; a.textContent='Packages';
+      const box=document.createElement('div'); box.style='position:fixed;right:12px;top:40px'; box.appendChild(a);
+      document.body.appendChild(box);
+    }
+  }catch(e){}
+})();
+</script>
+
+<div id="pkg-toggle" style="position:fixed;right:12px;top:64px;display:none"><button id="pkg-btn" style="background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:10px;padding:6px 10px;cursor:pointer">Bundles</button></div>
+<div id="pkg-drawer" style="position:fixed;top:0;right:-420px;width:400px;height:100%;background:#0b1220;border-left:1px solid #334155;transition:right .25s ease;box-shadow:-8px 0 24px rgba(0,0,0,.3);padding:10px;overflow:auto;z-index:9999">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h3 style="margin:6px 0">Bundles</h3>
+    <div><button id="pkg-close" style="background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:4px 8px">×</button></div>
+  </div>
+  <div id="pkg-list"></div>
+  <div style="margin-top:8px"><a href="packages.html">Open Bundles</a></div>
+</div>
+<script src="assets/row_progress.js"></script>
+<script>
+async function pkgFlag(){ try{ const f=await (await fetch('/api/flags')).json(); document.getElementById('pkg-toggle').style.display = f.enable_package_grouping?'block':'none'; }catch(e){} }
+async function loadPkgs(){
+  const j=await (await fetch('/api/packages')).json(); const list=document.getElementById('pkg-list'); list.innerHTML='';
+  (j.packages||[]).forEach(p=>{
+    const wrap=document.createElement('div'); wrap.style='border:1px solid #334155;border-radius:10px;margin:6px 0;padding:6px';
+    const head=document.createElement('div'); head.style='display:flex;align-items:center;gap:6px;cursor:pointer';
+    head.innerHTML=`<b>${p.name||''}</b> <span class="pct"></span>`;
+    const prog=document.createElement('span'); prog.className='prog'; head.appendChild(prog);
+    const body=document.createElement('div'); body.style='display:none;margin-top:6px';
+    const items=document.createElement('div'); items.style='font:12px ui-monospace,monospace;color:#94a3b8';
+    (p.items||[]).forEach(it=>{ const row=document.createElement('div'); row.style='display:flex;align-items:center;gap:6px;margin:3px 0';
+      const chk=document.createElement('input'); chk.type='checkbox'; chk.dataset.item=it; chk.dataset.pkg=p.name;
+      const lbl=document.createElement('span'); lbl.textContent=it;
+      const bar=document.createElement('span'); bar.className='bar'; renderProgress(bar, (p.status&&p.status[it]=='processed')?100:0);
+      row.appendChild(chk); row.appendChild(lbl); row.appendChild(bar); items.appendChild(row);
+    });
+    const ops=document.createElement('div'); ops.style='margin-top:6px;display:flex;gap:6px';
+    ops.innerHTML='<button id="markp">Mark Processed</button><button id="marku">Mark Unprocessed</button> <button id="selall">Select All in Folder</button> <button id="mv">Move To…</button> <button id="tag">Apply Tag…</button> <button id="exp">Export List</button>';
+    ops.querySelector('#markp').addEventListener('click', ()=>bulkMark(p.name, true)); ops.querySelector('#selall').addEventListener('click', ()=>selectAllInFolder(p)); ops.querySelector('#mv').addEventListener('click', ()=>bulkMove(p.name)); ops.querySelector('#tag').addEventListener('click', ()=>bulkTag(p.name)); ops.querySelector('#exp').addEventListener('click', ()=>exportList(p));
+    ops.querySelector('#marku').addEventListener('click', ()=>bulkMark(p.name, false));
+    body.appendChild(items); body.appendChild(ops);
+    head.addEventListener('click', ()=>{ body.style.display = body.style.display==='none' ? 'block':'none'; });
+    wrap.appendChild(head); wrap.appendChild(body); list.appendChild(wrap);
+    // initial rollup
+    const tot=(p.items||[]).length||1; const done=Object.values(p.status||{}).filter(v=>v==='processed').length; const pct=Math.round(done*100/tot);
+    head.querySelector('.pct').textContent = `(${done}/${tot})`;
+    renderProgress(prog, pct);
+  });
+}
+async function bulkMark(pkg, processed){
+  const checks=[...document.querySelectorAll('#pkg-list input[type=checkbox]')].filter(c=>c.checked && c.dataset.pkg===pkg);
+  const changes=checks.map(c=>({package: pkg, item: c.dataset.item, processed}));
+  if(!changes.length) return;
+  await fetch('/api/packages/item_status',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({changes})});
+  await loadPkgs();
+}
+(function(){
+  const btn=document.getElementById('pkg-btn'); const drawer=document.getElementById('pkg-drawer'); const close=document.getElementById('pkg-close');
+  if(btn){ btn.addEventListener('click', ()=>{ drawer.style.right = drawer.style.right==='0px' ? '-420px' : '0px'; if(drawer.style.right==='0px'){ loadPkgs(); } }); }
+  if(close){ close.addEventListener('click', ()=>{ drawer.style.right='-420px'; }); }
+  pkgFlag();
+})();
+</script>
+
+<div id="dl-toggle" style="position:fixed;right:12px;top:88px;display:none"><button id="dl-btn" style="background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:10px;padding:6px 10px;cursor:pointer">Downloads</button></div>
+<div id="dl-drawer" style="position:fixed;top:0;right:-420px;width:400px;height:100%;background:#0b1220;border-left:1px solid #334155;transition:right .25s ease;box-shadow:-8px 0 24px rgba(0,0,0,.3);padding:10px;overflow:auto;z-index:9999">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h3 style="margin:6px 0">Downloads</h3>
+    <div><button id="dl-close" style="background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:4px 8px">×</button></div>
+  </div>
+  <div class="row"><a href="downloads.html">Open full Downloads</a></div>
+  <div id="dl-list"></div>
+</div>
+<script>
+async function dlFlag(){ try{ const f=await (await fetch('/api/flags')).json(); document.getElementById('dl-toggle').style.display = (f.enable_downloader||f.enable_download_drawer)?'block':'none'; }catch(e){} }
+async function dlLoad(){
+  const j=await (await fetch('/api/downloader/queue')).json(); const list=document.getElementById('dl-list'); list.innerHTML='';
+  (j.items||[]).forEach(it=>{
+    const row=document.createElement('div'); row.style='border:1px solid #334155;border-radius:10px;margin:6px 0;padding:6px';
+    row.innerHTML=`<div><b>${it.title||it.url}</b></div><div>Status: ${it.status||'queued'}</div>`;
+    list.appendChild(row);
+  });
+}
+(function(){
+  const btn=document.getElementById('dl-btn'); const drawer=document.getElementById('dl-drawer'); const close=document.getElementById('dl-close');
+  if(btn){ btn.addEventListener('click', ()=>{ drawer.style.right = drawer.style.right==='0px' ? '-420px' : '0px'; if(drawer.style.right==='0px'){ dlLoad(); } }); }
+  if(close){ close.addEventListener('click', ()=>{ drawer.style.right='-420px'; }); }
+  dlFlag();
+})();
+</script>
+
+<div id="qs-wrap" style="position:fixed;right:12px;top:12px;z-index:9999">
+  <button id="qs-btn" style="background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:10px;padding:6px 10px;cursor:pointer">Quick Switches ▾</button>
+  <div id="qs-panel" style="display:none;position:absolute;right:0;margin-top:6px;width:280px;background:#0b1220;border:1px solid #334155;border-radius:12px;padding:10px;box-shadow:0 12px 20px rgba(0,0,0,.35)">
+    <div style="font-weight:600;margin-bottom:6px">Feature Toggles</div>
+    <label style="display:block;margin:6px 0"><input id="qs_bundle" type="checkbox"> Bundles (multi-file sets)</label>
+    <label style="display:block;margin:6px 0"><input id="qs_dl" type="checkbox"> Downloads Drawer</label>
+    <label style="display:block;margin:6px 0"><input id="qs_down" type="checkbox"> Downloader</label>
+    <label style="display:block;margin:6px 0"><input id="qs_rss" type="checkbox"> RSS Feeds</label>
+    <label style="display:block;margin:6px 0"><input id="qs_logs" type="checkbox"> Logs Tail</label>
+    <label style="display:block;margin:6px 0"><input id="qs_footer" type="checkbox"> Status Footer</label>
+    <label style="display:block;margin:6px 0"><input id="qs_rd" type="checkbox"> Real‑Debrid</label>
+    <label style="display:block;margin:6px 0"><input id="qs_native" type="checkbox"> Native Downloader</label>
+    <label style="display:block;margin:6px 0"><input id="qs_limit" type="checkbox"> Bandwidth Limiter</label>
+    <div style="display:flex;gap:8px;margin-top:8px"><button id="qs-save" style="flex:1;background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px">Save</button><button id="qs-cancel" style="flex:1;background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px">Close</button></div>
+    <div id="qs-msg" style="margin-top:6px;color:#9ca3af"></div>
+  </div>
+</div>
+<script>
+async function qsLoad(){
+  try{
+    const f=await (await fetch('/api/flags')).json();
+    document.getElementById('qs_bundle').checked=!!f.enable_package_grouping;
+    document.getElementById('qs_dl').checked=!!f.enable_download_drawer;
+    document.getElementById('qs_down').checked=!!f.enable_downloader;
+    document.getElementById('qs_rss').checked=!!f.enable_rss;
+    document.getElementById('qs_logs').checked=!!f.enable_logs_tail;
+    document.getElementById('qs_footer').checked=!!f.enable_status_footer;
+    document.getElementById('qs_rd').checked=!!f.enable_real_debrid;
+    document.getElementById('qs_native').checked=!!f.enable_native_downloader;
+    const c=await (await fetch('/api/config')).json();
+    document.getElementById('qs_limit').checked=!!(c.bandwidth && c.bandwidth.enabled);
+  }catch(e){}
+}
+async function qsSave(){
+  try{
+    // flags
+    const body={
+      enable_package_grouping: document.getElementById('qs_bundle').checked,
+      enable_download_drawer: document.getElementById('qs_dl').checked,
+      enable_downloader: document.getElementById('qs_down').checked,
+      enable_rss: document.getElementById('qs_rss').checked,
+      enable_logs_tail: document.getElementById('qs_logs').checked,
+      enable_status_footer: document.getElementById('qs_footer').checked,
+      enable_real_debrid: document.getElementById('qs_rd').checked,
+      enable_native_downloader: document.getElementById('qs_native').checked
+    };
+    await fetch('/api/flags',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    // limiter
+    await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bandwidth:{enabled: document.getElementById('qs_limit').checked}})});
+    document.getElementById('qs-msg').textContent='Saved. Some changes may require refresh.';
+  }catch(e){
+    document.getElementById('qs-msg').textContent='Save failed (API key set?)';
+  }
+}
+(function(){
+  const btn=document.getElementById('qs-btn'); const p=document.getElementById('qs-panel'); const save=document.getElementById('qs-save'); const close=document.getElementById('qs-cancel');
+  btn.addEventListener('click', ()=>{ p.style.display = p.style.display==='none' ? 'block':'none'; if(p.style.display==='block'){ qsLoad(); } });
+  save.addEventListener('click', qsSave);
+  close.addEventListener('click', ()=>{ p.style.display='none'; });
+  // preload if already open
+  if(p.style.display!=='none'){ qsLoad(); }
+})();
+</script>
+<script src="assets/table_prefs.js"></script>
+<script src="assets/rails_pinning.js">
+async function selectAllInFolder(p){
+  const folder = prompt('Folder name to select (leave blank for package save_path):', p.save_path||'');
+  const checks=[...document.querySelectorAll('#pkg-list input[type=checkbox]')];
+  checks.forEach(c=>{ const path=c.dataset.item||''; if(!folder || path.startsWith(folder)) c.checked=true; });
+}
+async function bulkMove(pkg){
+  const path=prompt('Move selected items to path:', '');
+  if(!path) return;
+  const checks=[...document.querySelectorAll('#pkg-list input[type=checkbox]')].filter(c=>c.checked && c.dataset.pkg===pkg);
+  const items=checks.map(c=>c.dataset.item);
+  const r=await fetch('/api/packages/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:pkg, fields:{ save_path: path, items: items }})});
+  await loadPkgs();
+}
+async function bulkTag(pkg){
+  const tag=prompt('Tag to apply:', '');
+  if(!tag) return;
+  const r=await fetch('/api/packages/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:pkg, fields:{ tags:[tag] }})});
+  await loadPkgs();
+}
+function exportList(p){
+  const blob=new Blob([ (p.items||[]).join('\n') ], {type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(p.name||'bundle')+'.txt'; a.click();
+}
+</script>
+
+<script>
+async function loadPolishRails(){
+  try{
+    const f=await (await fetch('/api/flags')).json();
+    if(!f.enable_rails_polish) return;
+    const j=await (await fetch('/api/rails/polish')).json();
+    const rails=(j.rails||[]); if(!rails.length) return;
+    const area=document.querySelector('#rails, .rails, [data-rails]') || document.body;
+    rails.forEach(r=>{
+      const card=document.createElement('div'); card.setAttribute('data-rail-id', r.id||('rail_'+Math.random().toString(36).slice(2)));
+      card.style='border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px';
+      card.innerHTML=`<h3 style='margin:0 0 6px 0'>${r.title||'Rail'}</h3>`;
+      const list=document.createElement('div'); list.style='display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px';
+      (r.items||[]).forEach(it=>{ const cell=document.createElement('div'); cell.style='background:#0b1220;border:1px solid #334155;border-radius:10px;padding:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'; cell.title=it.title||it.path||''; cell.textContent=it.title||it.path||''; list.appendChild(cell); });
+      card.appendChild(list); area.appendChild(card);
+    });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', loadPolishRails);
+</script>
+<script src="assets/hero_immersion.js"></script>
+
+<script>
+async function loadPinned(){
+  const f=await (await fetch('/api/flags')).json(); if(!f.enable_pinned_subcats) return;
+  const data=await (await fetch('/api/pins')).json();
+  const area=document.querySelector('#rails, .rails, [data-rails]') || document.body;
+  Object.entries(data).forEach(([k,arr])=>{
+    const card=document.createElement('div'); card.setAttribute('data-rail-id','pins_'+k);
+    card.style='border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px';
+    card.innerHTML=`<h3 style='margin:0 0 6px 0'>Pinned — ${k.toUpperCase()}</h3>`;
+    const list=document.createElement('div'); list.style='display:flex;gap:8px;flex-wrap:wrap';
+    (arr||[]).forEach(name=>{ const b=document.createElement('button'); b.textContent=name; b.style='background:#0b1220;border:1px solid #334155;color:#cbd5e1;border-radius:10px;padding:6px 10px'; list.appendChild(b); });
+    card.appendChild(list); area.appendChild(card);
+  });
+}
+document.addEventListener('DOMContentLoaded', loadPinned);
+</script>
+
+<script src="assets/footer_graph.js"></script>
+<script src="assets/table_grouping_progress.js"></script>
+
+<script>
+async function loadPolishRailsExt(){
+  try{
+    const f=await (await fetch('/api/flags')).json();
+    if(!f.enable_rails_polish) return;
+    const j=await (await fetch('/api/rails/polish_ext')).json();
+    const rails=(j.rails||[]); if(!rails.length) return;
+    const area=document.querySelector('#rails, .rails, [data-rails]') || document.body;
+    rails.forEach(r=>{
+      const card=document.createElement('div'); card.setAttribute('data-rail-id', r.id||('rail_'+Math.random().toString(36).slice(2)));
+      card.style='border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px';
+      card.innerHTML=`<h3 style='margin:0 0 6px 0'>${r.title||'Rail'}</h3>`;
+      const list=document.createElement('div'); list.style='display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px';
+      (r.items||[]).forEach(it=>{ const cell=document.createElement('div'); cell.style='background:#0b1220;border:1px solid #334155;border-radius:10px;padding:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'; cell.title=it.title||it.path||''; cell.textContent=it.title||it.path||''; list.appendChild(cell); });
+      card.appendChild(list); area.appendChild(card);
+    });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', loadPolishRailsExt);
+</script>
+
+<script>
+async function loadKidsRails(){
+  try{
+    const f=await (await fetch('/api/flags')).json(); if(!f.enable_kids_age_rails) return;
+    const j=await (await fetch('/api/rails/kids')).json();
+    const rails=(j.rails||[]); if(!rails.length) return;
+    const area=document.querySelector('#rails, .rails, [data-rails]') || document.body;
+    rails.forEach(r=>{
+      const card=document.createElement('div'); card.setAttribute('data-rail-id', r.id||('rail_'+Math.random().toString(36).slice(2)));
+      card.style='border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px';
+      card.innerHTML=`<h3 style='margin:0 0 6px 0'>${r.title||'Rail'}</h3>`;
+      const list=document.createElement('div'); list.style='display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px';
+      (r.items||[]).forEach(it=>{ const cell=document.createElement('div'); cell.style='background:#0b1220;border:1px solid #334155;border-radius:10px;padding:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'; cell.title=it.title||it.path||''; cell.textContent=it.title||it.path||''; list.appendChild(cell); });
+      card.appendChild(list); area.appendChild(card);
+    });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', loadKidsRails);
+</script>
+
+<script>
+function openTimelineDrawer(name){
+  const wrap = document.createElement('div');
+  wrap.style='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;justify-content:flex-end';
+  const pane=document.createElement('div'); pane.style='width:520px;max-width:94vw;height:100%;background:#0f172a;border-left:1px solid #334155;padding:12px;overflow:auto';
+  pane.innerHTML = `<div style='display:flex;gap:8px;align-items:center'><h3 style='margin:0'>Timeline — ${name}</h3><span style='margin-left:auto'></span><button id='tl_close'>Close</button></div><div style='margin:8px 0'><label>Order <select id='tl_order'><option value='release'>Release</option><option value='custom'>Custom</option></select></label></div><div id='tl_list'></div>`;
+  wrap.appendChild(pane); document.body.appendChild(wrap);
+  document.getElementById('tl_close').onclick=()=>{ document.body.removeChild(wrap); };
+  async function load(){
+    const order=document.getElementById('tl_order').value;
+    const j=await (await fetch(`/api/collections/timeline?name=${encodeURIComponent(name)}&order=${order}`)).json();
+    const out=document.getElementById('tl_list'); out.innerHTML='';
+    (j.items||[]).forEach(it=>{
+      const row=document.createElement('div'); row.style='border:1px solid #334155;border-radius:10px;padding:8px;margin:6px 0;';
+      row.textContent = `${it.year||''} — ${it.title}`;
+      out.appendChild(row);
+    });
+  }
+  document.getElementById('tl_order').onchange=load; load();
+}
+</script>
+
+<div style="position:fixed;bottom:16px;right:16px"><a href="lists.html" style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:8px 12px;display:inline-block">Lists Directory</a></div>
+</body></html>

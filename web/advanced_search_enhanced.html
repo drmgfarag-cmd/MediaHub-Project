@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Search - MediaHub</title>
+  <link rel="stylesheet" href="assets/normalize.css">
+  <link rel="stylesheet" href="assets/ui.css">
+  <style>
+    .search-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .search-input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+    
+    #q {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+    }
+    
+    .search-btn {
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .search-btn:hover {
+      background: #0056b3;
+    }
+    
+    .btn-icon {
+      padding: 12px;
+      font-size: 20px;
+      background: #f8f9fa;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-icon:hover {
+      background: #e9ecef;
+      transform: scale(1.05);
+    }
+    
+    .btn-icon.listening {
+      background: #ff4444;
+      color: white;
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .voice-search-indicator {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 4px 12px;
+      background: #ff4444;
+      color: white;
+      border-radius: 4px;
+      font-size: 14px;
+      animation: pulse 1s infinite;
+    }
+    
+    .search-modes {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .mode-btn {
+      padding: 8px 16px;
+      background: #f8f9fa;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .mode-btn.active {
+      background: #007bff;
+      color: white;
+      border-color: #007bff;
+    }
+    
+    .result-item {
+      margin: 12px 0;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #007bff;
+    }
+    
+    .result-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    
+    .result-meta {
+      opacity: 0.8;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    
+    .result-path {
+      font-size: 12px;
+      opacity: 0.6;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="toolbar">
+      <a href="home.html">← Home</a> · <strong>Advanced Search</strong>
+    </div>
+    
+    <div class="card">
+      <h2>Search MediaHub</h2>
+      
+      <div class="search-modes">
+        <button class="mode-btn active" onclick="setSearchMode('text')">📝 Text Search</button>
+        <button class="mode-btn" onclick="visualSearch.openModal()">🖼️ Visual Search</button>
+      </div>
+      
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <input id="q" type="text" placeholder='e.g., type:movie year>=2020 "action"'>
+        </div>
+        <button id="voiceSearchBtn" class="btn-icon" title="Voice Search" aria-label="Voice Search">🎤</button>
+        <button id="go" class="search-btn">Search</button>
+      </div>
+      
+      <div>
+        <strong>Query syntax examples:</strong>
+        <ul>
+          <li><code>type:movie year>=2015 genre:action</code> - Movies from 2015+ in action genre</li>
+          <li><code>lang:AR path_re:(?i)\b4k\b</code> - Arabic content with 4K in path</li>
+          <li><code>"lord of the rings" type:movie</code> - Exact phrase search for movies</li>
+          <li><code>type:series year>=2020 "planet"</code> - TV series from 2020+ with "planet"</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div id="out" class="card" style="display: none;">
+      <h3>Search Results</h3>
+      <div id="resultsContainer"></div>
+    </div>
+  </div>
+  
+  <script src="assets/js/voice_search.js"></script>
+  <script src="assets/js/visual_search.js"></script>
+  <script>
+    let currentMode = 'text';
+    
+    function setSearchMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+    }
+    
+    async function run() {
+      const q = document.getElementById('q').value.trim();
+      if (!q) {
+        alert('Please enter a search query');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/search/advanced?q=' + encodeURIComponent(q) + '&n=300');
+        const data = await response.json();
+        
+        const out = document.getElementById('out');
+        const container = document.getElementById('resultsContainer');
+        
+        if (!data.items || data.items.length === 0) {
+          container.innerHTML = '<p>No results found</p>';
+        } else {
+          container.innerHTML = '<div style="margin-bottom: 16px;"><strong>' + data.count + '</strong> results found</div>' + 
+            (data.items || []).map(it => `
+              <div class="result-item">
+                <div class="result-title">${it.title || it.path || 'Untitled'}</div>
+                <div class="result-meta">${it.type || 'Unknown'} · ${it.year || 'N/A'}</div>
+                <div class="result-path">${it.path || ''}</div>
+              </div>
+            `).join('');
+        }
+        
+        out.style.display = 'block';
+        
+      } catch (error) {
+        console.error('Search error:', error);
+        alert('Search failed: ' + error.message);
+      }
+    }
+    
+    document.getElementById('go').onclick = run;
+    document.getElementById('q').addEventListener('keydown', e => {
+      if (e.key === 'Enter') run();
+    });
+    
+    // Initialize voice search with custom input ID
+    initVoiceSearchButton('q');
+  </script>
+</body>
+</html>

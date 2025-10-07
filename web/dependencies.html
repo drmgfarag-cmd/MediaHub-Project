@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Dependencies</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Dependencies</strong></div>
+  <div class="card"><h3>7‑Zip</h3>
+    <div>Status: <span id="s7">—</span></div>
+    <input id="p7" placeholder="Path to 7z/7z.exe" style="width:320px"> 
+    <button id="l7">Locate</button> <button id="i7">Install placeholder</button>
+  </div>
+  <div class="card"><h3>FFmpeg</h3>
+    <div>Status: <span id="sf">—</span></div>
+    <input id="pf" placeholder="Path to ffmpeg" style="width:320px">
+    <button id="lf">Locate</button> <button id="if">Install placeholder</button>
+  </div>
+</div>
+<script>
+async function refresh(){
+  const j=await (await fetch('/api/sys/deps_get')).json();
+  s7.textContent = (j['7zip'].installed? 'Installed' : 'Missing') + (j['7zip'].path? ' ('+j['7zip'].path+')':'');
+  sf.textContent = (j['ffmpeg'].installed? 'Installed' : 'Missing') + (j['ffmpeg'].path? ' ('+j['ffmpeg'].path+')':'');
+  p7.value=j['7zip'].path||''; pf.value=j['ffmpeg'].path||'';
+}
+l7.onclick=async ()=>{ await fetch('/api/sys/deps_locate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'7zip', path: p7.value})}); refresh(); };
+lf.onclick=async ()=>{ await fetch('/api/sys/deps_locate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'ffmpeg', path: pf.value})}); refresh(); };
+i7.onclick=async ()=>{ await fetch('/api/sys/deps_install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'7zip'})}); refresh(); };
+if.onclick=async ()=>{ await fetch('/api/sys/deps_install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'ffmpeg'})}); refresh(); };
+document.addEventListener('DOMContentLoaded', refresh);
+</script>
+</body></html>

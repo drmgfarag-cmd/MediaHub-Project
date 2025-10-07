@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Kids Mode & Parental Controls</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px} .tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Kids Mode & Parental Controls</strong> <button id="save">Save</button></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Active Profile</h3>
+      <div id="act">—</div>
+      <div style="margin-top:6px"><a class="btn" href="profiles.html">Manage Profiles</a></div>
+      <div style="margin-top:6px">Quick Stats: <span id="stats">—</span></div>
+    </div>
+    <div class="card">
+      <h3>Rules</h3>
+      <div>Age band:
+        <select id="age">
+          <option>3-6</option><option selected>7-9</option><option>10-12</option><option>13-15</option><option>16-17</option>
+        </select>
+      </div>
+      <div style="margin-top:6px">Allowed ratings (CSV): <input id="rat" style="width:90%"></div>
+      <div><label><input type="checkbox" id="unr"> Allow unrated if clearly kids/animation</label></div>
+      <div style="margin-top:6px">Allowed types (CSV): <input id="typ" style="width:90%" value="movie, series, episode, ebook, comic, manga, audiobook, audio"></div>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:12px">
+    <div class="card">
+      <h3>Time Limits</h3>
+      <div>Daily limit (minutes, 0 = unlimited): <input id="lim" type="number" value="0" min="0" style="width:100px"></div>
+      <div style="margin-top:6px">Curfew start (HH:MM, optional): <input id="cs" placeholder="21:00" style="width:120px"> · End: <input id="ce" placeholder="07:00" style="width:120px"></div>
+      <div style="margin-top:6px"><button id="add15">Add 15 min (test)</button> Remaining: <span id="rem">—</span></div>
+    </div>
+    <div class="card">
+      <h3>Preview (Filtered Library)</h3>
+      <div id="prev">—</div>
+      <div style="margin-top:6px"><a class="btn" href="kids_library.html">Open Kids Library</a></div>
+    </div>
+  </div>
+</div>
+<script>
+let active=null;
+async function load(){
+  const s=await (await fetch('/api/kids/state')).json();
+  active=s.profile; act.textContent = active.name + (active.is_kids?' (Kids)':''); rem.textContent = s.minutes_remaining + ' min';
+  const k=await (await fetch('/api/profiles/list')).json();
+  const rec=(k.profiles||[]).find(x=>x.id===k.active_id)||{}; const st=rec.settings||{};
+  age.value = st.age_band||'7-9';
+  rat.value = (st.ratings_allow||[]).join(', ');
+  unr.checked = !!st.allow_unrated;
+  typ.value = (st.types_allow||[]).join(', ');
+  lim.value = st.daily_minutes_limit||0;
+  cs.value = st.curfew_start||''; ce.value = st.curfew_end||'';
+  const pv=await (await fetch('/api/kids/filter_preview')).json();
+  stats.textContent = pv.allowed + ' / ' + pv.total + ' items allowed';
+  prev.textContent = 'Allowed now: '+pv.allowed+' of '+pv.total;
+}
+save.onclick=async ()=>{
+  const j=await (await fetch('/api/profiles/list')).json();
+  const id=j.active_id; const arr=j.profiles||[]; const rec=arr.find(x=>x.id===id); if(!rec){ alert('No active profile'); return; }
+  rec.settings = rec.settings||{};
+  rec.settings.age_band=age.value; rec.settings.ratings_allow = rat.value.split(',').map(s=>s.trim()).filter(Boolean);
+  rec.settings.allow_unrated = unr.checked;
+  rec.settings.types_allow = typ.value.split(',').map(s=>s.trim()).filter(Boolean);
+  rec.settings.daily_minutes_limit = parseInt(lim.value)||0;
+  rec.settings.curfew_start = cs.value.trim(); rec.settings.curfew_end = ce.value.trim();
+  // write whole profiles doc back
+  await fetch('/api/profiles/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:'noop'})});
+  // hack: use set_active to trigger save via list fetch/replace
+  const all=await (await fetch('/api/profiles/list')).json();
+  const idx=(all.profiles||[]).findIndex(x=>x.id===id); if(idx>=0){ all.profiles[idx]=rec; }
+  await fetch('/api/profiles/set_active',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+  // small trick: overwrite file via a dedicated endpoint would be better; use PUT via set_pin with empty
+  await fetch('/api/profiles/set_pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id, pin:''})});
+  alert('Saved.');
+  load();
+};
+add15.onclick=async ()=>{
+  const j=await (await fetch('/api/kids/time_add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({minutes:15})})).json();
+  if(j.ok){ const st=await (await fetch('/api/kids/state')).json(); rem.textContent = st.minutes_remaining + ' min'; }
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

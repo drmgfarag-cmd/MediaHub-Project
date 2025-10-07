@@ -1,0 +1,970 @@
+"""
+Phase 4: RSS Automation & Quality Management
+Implements advanced RSS feed automation, quality profiles, and automatic content acquisition
+"""
+
+from flask import Blueprint, request, jsonify
+import os
+import json
+import sqlite3
+import requests
+import feedparser
+import re
+from datetime import datetime, timedelta
+import threading
+import time
+import hashlib
+from urllib.parse import urlparse, parse_qs
+
+rss_automation_bp = Blueprint('rss_automation', __name__)
+
+# Configuration
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+STORAGE = os.path.join(ROOT, 'storage')
+RSS_DB = os.path.join(STORAGE, 'rss_automation.db')
+QUALITY_PROFILES = os.path.join(STORAGE, 'quality_profiles.json')
+
+def init_rss_automation_db():
+    """Initialize RSS automation database"""
+    conn = sqlite3.connect(RSS_DB)
+    cursor = conn.cursor()
+    
+    # RSS feeds table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rss_feeds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            url TEXT NOT NULL,
+            feed_type TEXT, -- tv, movies, books, comics, music
+            quality_profile_id INTEGER,
+            enabled BOOLEAN DEFAULT TRUE,
+            auto_download BOOLEAN DEFAULT FALSE,
+            last_checked TIMESTAMP,
+            last_updated TIMESTAMP,
+            check_interval INTEGER DEFAULT 3600, -- seconds
+            max_age_days INTEGER DEFAULT 30,
+            include_patterns TEXT, -- JSON array of regex patterns
+            exclude_patterns TEXT, -- JSON array of regex patterns
+            custom_headers TEXT, -- JSON object
+            authentication TEXT, -- JSON object
+            metadata_json TEXT,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # RSS feed items/episodes
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rss_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            feed_id INTEGER NOT NULL,
+            guid TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            link TEXT,
+            magnet_link TEXT,
+            torrent_url TEXT,
+            pub_date TIMESTAMP,
+            size_bytes INTEGER,
+            seeders INTEGER,
+            leechers INTEGER,
+            quality_score INTEGER,
+            scene_group TEXT,
+            resolution TEXT,
+            codec TEXT,
+            source TEXT,
+            season_number INTEGER,
+            episode_number INTEGER,
+            episode_title TEXT,
+            series_name TEXT,
+            imdb_id TEXT,
+            tvdb_id INTEGER,
+            status TEXT DEFAULT 'new', -- new, downloading, downloaded, failed, ignored
+            download_started TIMESTAMP,
+            download_completed TIMESTAMP,
+            file_path TEXT,
+            rd_id TEXT,
+            metadata_json TEXT,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (feed_id) REFERENCES rss_feeds(id),
+            UNIQUE(feed_id, guid)
+        )
+    ''')
+    
+    # Quality profiles
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS quality_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT,
+            config_json TEXT NOT NULL,
+            is_default BOOLEAN DEFAULT FALSE,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Scene groups with scoring
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS scene_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            tier INTEGER DEFAULT 2, -- 1=premium, 2=standard, 3=low, 0=blocked
+            base_score INTEGER DEFAULT 50,
+            specialties TEXT, -- JSON array
+            quality_bonus INTEGER DEFAULT 0,
+            reliability_score INTEGER DEFAULT 50,
+            notes TEXT,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Download queue
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS download_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rss_item_id INTEGER NOT NULL,
+            priority INTEGER DEFAULT 5,
+            status TEXT DEFAULT 'queued', -- queued, downloading, completed, failed, paused
+            progress REAL DEFAULT 0.0,
+            download_speed INTEGER DEFAULT 0,
+            eta_seconds INTEGER,
+            error_message TEXT,
+            retry_count INTEGER DEFAULT 0,
+            max_retries INTEGER DEFAULT 3,
+            added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            started_date TIMESTAMP,
+            completed_date TIMESTAMP,
+            FOREIGN KEY (rss_item_id) REFERENCES rss_items(id)
+        )
+    ''')
+    
+    # Automation rules
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS automation_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT,
+            rule_type TEXT NOT NULL, -- series_monitor, movie_watchlist, book_series
+            conditions_json TEXT NOT NULL,
+            actions_json TEXT NOT NULL,
+            enabled BOOLEAN DEFAULT TRUE,
+            priority INTEGER DEFAULT 5,
+            last_triggered TIMESTAMP,
+            trigger_count INTEGER DEFAULT 0,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Series monitoring
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS series_monitoring (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            series_name TEXT NOT NULL,
+            imdb_id TEXT,
+            tvdb_id INTEGER,
+            quality_profile_id INTEGER,
+            monitor_status TEXT DEFAULT 'active', -- active, paused, completed, cancelled
+            current_season INTEGER,
+            current_episode INTEGER,
+            auto_search BOOLEAN DEFAULT TRUE,
+            search_cutoff_date DATE,
+            preferred_language TEXT DEFAULT 'en',
+            subtitle_languages TEXT, -- JSON array
+            metadata_json TEXT,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (quality_profile_id) REFERENCES quality_profiles(id)
+        )
+    ''')
+    
+    # Create indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_rss_items_status ON rss_items(status)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_rss_items_pub_date ON rss_items(pub_date)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_rss_items_series ON rss_items(series_name, season_number, episode_number)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_download_queue_status ON download_queue(status)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_series_monitoring_status ON series_monitoring(monitor_status)')
+    
+    conn.commit()
+    conn.close()
+
+# Initialize database on import
+init_rss_automation_db()
+
+@rss_automation_bp.route('/api/rss/feeds')
+def get_rss_feeds():
+    """Get all RSS feeds with status"""
+    try:
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT f.*, qp.name as quality_profile_name,
+                   COUNT(ri.id) as total_items,
+                   COUNT(CASE WHEN ri.status = 'downloaded' THEN 1 END) as downloaded_items,
+                   COUNT(CASE WHEN ri.status = 'downloading' THEN 1 END) as downloading_items
+            FROM rss_feeds f
+            LEFT JOIN quality_profiles qp ON f.quality_profile_id = qp.id
+            LEFT JOIN rss_items ri ON f.id = ri.feed_id
+            GROUP BY f.id
+            ORDER BY f.name
+        ''')
+        
+        columns = [description[0] for description in cursor.description]
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        # Process JSON fields
+        for result in results:
+            for field in ['include_patterns', 'exclude_patterns', 'custom_headers', 'authentication', 'metadata_json']:
+                if result.get(field):
+                    try:
+                        result[field] = json.loads(result[field])
+                    except:
+                        result[field] = None
+        
+        conn.close()
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# DUPLICATE REMOVED: @rss_automation_bp.route('/api/rss/feeds', methods=['POST'])
+# DUPLICATE REMOVED: def create_rss_feed():
+    """Create new RSS feed"""
+    try:
+        data = request.get_json()
+        
+        required_fields = ['name', 'url', 'feed_type']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+        
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO rss_feeds (
+                name, url, feed_type, quality_profile_id, enabled, auto_download,
+                check_interval, max_age_days, include_patterns, exclude_patterns,
+                custom_headers, authentication, metadata_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            data['name'],
+            data['url'],
+            data['feed_type'],
+            data.get('quality_profile_id'),
+            data.get('enabled', True),
+            data.get('auto_download', False),
+            data.get('check_interval', 3600),
+            data.get('max_age_days', 30),
+            json.dumps(data.get('include_patterns', [])),
+            json.dumps(data.get('exclude_patterns', [])),
+            json.dumps(data.get('custom_headers', {})),
+            json.dumps(data.get('authentication', {})),
+            json.dumps(data.get('metadata', {}))
+        ))
+        
+        feed_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        # Trigger initial feed check
+        check_rss_feed(feed_id)
+        
+        return jsonify({'id': feed_id, 'message': 'RSS feed created successfully'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@rss_automation_bp.route('/api/rss/feeds/<int:feed_id>/check', methods=['POST'])
+def check_feed_manually(feed_id):
+    """Manually check RSS feed for new items"""
+    try:
+        result = check_rss_feed(feed_id)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@rss_automation_bp.route('/api/rss/items')
+def get_rss_items():
+    """Get RSS items with filtering"""
+    try:
+        feed_id = request.args.get('feed_id', type=int)
+        status = request.args.get('status')
+        series_name = request.args.get('series')
+        season = request.args.get('season', type=int)
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
+        
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        query = '''
+            SELECT ri.*, f.name as feed_name, qp.name as quality_profile_name
+            FROM rss_items ri
+            JOIN rss_feeds f ON ri.feed_id = f.id
+            LEFT JOIN quality_profiles qp ON f.quality_profile_id = qp.id
+            WHERE 1=1
+        '''
+        params = []
+        
+        if feed_id:
+            query += ' AND ri.feed_id = ?'
+            params.append(feed_id)
+        
+        if status:
+            query += ' AND ri.status = ?'
+            params.append(status)
+        
+        if series_name:
+            query += ' AND ri.series_name LIKE ?'
+            params.append(f'%{series_name}%')
+        
+        if season:
+            query += ' AND ri.season_number = ?'
+            params.append(season)
+        
+        # Get total count
+        count_query = query.replace('SELECT ri.*, f.name as feed_name, qp.name as quality_profile_name', 'SELECT COUNT(*)')
+        cursor.execute(count_query, params)
+        total = cursor.fetchone()[0]
+        
+        # Add sorting and pagination
+        query += ' ORDER BY ri.pub_date DESC LIMIT ? OFFSET ?'
+        offset = (page - 1) * limit
+        params.extend([limit, offset])
+        
+        cursor.execute(query, params)
+        columns = [description[0] for description in cursor.description]
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        # Process JSON fields
+        for result in results:
+            if result.get('metadata_json'):
+                try:
+                    result['metadata'] = json.loads(result['metadata_json'])
+                except:
+                    result['metadata'] = {}
+        
+        conn.close()
+        
+        return jsonify({
+            'items': results,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'pages': (total + limit - 1) // limit
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@rss_automation_bp.route('/api/rss/quality-profiles')
+def get_quality_profiles():
+    """Get all quality profiles"""
+    try:
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT qp.*, COUNT(f.id) as feed_count
+            FROM quality_profiles qp
+            LEFT JOIN rss_feeds f ON qp.id = f.quality_profile_id
+            GROUP BY qp.id
+            ORDER BY qp.is_default DESC, qp.name
+        ''')
+        
+        columns = [description[0] for description in cursor.description]
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        # Process config JSON
+        for result in results:
+            if result.get('config_json'):
+                try:
+                    result['config'] = json.loads(result['config_json'])
+                except:
+                    result['config'] = {}
+        
+        conn.close()
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# DUPLICATE REMOVED: @rss_automation_bp.route('/api/rss/quality-profiles', methods=['GET'])
+# DUPLICATE REMOVED: def create_quality_profile():
+    """Create new quality profile"""
+    try:
+        data = request.get_json()
+        
+        if not data.get('name') or not data.get('config'):
+            return jsonify({'error': 'Name and config are required'}), 400
+        
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        # If this is set as default, unset other defaults
+        if data.get('is_default'):
+            cursor.execute('UPDATE quality_profiles SET is_default = FALSE')
+        
+        cursor.execute('''
+            INSERT INTO quality_profiles (name, description, config_json, is_default)
+            VALUES (?, ?, ?, ?)
+        ''', (
+            data['name'],
+            data.get('description', ''),
+            json.dumps(data['config']),
+            data.get('is_default', False)
+        ))
+        
+        profile_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'id': profile_id, 'message': 'Quality profile created successfully'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@rss_automation_bp.route('/api/rss/series-monitoring')
+def get_series_monitoring():
+    """Get all monitored series"""
+    try:
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT sm.*, qp.name as quality_profile_name,
+                   COUNT(ri.id) as available_episodes,
+                   COUNT(CASE WHEN ri.status = 'downloaded' THEN 1 END) as downloaded_episodes
+            FROM series_monitoring sm
+            LEFT JOIN quality_profiles qp ON sm.quality_profile_id = qp.id
+            LEFT JOIN rss_items ri ON sm.series_name = ri.series_name
+            GROUP BY sm.id
+            ORDER BY sm.series_name
+        ''')
+        
+        columns = [description[0] for description in cursor.description]
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        # Process JSON fields
+        for result in results:
+            for field in ['subtitle_languages', 'metadata_json']:
+                if result.get(field):
+                    try:
+                        result[field] = json.loads(result[field])
+                    except:
+                        result[field] = None
+        
+        conn.close()
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# DUPLICATE REMOVED: @rss_automation_bp.route('/api/rss/series-monitoring', methods=['GET'])
+# DUPLICATE REMOVED: def add_series_monitoring():
+    """Add series to monitoring"""
+    try:
+        data = request.get_json()
+        
+        if not data.get('series_name'):
+            return jsonify({'error': 'Series name is required'}), 400
+        
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO series_monitoring (
+                series_name, imdb_id, tvdb_id, quality_profile_id, monitor_status,
+                current_season, current_episode, auto_search, search_cutoff_date,
+                preferred_language, subtitle_languages, metadata_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            data['series_name'],
+            data.get('imdb_id'),
+            data.get('tvdb_id'),
+            data.get('quality_profile_id'),
+            data.get('monitor_status', 'active'),
+            data.get('current_season', 1),
+            data.get('current_episode', 1),
+            data.get('auto_search', True),
+            data.get('search_cutoff_date'),
+            data.get('preferred_language', 'en'),
+            json.dumps(data.get('subtitle_languages', ['en'])),
+            json.dumps(data.get('metadata', {}))
+        ))
+        
+        series_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'id': series_id, 'message': 'Series added to monitoring'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@rss_automation_bp.route('/api/rss/download-queue')
+def get_download_queue():
+    """Get current download queue"""
+    try:
+        status = request.args.get('status')
+        
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        query = '''
+            SELECT dq.*, ri.title, ri.series_name, ri.season_number, ri.episode_number,
+                   f.name as feed_name
+            FROM download_queue dq
+            JOIN rss_items ri ON dq.rss_item_id = ri.id
+            JOIN rss_feeds f ON ri.feed_id = f.id
+            WHERE 1=1
+        '''
+        params = []
+        
+        if status:
+            query += ' AND dq.status = ?'
+            params.append(status)
+        
+        query += ' ORDER BY dq.priority DESC, dq.added_date ASC'
+        
+        cursor.execute(query, params)
+        columns = [description[0] for description in cursor.description]
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        conn.close()
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@rss_automation_bp.route('/api/rss/automation/start', methods=['POST'])
+def start_rss_automation():
+    """Start RSS automation background process"""
+    try:
+        # Start background thread for RSS automation
+        automation_thread = threading.Thread(target=rss_automation_worker, daemon=True)
+        automation_thread.start()
+        
+        return jsonify({'message': 'RSS automation started'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Helper functions
+
+def check_rss_feed(feed_id):
+    """Check RSS feed for new items"""
+    conn = sqlite3.connect(RSS_DB)
+    cursor = conn.cursor()
+    
+    # Get feed info
+    cursor.execute('SELECT * FROM rss_feeds WHERE id = ? AND enabled = TRUE', (feed_id,))
+    feed = cursor.fetchone()
+    
+    if not feed:
+        return {'error': 'Feed not found or disabled'}
+    
+    feed_columns = [description[0] for description in cursor.description]
+    feed_data = dict(zip(feed_columns, feed))
+    
+    try:
+        # Parse RSS feed
+        headers = json.loads(feed_data.get('custom_headers') or '{}')
+        response = requests.get(feed_data['url'], headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        parsed_feed = feedparser.parse(response.content)
+        
+        new_items = 0
+        processed_items = 0
+        
+        for entry in parsed_feed.entries:
+            processed_items += 1
+            
+            # Extract item data
+            item_data = extract_rss_item_data(entry, feed_data)
+            
+            # Check if item already exists
+            cursor.execute('SELECT id FROM rss_items WHERE feed_id = ? AND guid = ?', 
+                          (feed_id, item_data['guid']))
+            
+            if cursor.fetchone():
+                continue  # Item already exists
+            
+            # Apply filters
+            if not passes_filters(item_data, feed_data):
+                continue
+            
+            # Calculate quality score
+            quality_score = calculate_quality_score(item_data, feed_data.get('quality_profile_id'))
+            item_data['quality_score'] = quality_score
+            
+            # Insert new item
+            cursor.execute('''
+                INSERT INTO rss_items (
+                    feed_id, guid, title, description, link, magnet_link, torrent_url,
+                    pub_date, size_bytes, seeders, leechers, quality_score, scene_group,
+                    resolution, codec, source, season_number, episode_number, episode_title,
+                    series_name, imdb_id, tvdb_id, metadata_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                feed_id, item_data['guid'], item_data['title'], item_data['description'],
+                item_data['link'], item_data['magnet_link'], item_data['torrent_url'],
+                item_data['pub_date'], item_data['size_bytes'], item_data['seeders'],
+                item_data['leechers'], item_data['quality_score'], item_data['scene_group'],
+                item_data['resolution'], item_data['codec'], item_data['source'],
+                item_data['season_number'], item_data['episode_number'], item_data['episode_title'],
+                item_data['series_name'], item_data['imdb_id'], item_data['tvdb_id'],
+                json.dumps(item_data.get('metadata', {}))
+            ))
+            
+            item_id = cursor.lastrowid
+            new_items += 1
+            
+            # Auto-download if enabled
+            if feed_data['auto_download'] and should_auto_download(item_data, feed_data):
+                add_to_download_queue(cursor, item_id, priority=calculate_download_priority(item_data))
+        
+        # Update feed last checked
+        cursor.execute('UPDATE rss_feeds SET last_checked = CURRENT_TIMESTAMP WHERE id = ?', (feed_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            'success': True,
+            'processed_items': processed_items,
+            'new_items': new_items,
+            'feed_name': feed_data['name']
+        }
+        
+    except Exception as e:
+        conn.close()
+        return {'error': str(e)}
+
+def extract_rss_item_data(entry, feed_data):
+    """Extract data from RSS entry"""
+    item_data = {
+        'guid': entry.get('id', entry.get('guid', entry.get('link', ''))),
+        'title': entry.get('title', ''),
+        'description': entry.get('description', entry.get('summary', '')),
+        'link': entry.get('link', ''),
+        'magnet_link': '',
+        'torrent_url': '',
+        'pub_date': None,
+        'size_bytes': 0,
+        'seeders': 0,
+        'leechers': 0,
+        'scene_group': '',
+        'resolution': '',
+        'codec': '',
+        'source': '',
+        'season_number': None,
+        'episode_number': None,
+        'episode_title': '',
+        'series_name': '',
+        'imdb_id': '',
+        'tvdb_id': None,
+        'metadata': {}
+    }
+    
+    # Parse publication date
+    if hasattr(entry, 'published_parsed') and entry.published_parsed:
+        item_data['pub_date'] = datetime(*entry.published_parsed[:6]).isoformat()
+    
+    # Extract magnet link
+    for link in entry.get('links', []):
+        if link.get('type') == 'application/x-bittorrent':
+            item_data['torrent_url'] = link.get('href', '')
+        elif link.get('href', '').startswith('magnet:'):
+            item_data['magnet_link'] = link.get('href', '')
+    
+    # Parse title for metadata
+    title = item_data['title']
+    
+    # Extract series info for TV shows
+    if feed_data['feed_type'] == 'tv':
+        series_match = re.search(r'^(.+?)[.\s]+[Ss](\d+)[Ee](\d+)', title)
+        if series_match:
+            item_data['series_name'] = series_match.group(1).replace('.', ' ').strip()
+            item_data['season_number'] = int(series_match.group(2))
+            item_data['episode_number'] = int(series_match.group(3))
+    
+    # Extract quality info
+    quality_patterns = {
+        'resolution': [
+            (r'2160p|4K|UHD', '2160p'),
+            (r'1080p|FHD', '1080p'),
+            (r'720p|HD', '720p'),
+            (r'480p|SD', '480p')
+        ],
+        'codec': [
+            (r'[Hh]\.?265|HEVC', 'HEVC'),
+            (r'[Hh]\.?264|AVC', 'H.264'),
+            (r'XviD', 'XviD'),
+            (r'DivX', 'DivX')
+        ],
+        'source': [
+            (r'BluRay|BDRip|BRRip', 'BluRay'),
+            (r'WEB-DL|WEBDL', 'WEB-DL'),
+            (r'WEBRip', 'WEBRip'),
+            (r'HDTV', 'HDTV'),
+            (r'DVDRip|DVD', 'DVD')
+        ]
+    }
+    
+    for field, patterns in quality_patterns.items():
+        for pattern, value in patterns:
+            if re.search(pattern, title, re.IGNORECASE):
+                item_data[field] = value
+                break
+    
+    # Extract scene group
+    scene_match = re.search(r'-([A-Za-z0-9]+)$', title)
+    if scene_match:
+        item_data['scene_group'] = scene_match.group(1)
+    
+    # Extract size from description or enclosure
+    size_match = re.search(r'Size:\s*([0-9.]+)\s*(GB|MB)', item_data['description'], re.IGNORECASE)
+    if size_match:
+        size_value = float(size_match.group(1))
+        size_unit = size_match.group(2).upper()
+        if size_unit == 'GB':
+            item_data['size_bytes'] = int(size_value * 1024 * 1024 * 1024)
+        elif size_unit == 'MB':
+            item_data['size_bytes'] = int(size_value * 1024 * 1024)
+    
+    # Extract seeders/leechers
+    seeders_match = re.search(r'Seeders:\s*(\d+)', item_data['description'], re.IGNORECASE)
+    if seeders_match:
+        item_data['seeders'] = int(seeders_match.group(1))
+    
+    leechers_match = re.search(r'Leechers:\s*(\d+)', item_data['description'], re.IGNORECASE)
+    if leechers_match:
+        item_data['leechers'] = int(leechers_match.group(1))
+    
+    return item_data
+
+def passes_filters(item_data, feed_data):
+    """Check if item passes include/exclude filters"""
+    title = item_data['title']
+    
+    # Check include patterns
+    include_patterns = json.loads(feed_data.get('include_patterns') or '[]')
+    if include_patterns:
+        if not any(re.search(pattern, title, re.IGNORECASE) for pattern in include_patterns):
+            return False
+    
+    # Check exclude patterns
+    exclude_patterns = json.loads(feed_data.get('exclude_patterns') or '[]')
+    if exclude_patterns:
+        if any(re.search(pattern, title, re.IGNORECASE) for pattern in exclude_patterns):
+            return False
+    
+    # Check age
+    if item_data['pub_date'] and feed_data.get('max_age_days'):
+        pub_date = datetime.fromisoformat(item_data['pub_date'])
+        max_age = timedelta(days=feed_data['max_age_days'])
+        if datetime.now() - pub_date > max_age:
+            return False
+    
+    return True
+
+def calculate_quality_score(item_data, quality_profile_id):
+    """Calculate quality score based on profile"""
+    if not quality_profile_id:
+        return 50  # Default score
+    
+    conn = sqlite3.connect(RSS_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT config_json FROM quality_profiles WHERE id = ?', (quality_profile_id,))
+    profile_row = cursor.fetchone()
+    
+    if not profile_row:
+        conn.close()
+        return 50
+    
+    try:
+        config = json.loads(profile_row[0])
+    except:
+        conn.close()
+        return 50
+    
+    score = 0
+    
+    # Resolution scoring
+    resolution_scores = config.get('resolution_scores', {
+        '2160p': 100, '1080p': 80, '720p': 60, '480p': 40
+    })
+    score += resolution_scores.get(item_data['resolution'], 0)
+    
+    # Codec scoring
+    codec_scores = config.get('codec_scores', {
+        'HEVC': 20, 'H.264': 15, 'XviD': 5, 'DivX': 5
+    })
+    score += codec_scores.get(item_data['codec'], 0)
+    
+    # Source scoring
+    source_scores = config.get('source_scores', {
+        'BluRay': 30, 'WEB-DL': 25, 'WEBRip': 20, 'HDTV': 15, 'DVD': 10
+    })
+    score += source_scores.get(item_data['source'], 0)
+    
+    # Scene group scoring
+    cursor.execute('SELECT base_score, quality_bonus FROM scene_groups WHERE name = ?', 
+                  (item_data['scene_group'],))
+    group_row = cursor.fetchone()
+    if group_row:
+        score += group_row[0] + group_row[1]
+    
+    # Seeders bonus
+    if item_data['seeders'] > 0:
+        score += min(item_data['seeders'] // 10, 20)  # Max 20 points for seeders
+    
+    conn.close()
+    return min(score, 200)  # Cap at 200
+
+def should_auto_download(item_data, feed_data):
+    """Determine if item should be auto-downloaded"""
+    # Check if series is being monitored
+    if feed_data['feed_type'] == 'tv' and item_data['series_name']:
+        conn = sqlite3.connect(RSS_DB)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT auto_search, current_season, current_episode
+            FROM series_monitoring
+            WHERE series_name = ? AND monitor_status = 'active'
+        ''', (item_data['series_name'],))
+        
+        monitoring = cursor.fetchone()
+        conn.close()
+        
+        if monitoring and monitoring[0]:  # auto_search enabled
+            # Check if this episode is wanted
+            current_season = monitoring[1]
+            current_episode = monitoring[2]
+            
+            if (item_data['season_number'] > current_season or 
+                (item_data['season_number'] == current_season and 
+                 item_data['episode_number'] >= current_episode)):
+                return True
+    
+    # Check quality score threshold
+    quality_threshold = 75  # Configurable threshold
+    return item_data.get('quality_score', 0) >= quality_threshold
+
+def add_to_download_queue(cursor, item_id, priority=5):
+    """Add item to download queue"""
+    cursor.execute('''
+        INSERT INTO download_queue (rss_item_id, priority)
+        VALUES (?, ?)
+    ''', (item_id, priority))
+
+def calculate_download_priority(item_data):
+    """Calculate download priority"""
+    priority = 5  # Default
+    
+    # Higher priority for better quality
+    if item_data.get('quality_score', 0) > 100:
+        priority += 2
+    
+    # Higher priority for more seeders
+    if item_data.get('seeders', 0) > 50:
+        priority += 1
+    
+    # Higher priority for newer episodes
+    if item_data.get('pub_date'):
+        pub_date = datetime.fromisoformat(item_data['pub_date'])
+        age_hours = (datetime.now() - pub_date).total_seconds() / 3600
+        if age_hours < 24:
+            priority += 2
+        elif age_hours < 72:
+            priority += 1
+    
+    return min(priority, 10)  # Cap at 10
+
+def rss_automation_worker():
+    """Background worker for RSS automation"""
+    while True:
+        try:
+            conn = sqlite3.connect(RSS_DB)
+            cursor = conn.cursor()
+            
+            # Check feeds that need updating
+            cursor.execute('''
+                SELECT id FROM rss_feeds
+                WHERE enabled = TRUE
+                AND (last_checked IS NULL OR 
+                     datetime(last_checked, '+' || check_interval || ' seconds') <= datetime('now'))
+            ''')
+            
+            feeds_to_check = [row[0] for row in cursor.fetchall()]
+            conn.close()
+            
+            for feed_id in feeds_to_check:
+                check_rss_feed(feed_id)
+                time.sleep(5)  # Rate limiting
+            
+            # Process download queue
+            process_download_queue()
+            
+            # Sleep before next cycle
+            time.sleep(300)  # 5 minutes
+            
+        except Exception as e:
+            print(f"RSS automation error: {e}")
+            time.sleep(60)  # Wait 1 minute on error
+
+def process_download_queue():
+    """Process items in download queue"""
+    conn = sqlite3.connect(RSS_DB)
+    cursor = conn.cursor()
+    
+    # Get queued items
+    cursor.execute('''
+        SELECT dq.id, dq.rss_item_id, ri.magnet_link, ri.torrent_url, ri.title
+        FROM download_queue dq
+        JOIN rss_items ri ON dq.rss_item_id = ri.id
+        WHERE dq.status = 'queued'
+        ORDER BY dq.priority DESC, dq.added_date ASC
+        LIMIT 5
+    ''')
+    
+    queued_items = cursor.fetchall()
+    
+    for queue_id, item_id, magnet_link, torrent_url, title in queued_items:
+        try:
+            # Update status to downloading
+            cursor.execute('''
+                UPDATE download_queue SET status = 'downloading', started_date = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (queue_id,))
+            
+            cursor.execute('''
+                UPDATE rss_items SET status = 'downloading', download_started = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (item_id,))
+            
+            # Start download (integrate with Real-Debrid or other downloader)
+            download_link = magnet_link or torrent_url
+            if download_link:
+                # This would integrate with your download system
+                # For now, just mark as completed after a delay
+                pass
+            
+        except Exception as e:
+            # Mark as failed
+            cursor.execute('''
+                UPDATE download_queue SET status = 'failed', error_message = ?
+                WHERE id = ?
+            ''', (str(e), queue_id))
+            
+            cursor.execute('''
+                UPDATE rss_items SET status = 'failed'
+                WHERE id = ?
+            ''', (item_id,))
+    
+    conn.commit()
+    conn.close()

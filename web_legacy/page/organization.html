@@ -1,0 +1,24 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Organization</title>
+<link rel="stylesheet" href="/web/ui/common.css"><script src="/web/ui/common.js"></script></head>
+<body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+<div class="shell"><main class="content">
+<div class="card"><h3>Apply Move Plan</h3>
+<div style="margin-top:6px"><button onclick="applyPlan()">Apply</button></div>
+<pre id="out"></pre>
+</div>
+<div class="card"><h3>Collections: Rest & Online Imports</h3>
+<div>Category: <select id="cat"><option>movies</option><option>tv</option><option>books</option><option>audio</option></select></div>
+<div style="margin-top:6px"><button onclick="rest()">Show Rest</button> <button onclick="presets()">Presets</button> <button onclick="imp()">Import Selected Preset</button></div>
+<pre id="coll"></pre>
+</div>
+</main></div>
+<script>
+async function applyPlan(){ const root=document.getElementById('root').value; let plan=[]; try{ plan=JSON.parse(document.getElementById('plan').value||'[]'); }catch(e){ UI.toast('Bad JSON'); return; }
+  const j=await (await fetch('/api/organizer/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({root:root, plan:plan})})).json();
+  document.getElementById('out').textContent = JSON.stringify(j.executed, null, 2);
+}
+async function rest(){ const cat=document.getElementById('cat').value; const j=await (await fetch('/api/collections/rest?category='+cat)).json(); document.getElementById('coll').textContent = JSON.stringify(j, null, 2); }
+async function presets(){ const j=await (await fetch('/api/collections/online_presets')).json(); document.getElementById('coll').textContent = JSON.stringify(j, null, 2); }
+async function imp(){ const cat=document.getElementById('cat').value; const j=await (await fetch('/api/collections/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:cat, provider:'tmdb', preset:'trending'})})).json(); document.getElementById('coll').textContent = JSON.stringify(j, null, 2); }
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

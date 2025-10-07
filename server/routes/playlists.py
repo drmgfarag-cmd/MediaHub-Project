@@ -1,0 +1,41 @@
+from flask import Blueprint, jsonify, request
+import os, json, time
+pl_bp = Blueprint('pl', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+PL=os.path.join(STO,'playlists.json')
+
+def _load(): 
+    try: return json.load(open(PL,'r',encoding='utf-8'))
+    except Exception: return {'lists': []}
+
+def _save(obj):
+    tmp=PL+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, PL)
+
+@pl_bp.route('/api/music/playlists')
+def lists():
+    return jsonify(_load())
+
+@pl_bp.route('/api/music/playlist_create', methods=['POST'])
+def create():
+    js=request.get_json(silent=True) or {}; name=js.get('name','').strip()
+    if not name: return jsonify({'error':'name required'}),400
+    db=_load(); db['lists'].append({'name':name,'tracks':[],'ts':int(time.time())}); _save(db)
+    return jsonify({'ok':True})
+
+@pl_bp.route('/api/music/playlist_add', methods=['POST'])
+def add():
+    js=request.get_json(silent=True) or {}; name=js.get('name',''); track=js.get('track',{})
+    db=_load()
+    for l in db['lists']:
+        if l['name']==name: l['tracks'].append(track); _save(db); return jsonify({'ok':True})
+    return jsonify({'error':'not found'}),404
+
+@pl_bp.route('/api/music/playlist_remove', methods=['POST'])
+def remove():
+    js=request.get_json(silent=True) or {}; name=js.get('name',''); idx=int(js.get('index',-1))
+    db=_load()
+    for l in db['lists']:
+        if l['name']==name and 0<=idx<len(l['tracks']):
+            del l['tracks'][idx]; _save(db); return jsonify({'ok':True})
+    return jsonify({'error':'not found'}),404

@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "algo": "sha1",
+  "db": "data/hash_index.json"
+}

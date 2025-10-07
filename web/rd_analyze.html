@@ -1,0 +1,263 @@
+<!doctype html><html><head><meta charset="utf-8"><title>RD Manager — Analyze</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.analysis-grid { display: grid; grid-template-columns: 80px 1fr 120px 200px 150px; gap: 8px; }
+.analysis-row { border-bottom: 1px solid rgba(255,255,255,.08); padding: 8px 0; }
+.analysis-header { font-weight: 600; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; }
+.score-high { color: #27ae60; font-weight: 600; }
+.score-medium { color: #f39c12; font-weight: 600; }
+.score-low { color: #e74c3c; font-weight: 600; }
+.decision-keep { background: #27ae60; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.decision-remove { background: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.decision-duplicate { background: #f39c12; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.reasons { font-size: 11px; color: #999; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 15px 0; }
+.stat-card { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; text-align: center; }
+.stat-number { font-size: 24px; font-weight: 700; color: #667eea; }
+.stat-label { font-size: 12px; color: #999; text-transform: uppercase; }
+.control-buttons { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+.btn-analyze { background: #667eea; }
+.btn-auto { background: #27ae60; }
+.btn-organize { background: #f39c12; }
+</style>
+</head><body><div class="wrap">
+<div class="toolbar"><a href="rd_manager.html">← RD Manager</a> · <strong>Analyze (Profile-Based)</strong></div>
+
+<div class="card">
+  <h3>Profile Analysis</h3>
+  <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+    <label>Profile: 
+      <select id="profileSelect" style="margin-left: 8px;">
+        <option value="">Loading profiles...</option>
+      </select>
+    </label>
+    
+    <div class="control-buttons">
+      <button id="analyzeBtn" class="btn-analyze">🔍 Analyze</button>
+      <button id="autoSelectBtn" class="btn-auto">✨ Auto-Select (Keep Best)</button>
+      <button id="organizeBtn" class="btn-organize">📁 Organize Survivors</button>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="statsCard" style="display: none;">
+  <h3>Analysis Statistics</h3>
+  <div class="stats-grid" id="statsGrid"></div>
+</div>
+
+<div class="card">
+  <h3>Analysis Results</h3>
+  <div id="analysisResults">
+    <div style="text-align: center; color: #666; margin: 40px 0;">
+      Select a profile and click "Analyze" to see scoring results for your Real-Debrid items.
+    </div>
+  </div>
+</div>
+
+<script>
+let currentAnalysis = null;
+let profiles = [];
+
+async function loadProfiles() {
+  try {
+    const response = await fetch('/api/profiles/list');
+    const data = await response.json();
+    profiles = data.profiles || [];
+    
+    const select = document.getElementById('profileSelect');
+    select.innerHTML = '';
+    
+    if (profiles.length === 0) {
+      select.innerHTML = '<option value="">No profiles available</option>';
+      return;
+    }
+    
+    profiles.forEach(profile => {
+      const option = document.createElement('option');
+      option.value = profile.id;
+      option.textContent = profile.name || profile.id;
+      select.appendChild(option);
+      
+      // Select the last used profile if available
+      if (data.last === profile.id) {
+        select.value = profile.id;
+      }
+    });
+    
+    // If no last profile, select first one
+    if (!select.value && profiles.length > 0) {
+      select.value = profiles[0].id;
+    }
+    
+  } catch (error) {
+    console.error('Error loading profiles:', error);
+    document.getElementById('profileSelect').innerHTML = '<option value="">Error loading profiles</option>';
+  }
+}
+
+async function runAnalysis() {
+  const profileId = document.getElementById('profileSelect').value;
+  if (!profileId) {
+    alert('Please select a profile first');
+    return;
+  }
+  
+  document.getElementById('analysisResults').innerHTML = '<div style="text-align: center; margin: 40px 0;">Analyzing items...</div>';
+  
+  try {
+    const response = await fetch('/api/rd/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile_id: profileId })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.ok) {
+      throw new Error(result.error || 'Analysis failed');
+    }
+    
+    currentAnalysis = result;
+    displayAnalysisResults(result.rows || []);
+    updateStatistics(result.rows || []);
+    
+  } catch (error) {
+    document.getElementById('analysisResults').innerHTML = `<div style="color: #e74c3c; text-align: center; margin: 40px 0;">Error: ${error.message}</div>`;
+  }
+}
+
+function displayAnalysisResults(rows) {
+  if (rows.length === 0) {
+    document.getElementById('analysisResults').innerHTML = '<div style="text-align: center; color: #666; margin: 40px 0;">No items found to analyze.</div>';
+    return;
+  }
+  
+  const resultsHtml = `
+    <div class="analysis-grid">
+      <div class="analysis-header">Score</div>
+      <div class="analysis-header">Item</div>
+      <div class="analysis-header">Decision</div>
+      <div class="analysis-header">Reasons</div>
+      <div class="analysis-header">Normalized</div>
+      
+      ${rows.map(row => {
+        const scoreClass = row.score >= 70 ? 'score-high' : row.score >= 50 ? 'score-medium' : 'score-low';
+        const decisionClass = `decision-${row.decision}`;
+        
+        return `
+          <div class="analysis-row ${scoreClass}">${row.score}</div>
+          <div class="analysis-row" title="${row.value}">${truncateText(row.value, 60)}</div>
+          <div class="analysis-row"><span class="${decisionClass}">${row.decision.toUpperCase()}</span></div>
+          <div class="analysis-row reasons">${(row.reasons || []).join(' · ')}</div>
+          <div class="analysis-row" style="font-family: monospace; font-size: 10px;">${truncateText(row.norm || '', 20)}</div>
+        `;
+      }).join('')}
+    </div>
+  `;
+  
+  document.getElementById('analysisResults').innerHTML = resultsHtml;
+}
+
+function updateStatistics(rows) {
+  const stats = {
+    total: rows.length,
+    keep: rows.filter(r => r.decision === 'keep').length,
+    remove: rows.filter(r => r.decision === 'remove').length,
+    duplicate: rows.filter(r => r.decision === 'duplicate').length,
+    avgScore: rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.score, 0) / rows.length) : 0
+  };
+  
+  const statsHtml = `
+    <div class="stat-card">
+      <div class="stat-number">${stats.total}</div>
+      <div class="stat-label">Total Items</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: #27ae60;">${stats.keep}</div>
+      <div class="stat-label">Keep</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: #e74c3c;">${stats.remove}</div>
+      <div class="stat-label">Remove</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: #f39c12;">${stats.duplicate}</div>
+      <div class="stat-label">Duplicates</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">${stats.avgScore}</div>
+      <div class="stat-label">Avg Score</div>
+    </div>
+  `;
+  
+  document.getElementById('statsGrid').innerHTML = statsHtml;
+  document.getElementById('statsCard').style.display = 'block';
+}
+
+async function autoSelect() {
+  const profileId = document.getElementById('profileSelect').value;
+  if (!profileId) {
+    alert('Please select a profile first');
+    return;
+  }
+  
+  if (!confirm('This will automatically remove low-scoring and duplicate items from your Real-Debrid inbox. Continue?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/rd/auto_select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile_id: profileId })
+    });
+    
+    const result = await response.json();
+    
+    if (result.ok) {
+      alert(`Auto-selection complete!\nKept: ${result.kept} items\nRemoved: ${result.removed} items`);
+      // Re-run analysis to show updated results
+      runAnalysis();
+    } else {
+      alert('Error during auto-selection: ' + (result.error || 'Unknown error'));
+    }
+    
+  } catch (error) {
+    alert('Network error: ' + error.message);
+  }
+}
+
+function organizeItems() {
+  if (!currentAnalysis || !currentAnalysis.rows) {
+    alert('Please run an analysis first');
+    return;
+  }
+  
+  const keepItems = currentAnalysis.rows.filter(row => row.decision === 'keep');
+  if (keepItems.length === 0) {
+    alert('No items marked for keeping found');
+    return;
+  }
+  
+  const roots = keepItems.map(item => item.value);
+  const url = new URL('organizer.html', location.href);
+  url.searchParams.set('roots', roots.join('\n'));
+  location.href = url.toString();
+}
+
+function truncateText(text, maxLength) {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3) + '...';
+}
+
+// Event listeners
+document.getElementById('analyzeBtn').onclick = runAnalysis;
+document.getElementById('autoSelectBtn').onclick = autoSelect;
+document.getElementById('organizeBtn').onclick = organizeItems;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadProfiles();
+});
+</script>
+</div></body></html>

@@ -1,0 +1,7 @@
+DLC & Smart Collections
+-----------------------
+• DLC import uses MyJDownloader (myjdapi). Configure via /api/jd/config (email/password/device) and ensure a JD device is online.
+  In Link Grabber, use "Import DLC…" to upload a .dlc; links are decrypted through JD and land in Link Grabber.
+• Smart Collections can fetch IMDb Top250 (movies/TV) or a custom list URL. Matches against items already in your library by IMDb tconst.
+  Scheduler is available at /api/collections/schedule (interval minutes).
+• Self-Audit addons: /self_audit/addons checks for myjdapi and bs4 presence and JD config.

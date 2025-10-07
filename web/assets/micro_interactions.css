@@ -1,0 +1,457 @@
+/* Micro-Interactions - MediaHub v5.7 */
+
+/* Button Interactions */
+.btn-micro {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-micro:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.btn-micro:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.2);
+}
+
+.btn-micro::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn-micro:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Card Hover Effects */
+.card-micro {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-micro:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.card-micro:hover .card-image {
+  transform: scale(1.05);
+}
+
+.card-image {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Icon Animations */
+.icon-micro {
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.icon-micro:hover {
+  transform: rotate(15deg) scale(1.2);
+  color: #FF6B35;
+}
+
+.icon-spin:hover {
+  animation: spin 0.6s ease-in-out;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.icon-bounce:hover {
+  animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-10px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-5px); }
+}
+
+.icon-shake:hover {
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* Input Focus Effects */
+.input-micro {
+  position: relative;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.input-micro:focus {
+  outline: none;
+  border-color: #FF6B35;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.input-micro::placeholder {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.input-micro:focus::placeholder {
+  opacity: 0.5;
+  transform: translateX(5px);
+}
+
+/* Checkbox/Toggle Animations */
+.checkbox-micro {
+  position: relative;
+  cursor: pointer;
+}
+
+.checkbox-micro input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.checkbox-micro .checkmark {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #1F2537;
+  border-radius: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.checkbox-micro input[type="checkbox"]:checked + .checkmark {
+  background: #FF6B35;
+  border-color: #FF6B35;
+  transform: rotate(360deg);
+}
+
+.checkbox-micro .checkmark::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 0.2s ease 0.1s;
+}
+
+.checkbox-micro input[type="checkbox"]:checked + .checkmark::after {
+  transform: rotate(45deg) scale(1);
+}
+
+/* Toggle Switch */
+.toggle-micro {
+  position: relative;
+  width: 50px;
+  height: 26px;
+  background: #1F2537;
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.toggle-micro::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-micro.active {
+  background: #FF6B35;
+}
+
+.toggle-micro.active::after {
+  transform: translateX(24px);
+}
+
+/* Loading Spinner */
+.spinner-micro {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 107, 53, 0.2);
+  border-top-color: #FF6B35;
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* Pulse Animation */
+.pulse-micro {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Ripple Effect */
+.ripple-micro {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-micro::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.ripple-micro:active::after {
+  width: 200px;
+  height: 200px;
+  opacity: 1;
+  transition: width 0.6s ease, height 0.6s ease, opacity 0.3s ease;
+}
+
+/* Tooltip Animations */
+.tooltip-micro {
+  position: relative;
+}
+
+.tooltip-micro::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-5px);
+  padding: 6px 12px;
+  background: #1A1F29;
+  color: #E8EBF5;
+  font-size: 12px;
+  white-space: nowrap;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.tooltip-micro::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1A1F29;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tooltip-micro:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+.tooltip-micro:hover::after {
+  opacity: 1;
+}
+
+/* Badge Pulse */
+.badge-pulse {
+  position: relative;
+}
+
+.badge-pulse::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: badge-pulse-animation 2s ease infinite;
+}
+
+@keyframes badge-pulse-animation {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Skeleton Loading */
+.skeleton-micro {
+  background: linear-gradient(
+    90deg,
+    #1A1F29 0%,
+    #252B38 50%,
+    #1A1F29 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Progress Bar Animation */
+.progress-micro {
+  position: relative;
+  height: 4px;
+  background: #1F2537;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-micro::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #FF6B35, #FF8C5A);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Notification Slide In */
+.notification-micro {
+  animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Modal Fade In */
+.modal-micro {
+  animation: modal-fade-in 0.3s ease;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dropdown Slide */
+.dropdown-micro {
+  animation: dropdown-slide 0.2s ease;
+}
+
+@keyframes dropdown-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus Ring */
+.focus-ring-micro:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.3);
+  transition: box-shadow 0.2s ease;
+}
+
+/* Gradient Animation */
+.gradient-micro {
+  background: linear-gradient(
+    45deg,
+    #FF6B35,
+    #FF8C5A,
+    #FFB380,
+    #FF8C5A,
+    #FF6B35
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Scale on Hover */
+.scale-micro {
+  transition: transform 0.2s ease;
+}
+
+.scale-micro:hover {
+  transform: scale(1.05);
+}
+
+/* Glow Effect */
+.glow-micro {
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-micro:hover {
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+}

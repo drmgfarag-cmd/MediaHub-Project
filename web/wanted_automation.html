@@ -1,0 +1,34 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Wanted — Automation</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Wanted — Automation</strong> <a class="btn" href="wanted.html">Tracker</a> <a class="btn" href="wanted_journal.html">Journal</a></div>
+  <div class="card">
+    <h3>Schedule</h3>
+    <div><label><input type="checkbox" id="en"> Enabled</label></div>
+    <div style="margin-top:6px">Interval (minutes): <input id="iv" type="number" value="60" style="width:120px"></div>
+    <div style="margin-top:6px">Auto Action: 
+      <select id="aa"><option value="none">None</option><option value="search_only">Search Only</option><option value="queue_best">Queue Best</option></select>
+    </div>
+    <div style="margin-top:6px">Max per run: <input id="mx" type="number" value="10" style="width:120px"></div>
+    <div style="margin-top:8px"><button id="save">Save</button> <button id="run">Run Now</button></div>
+    <div id="stat" style="margin-top:6px">—</div>
+  </div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/wanted/refresh_config_get')).json();
+  en.checked=!!j.enabled; iv.value=j.interval_min||60; aa.value=j.auto_action||'search_only'; mx.value=j.max_per_run||10;
+  const when=new Date((j.next_run||0)*1000).toLocaleString(); 
+  stat.textContent = 'Last run: '+(j.last_run? new Date(j.last_run*1000).toLocaleString(): '—')+' · Next: '+(j.next_run? when:'—');
+}
+save.onclick=async ()=>{
+  await fetch('/api/wanted/refresh_config_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled: en.checked, interval_min: parseInt(iv.value)||60, auto_action: aa.value, max_per_run: parseInt(mx.value)||10})});
+  load();
+};
+run.onclick=async ()=>{
+  const r=await (await fetch('/api/wanted/refresh_now',{method:'POST'})).json();
+  if(r.ok){ stat.textContent='Queued: '+r.report.queued+' · Search added: '+r.report.search_added+' · Conflicts: '+r.report.conflicts+' · Status changes: '+r.report.status_changed+' · Next: '+new Date(r.next_run*1000).toLocaleString(); }
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

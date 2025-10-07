@@ -1,0 +1,36 @@
+from flask import Blueprint, jsonify, request
+import os, json, re, collections
+
+miss_bp = Blueprint('miss', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+LIB=os.path.join(STO,'library_index.json')
+
+def _items():
+    try: return json.load(open(LIB,'r',encoding='utf-8'))
+    except Exception: return []
+
+RX = re.compile(r'(?i)(?P<series>.+?)\s*[\._\-\s]+S(?P<season>\d{1,2})E(?P<ep>\d{1,2})')
+
+def _parse(it):
+    p=(it.get('path') or os.path.basename(it.get('title') or ''))
+    m=RX.search(p)
+    if not m: return None
+    name=m.group('series').replace('.',' ').replace('_',' ').strip()
+    s=int(m.group('season')); e=int(m.group('ep'))
+    return (name, s, e)
+
+@miss_bp.route('/api/missing/scan')
+def scan():
+    eps=[_parse(it) for it in _items() if _parse(it)]
+    byss=collections.defaultdict(set)
+    for name,s,e in eps:
+        byss[(name,s)].add(e)
+    out=[]
+    for (name,s), epset in byss.items():
+        if not epset: continue
+        mx=max(epset)
+        missing=[x for x in range(1, mx+1) if x not in epset]
+        if missing:
+            out.append({'series': name, 'season': s, 'missing': missing})
+    return jsonify({'series': out})

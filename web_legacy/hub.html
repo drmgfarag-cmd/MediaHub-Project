@@ -1,0 +1,317 @@
+
+<!doctype html><html><head><link rel='icon' href='assets/favicon.svg'><link rel='stylesheet' href='assets/ui.css'><link rel='stylesheet' href='assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Hub</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#0b0e13;color:#e6e6e6}
+.topbar{display:flex;align-items:center;gap:16px;padding:10px 16px;background:#11161d;position:sticky;top:0}
+.topbar .brand{font-weight:700}
+.topbar input{flex:1;max-width:600px;background:#1a232e;color:#e6e6e6;border:1px solid #2b3643;border-radius:999px;padding:8px 12px}
+.nav{display:flex;gap:12px}
+main{padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.card{background:#131a22;border-radius:16px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.badge{display:inline-block;border:1px solid #2b3643;padding:2px 8px;border-radius:999px;margin-right:8px;font-size:12px}
+a{color:#9bdcff;text-decoration:none}
+</style><link rel="stylesheet" href="/web/ui/common.css">
+<script src="/web/ui/common.js"></script>
+<script src="/js/command_palette.js"></script><script type="module" src="/js/notify.js"></script></head><body onload="renderFastFilters()">
+<div style="font-size:12px;color:#8aa; padding:4px 16px 0 16px">
+  OPDS also exposes <a href="/opds/books" target="_blank">Books</a> and <a href="/opds/books/comics" target="_blank">Books ▸ Comics</a> as nested feeds for reader apps.
+</div>
+</div></header>
+<header class="topbar">
+  <div class="brand">MediaHub</div>
+  <nav class="nav">
+    <a href="/web/hub.html">Library</a>
+    <a href="/web/rd_manager.html">RD Manager</a>
+    <a href="/web/downloader.html">Downloader</a>
+    <a href="/web/editor.html">Text Editor</a>
+  <a href="/page/scheduler.html">Scheduler</a><a href="/page/jd_sync.html">JD Sync</a></nav><div class="nav2" style="margin-left:12px"><a href="/opds/feed" target="_blank">OPDS</a></div><div class="nav2" style="margin-left:12px"><a href="/page/tools.html">Tools</a> | <a href="/page/collections_tools.html">Collections Tools</a></div>
+  <a href="/page/rules_audit.html">Rules Audit</a>
+</header>
+
+<div class="shell"><div class="subbar">
+<div class="chipbar">
+  <button class="chip" data-jump="movies" onclick="location.href='/web/hub.html#movies'">Movies</button>
+  <button class="chip" data-jump="tv" onclick="location.href='/web/hub.html#tv'">TV</button>
+  <button class="chip" data-jump="books" onclick="location.href='/web/hub.html#books'">Books</button>
+  <button class="chip" data-jump="comics" onclick="location.href='/page/comics.html'">Comics</button>
+  <button class="chip" data-jump="audio" onclick="location.href='/web/hub.html#audio'">Audio</button>
+</div>Search Library...</div>
+  <aside class="sidemenu">
+    <h4>Quick Edit</h4>
+    <a href="/page/rd_filters.html" data-modal="modal_rd" data-url="/page/rd_filters.html">RD Filters</a>
+    <a href="/page/rss_filters.html" data-modal="modal_rss" data-url="/page/rss_filters.html">RSS Filters</a>
+    <a href="/page/providers.html" data-modal="modal_providers" data-url="/page/providers.html">Providers</a>
+    <a href="/page/duplicates.html" data-modal="modal_dupes" data-url="/page/duplicates.html">Dedupe Policy</a>
+    <a href="/page/settings.html" data-modal="modal_settings" data-url="/page/settings.html">Subtitles & Backups</a>
+    <a href="/page/profiles.html" data-modal="modal_profiles" data-url="/page/profiles.html">Profiles</a>
+  </aside>
+
+<main class="content"><span id="ctrlk_bind" style="display:none"></span>
+<div class="tabs-main" id="tabs_main_hub">
+  <div class="tab active" data-for="hub_browse">Browse</div>
+  <div class="tab" data-for="hub_collections">Collections</div>
+  <div class="tab" data-for="hub_filters">Filters</div>
+  <div class="tab" data-for="hub_settings">Settings</div>
+</div>
+<div id="hub_browse" class="section show"></div>
+<div id="hub_collections" class="section"></div>
+<div id="hub_filters" class="section"></div>
+<div id="hub_settings" class="section"></div>
+
+
+<header class="topbar">
+  <div class="brand">MediaHub</div>
+  <nav class="nav">
+    <a href="/web/hub.html">Library</a>
+    <a href="/web/rd_manager.html">RD Manager</a>
+    <a href="/web/downloader.html">Downloader</a>
+    <a href="/web/editor.html">Text Editor</a>
+  <a href="/page/scheduler.html">Scheduler</a><a href="/page/jd_sync.html">JD Sync</a></nav><div class="nav2" style="margin-left:12px"><a href="/opds/feed" target="_blank">OPDS</a></div><div class="nav2" style="margin-left:12px"><a href="/page/tools.html">Tools</a> | <a href="/page/collections_tools.html">Collections Tools</a></div>
+  <a href="/page/rules_audit.html">Rules Audit</a>
+</header>
+
+<div class="subbar">
+<div class="chipbar">
+  <button class="chip" data-jump="movies" onclick="location.href='/web/hub.html#movies'">Movies</button>
+  <button class="chip" data-jump="tv" onclick="location.href='/web/hub.html#tv'">TV</button>
+  <button class="chip" data-jump="books" onclick="location.href='/web/hub.html#books'">Books</button>
+  <button class="chip" data-jump="comics" onclick="location.href='/page/comics.html'">Comics</button>
+  <button class="chip" data-jump="audio" onclick="location.href='/web/hub.html#audio'">Audio</button>
+</div>
+  <div class="actions"><select id="density"><option value="">Density</option><option value="compact">Compact</option><option value="list">List</option></select> <select id="theme"><option value="">Dark</option><option value="light">Light</option><option value="hc">High Contrast</option></select> <button onclick="toggleFilters()">Filters</button>
+    <select id="sort"><option>Recent</option><option>Most Viewed</option><option>A–Z</option><option>Rating</option><option>Year</option></select>
+  </div>
+</div>
+<main>
+  <div class="grid">
+    <a href="/web/library_movies.html" class="card"><h3>Movies</h3><div class="badge">Posters</div><div class="badge">Trailers</div></a>
+    <a href="/web/library_tv.html" class="card"><h3>TV</h3><div class="badge">Seasons</div></a>
+    <a href="/web/library_books.html" class="card"><h3>Books</h3><div class="badge">Formats</div></a>
+    <a href="/web/library_audio.html" class="card"><h3>Audio/Music</h3><div class="badge">Albums</div></a>
+  </div>
+
+<section style="margin:16px 0;padding:12px;border:1px solid #222632;border-radius:12px;background:#10141d">
+    <b>Quick Admin</b> — <a href="/page/settings_accounts.html">Accounts</a> · <a href="/page/settings_connectors.html">Connectors</a> · <a href="/page/settings_captcha.html">Captcha</a> · <a href="/page/settings_export_import.html">Export/Import</a> · <a href="/page/editor.html">Editor Utilities</a>
+</section>
+</main>
+<div id="filters_panel" class="overlay-panel">
+  <h3>Library Filters</h3>
+  <div><strong>Genres</strong></div>
+  <label><input type="checkbox"> Action</label>
+  <label><input type="checkbox"> Drama</label>
+  <label><input type="checkbox"> Comedy</label>
+  <div style="margin-top:8px"><strong>Collections</strong></div>
+  <label><input type="checkbox"> Top 250</label>
+  <label><input type="checkbox"> Awards</label>
+  <div style="margin-top:8px"><strong>Tags</strong></div>
+  <label><input type="checkbox"> HDR</label>
+  <label><input type="checkbox"> 4K</label>
+</div>
+
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  UI.wireSideMenu();
+  UI.wireCmd([
+    {k:'filters', label:'Open RD Filters', run:()=>UI.openModal('modal_rd','/page/rd_filters.html','RD Filters')},
+    {k:'rss', label:'Open RSS Filters', run:()=>UI.openModal('modal_rss','/page/rss_filters.html','RSS Filters')},
+    {k:'providers', label:'Open Providers', run:()=>UI.openModal('modal_providers','/page/providers.html','Providers')},
+    {k:'dedupe', label:'Open Dedupe Policy', run:()=>UI.openModal('modal_dupes','/page/duplicates.html','Duplicates / Policy')},
+    {k:'subs', label:'Open Subtitles Settings', run:()=>UI.openModal('modal_settings','/page/settings.html','Settings')},
+    {k:'backup', label:'Create Backup', run:()=>UI.openModal('modal_settings','/page/settings.html','Settings')},
+    {k:'queue', label:'Show Downloader Queue', run:()=>location.href='/web/downloader.html'},
+    {k:'replace', label:'Editor: Find & Replace', run:()=>document.getElementById('findreplace')?.showModal?.()},
+  ]); window._ctx_items = _items; return _items;
+});
+</script>
+
+<div id="cmd_float" class="float">
+  <label>Quick actions</label>
+  <div id="cmd_list"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  // add Minimize buttons to any UI modal header
+  document.querySelectorAll('.modal .inner header').forEach(h=>{
+    if(h.querySelector('.minibtn')) return;
+    const wrap = h.querySelector('div') || h;
+    const b = document.createElement('button');
+    b.textContent='Minimize'; b.className='minibtn';
+    b.onclick=()=>{ const m=h.closest('.modal'); if(m) m.classList.toggle('mini'); };
+    wrap.prepend(b);
+  });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  UI.contextInit(function(){
+    const _items = UI.globalMenu().concat([{ text:'Filters', on: ()=>toggleFilters() }]); window._ctx_items = _items; return _items;
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const d=document.getElementById('density'); if(d){ d.value=localStorage.getItem('ui_density')||''; d.onchange=()=>UI.density.set(d.value||''); }
+  const t=document.getElementById('theme'); if(t){ t.value=localStorage.getItem('ui_theme')||''; t.onchange=()=>UI.theme.set(t.value||''); }
+  // persist view basics
+  const sort=document.getElementById('sort'); if(sort){ const p=UI.persist.load(); if(p.sort) sort.value=p.sort; sort.onchange=()=>{ const o=UI.persist.load(); o.sort=sort.value; UI.persist.save(o); }; }
+  UI.rulesBadge(['.topbar','.subbar','.sidemenu']); window._ctx_items = _items; return _items;
+});
+</script>
+
+<script>document.addEventListener('DOMContentLoaded', ()=>{ try{ UI.qa.ensureBase(); }catch(e){} });</script>
+
+<div style="position:fixed;top:8px;right:10px;display:flex;gap:6px" id="health_pills"></div>
+<script>
+async function renderHealth(){
+  try{
+    const j = await (await fetch('/api/health')).json();
+    const host = document.getElementById('health_pills'); host.innerHTML='';
+    function pill(ok,label){ const d=document.createElement('div'); d.textContent=label; d.style.cssText='padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid '+(ok?'#2e6a3a':'#6a2e2e')+';background:'+(ok?'#12301a':'#301212')+';color:#cfe7d3'; return d; }
+    host.appendChild(pill(j.net,'NET')); host.appendChild(pill(j.disk,'DISK')); host.appendChild(pill(j.rd,'RD'));
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', renderHealth);
+</script>
+
+<div id="fast_filters" style="position:fixed;top:64px;left:16px;display:flex;gap:6px;z-index:1000"></div>
+<script>
+function chip(label, on){ const b=document.createElement('button'); b.className='chip'; b.textContent=label; b.onclick=()=>applyFastFilter(label); return b; }
+async function renderFastFilters(){ const host=document.getElementById('fast_filters'); host.innerHTML=''; ['Recent','Top 250','Awards','4K','Anime','AR'].forEach(x=> host.appendChild(chip(x))); }
+function applyFastFilter(label){ try{ window.applyFilterChip?.(label); }catch(e){} }
+</script>
+
+<div id="hero_trailer" style="position:fixed;bottom:16px;right:16px;width:420px;height:236px;background:#000;border:1px solid #2b3a4a;border-radius:10px;display:none;overflow:hidden">
+  <video id="hero_video" width="420" height="236" controls muted autoplay></video>
+</div>
+<script>
+window.playHeroTrailer = function(url){ const v=document.getElementById('hero_video'); v.src=url; document.getElementById('hero_trailer').style.display='block'; }
+</script>
+
+<div id="collections_bar" style="position:sticky;top:56px;display:flex;gap:8px;padding:8px;background:#0c111b;border-bottom:1px solid #223041;z-index:900">
+  <button onclick="openCollection('Top 250')">Top 250</button>
+  <button onclick="openCollection('Awards')">Awards</button>
+  <button onclick="openCollection('Franchises')">Franchises</button>
+  <button onclick="openCollection('Timelines')">Timelines</button>
+  <button onclick="openCollection('Rest')">Rest</button>
+</div>
+<script>
+function openCollection(name){ UI.toast('Open collection: '+name); }
+</script>
+
+<div id="global_menu" style="position:sticky;top:0;display:flex;gap:8px;align-items:center;padding:8px;background:#0b111a;border-bottom:1px solid #223041;z-index:1200">
+  <div class="menu">File</div><div class="menu">Edit</div><div class="menu">View</div><div class="menu">Tools</div><div class="menu">Help</div>
+</div>
+<div id="quick_dock" style="position:fixed; right:16px; bottom:16px; z-index:1400">
+  <button onclick="toggleQuickActions()" title="Quick Actions (Shift+Q)">⚡</button>
+  <div id="quick_panel" style="display:none; position:absolute; right:0; bottom:40px; background:#0f1520;border:1px solid #223041;border-radius:8px;padding:8px;max-height:60vh;overflow:auto;width:360px"></div>
+</div>
+<script>
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey) && e.key==='/'){ e.preventDefault(); document.getElementById('global_search').focus(); } if(e.shiftKey && (e.key==='Q'||e.key==='q')){ toggleQuickActions(); }});
+async function doGlobalSearch(q){ UI.toast('Global search: '+q); }
+async function toggleQuickActions(){
+  const p=document.getElementById('quick_panel');
+  if(p.style.display==='none'||!p.style.display){ const j = await (await fetch('/api/quick/list')).json(); p.innerHTML = j.items.map(i=>'<div><button onclick="runQuick(\''+i.cmd+'\')">'+i.label+'</button></div>').join(''); p.style.display='block'; } else { p.style.display='none'; }
+}
+async function runQuick(cmd){ await fetch('/api/quick/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd})}); UI.toast('Ran: '+cmd); }
+</script>
+
+
+<div id="a11y_bar" style="position:fixed;left:12px;bottom:12px;display:flex;gap:8px;z-index:1500;background:#0b111a;border:1px solid #223041;padding:6px;border-radius:8px;opacity:.9">
+  <button onclick="toggleContrast()">Contrast</button>
+  <button onclick="scaleDown()">−</button><span id="scale_lbl">100%</span><button onclick="scaleUp()">+</button>
+</div>
+<script>
+let SCALE=100, CONTRAST=false;
+function applyScale(){ document.documentElement.style.fontSize = (SCALE/100*16)+'px'; document.getElementById('scale_lbl').textContent=SCALE+'%'; }
+function scaleUp(){ SCALE=Math.min(130, SCALE+10); applyScale(); }
+function scaleDown(){ SCALE=Math.max(90, SCALE-10); applyScale(); }
+function toggleContrast(){ CONTRAST=!CONTRAST; document.body.classList.toggle('contrast', CONTRAST); }
+</script>
+<style>
+body.contrast { filter: contrast(1.2) saturate(1.1); }
+</style>
+
+
+<div><button onclick="ol()">Online Lists</button> <button onclick="fo()">Filters</button></div>
+<div id="filters_overlay" style="display:none;position:fixed;top:60px;right:60px;background:#111;color:#fff;padding:10px;border:1px solid #333">Filters…</div>
+<script>
+function ol(){ window.location='/web/page/online_lists.html'; }
+function fo(){ const el=document.getElementById('filters_overlay'); el.style.display = (el.style.display==='none'?'block':'none'); }
+</script>
+
+<script defer src='assets/ui_enhance.js'></script></body></html>
+
+<!-- Pin/Unpin Subcategory implemented via action menu on subcategory cards -->
+
+<!-- JD Self-Audit hook -->
+<script>
+async function addJDStatus(){
+  try{
+    const j = await (await fetch('/api/jd/sidecar/status')).json();
+    const host = document.querySelector('#status_cards') || document.body;
+    const div = document.createElement('div'); div.className='card';
+    div.innerHTML = '<h4>JD Engine</h4><pre>'+JSON.stringify(j,null,2)+'</pre>';
+    host.appendChild(div);
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', addJDStatus);
+</script>
+
+<script>
+async function jdAudit(){
+  try{
+    const eng = await (await fetch('/api/engine')).json();
+    if(eng.engine!=='JD') return;
+    const cfg = await (await fetch('/api/jd/config')).json();
+    const issues = [];
+    if(!(cfg.install_url||'').length && !(cfg.local||{}).host) issues.push('JD install URL not set');
+    if(!cfg.reconnect_cmd) issues.push('Reconnect command not configured');
+    if(!(cfg.captcha||{}).api_key) issues.push('Captcha provider key not set');
+    if(issues.length){
+      const div = document.createElement('div'); div.className='banner warn'; div.id='jd_audit_warn';
+      div.textContent = 'JD Engine active: '+issues.join(' • ');
+      document.body.prepend(div);
+    }
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', jdAudit);
+</script>
+
+<script>
+async function jdRemoteAudit(){
+  try{
+    const eng = await (await fetch('/api/engine')).json();
+    if(eng.engine!=='JD') return;
+    const cfg = await (await fetch('/api/jd/config')).json();
+    const remote = (cfg.remote||{}).enabled;
+    const myjd = (cfg.myjd||{}).email;
+    if(!remote && !myjd){
+      const b = document.createElement('div'); b.className='banner warn'; b.id='jd_remote_audit';
+      b.textContent = 'JD Engine active: Enable JD RemoteControl or set MyJDownloader to mirror JD queue in the UI.';
+      document.body.prepend(b);
+    }
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', jdRemoteAudit);
+</script>
+
+<script>
+async function firstRunChecklist(){
+  try{
+    const issues=[];
+    const rd = await (await fetch('/integrations/status')).json().catch(()=>({}));
+    if(!rd.token_present) issues.push('RD token missing');
+    const tgl = await (await fetch('/api/toggles')).json().catch(()=>null);
+    if(!tgl) issues.push('Toggles not initialized');
+    if(issues.length){
+      const b=document.createElement('div'); b.className='banner warn'; b.id='first_run_checklist'; b.textContent='First-Run: '+issues.join(' • '); document.body.prepend(b);
+    }
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', firstRunChecklist);
+</script>

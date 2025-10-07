@@ -1,0 +1,13 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Jd Sync</title>
+<link rel="stylesheet" href="/web/ui/common.css"><script src="/web/ui/common.js"></script></head>
+<body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header><div class="shell"><main class="content">
+<div class="card"><h3>JDownloader Host Catalog Sync</h3>
+<p>This updates <code>jd_hosts.json</code> from a remote zip (default: official repo on GitHub). This fetches **metadata only** — no binaries are used.</p>
+<div class="inline" style="gap:6px"><input id="jd_url" value="https://github.com/appwork/jdownloader/archive/refs/heads/master.zip" style="width:70%"><button class="iconbtn" onclick="sync()">Sync Now</button></div>
+<pre id="jd_out"></pre>
+</div>
+</main></div>
+<script>
+async function sync(){ const url=document.getElementById('jd_url').value; const j=await (await fetch('/api/jd/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})})).json(); document.getElementById('jd_out').textContent=JSON.stringify(j,null,2); UI.toast('JD hosts updated'); }
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

@@ -1,0 +1,8 @@
+Downloader merged tabs
+----------------------
+This build merges Link Grabber -> Downloads -> Finished into the single Downloader surface.
+• Queue tab defaults to Link Grabber (paste links/magnets; add to downloads).
+• Downloads tab provides start/stop/retry/reorder/mark-finished.
+• Bottom bar exposes global speed/slots via /api/downloader/settings.
+• Clipboard monitor toggle sits in the top menu bar.
+• Rules Audit tile in the top menu shows a pass/fail overlay based on /rules_audit/summary.

@@ -1,0 +1,85 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Music • MediaHub</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.wrap{padding:16px}
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(180px,1fr));gap:12px}
+.card{border:1px solid rgba(148,163,184,.15);border-radius:12px;background:#101827;overflow:hidden;cursor:pointer}
+.card img{width:100%;height:180px;object-fit:cover}
+.card .title{padding:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style></head><body>
+<div class="wrap">
+  <a href="home.html">← Home</a>
+  <h1>Music</h1>
+  <div class="tabs"><button onclick="show('audio_recent')">Recent</button><button onclick="show('audio_artists')">Artists</button><button onclick="show('audio_continue')">Continue</button></div>
+  <div id="grid" class="grid"></div>
+</div>
+<script>
+let DATA={rails:[]};
+function byId(id){ return (DATA.rails||[]).find(r=>r.id===id) || {items:[]}; }
+function show(id){
+  const grid=document.getElementById('grid'); grid.innerHTML='';
+  const r=byId(id);
+  r.items.forEach(it=>{
+    const c=document.createElement('div'); c.className='card';
+    const img = it.cover || it.poster || 'sample/poster.jpg';
+    const title = it.title || it.name || '';
+    c.innerHTML = `<img src=""><div class="title">${title}</div>`;
+    c.onclick = ()=> { const id = encodeURIComponent(it.id||it.path||''); location.href = (id.startsWith('artist::') ? '#' : ('audio_player.html?id='+id)); };
+    grid.appendChild(c);
+  });
+}
+async function load(){
+  try{ const r=await fetch('/api/library/rails'); DATA=await r.json(); }catch(e){ DATA={rails:[]}; }
+  show('audio_recent');
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script>
+let MP={open:false, lastShow:Date.now()};
+async function mpRefresh(){
+  const r=await fetch('/api/music/queue'); const s=await r.json();
+  const bar=document.getElementById('miniPlayer'); if(!bar) return;
+  if(!bar) return;
+  const now=s.now; const q=s.queue||[];
+  bar.querySelector('.cover').src = (now && (now.cover||'')) || 'assets/favicon.svg';
+  bar.querySelector('.title').textContent = (now && now.title) || 'Queue is empty';
+  const a=bar.querySelector('audio');
+  if(now && now.stream && a.src!==location.origin+now.stream){ a.src = now.stream; a.play().catch(()=>{}); }
+  const list=bar.querySelector('.q'); list.innerHTML='';
+  q.forEach((it,i)=>{ const li=document.createElement('div'); li.textContent=(i+1)+'. '+(it.title||''); li.onclick=()=>fetch('/api/music/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'playnow', id: it.id})}).then(mpRefresh); list.appendChild(li); });
+}
+function mpNext(){ fetch('/api/music/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'next'})}).then(mpRefresh); }
+function mpToggle(){ const p=document.getElementById('miniPlayer'); p.style.display = (p.style.display==='none'?'grid':'none'); }
+document.addEventListener('DOMContentLoaded', ()=>{
+  function applyAutoHide(){
+    const bar=document.getElementById('miniPlayer'); if(!bar) return;
+    const hasAudio = !!(bar.querySelector('audio').src);
+    const visible = bar.dataset.visible==='1';
+    // Hide if no audio src or nothing in queue/now
+    if(!hasAudio){ bar.style.display='none'; bar.dataset.visible='0'; return; }
+    // Hide after inactivity (6s) when paused
+    const a=bar.querySelector('audio');
+    const inactive = (Date.now()-MP.lastShow)>6000 && a.paused;
+    if(inactive){ bar.style.display='none'; bar.dataset.visible='0'; } else { bar.style.display='grid'; bar.dataset.visible='1'; }
+  }
+  window.addEventListener('mousemove', ()=>{ MP.lastShow=Date.now(); });
+  window.addEventListener('keydown',  ()=>{ MP.lastShow=Date.now(); });
+  setInterval(applyAutoHide, 700);
+
+  const tpl = `<div id="miniPlayer" style="position:fixed;left:12px;right:12px;bottom:12px;display:grid;grid-template-columns:60px 1fr auto;gap:10px;align-items:center;background:#0b1220;border:1px solid rgba(148,163,184,.25);border-radius:12px;padding:8px;z-index:60">
+    <img class="cover" alt="" style="width:60px;height:60px;border-radius:8px;border:1px solid rgba(148,163,184,.2)">
+    <div>
+      <div class="title" style="font-weight:600"></div>
+      <div class="q" style="display:flex;gap:8px;overflow:auto;font-size:.9rem;color:var(--muted)"></div>
+      <audio controls preload="metadata" style="width:100%"></audio>
+    </div>
+    <div><button onclick="mpNext()">Next ▶</button> <button onclick="mpToggle()">Hide</button></div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', tpl);
+  setInterval(mpRefresh, 2000);
+  mpRefresh();
+});
+</script>
+
+</body></html>

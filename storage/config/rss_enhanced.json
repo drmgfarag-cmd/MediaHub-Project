@@ -1,0 +1,25 @@
+{
+  "feeds": [
+    {
+      "name": "Example RSS Feed",
+      "url": "https://example.com/rss",
+      "enabled": false,
+      "category": "movies"
+    }
+  ],
+  "auto_download": false,
+  "scoring_profile": "balanced",
+  "min_score": 50,
+  "qbittorrent": {
+    "enabled": false,
+    "url": "http://localhost:8080",
+    "username": "admin",
+    "password": ""
+  },
+  "filters": {
+    "exclude_keywords": ["CAM", "TS", "HDCAM"],
+    "include_keywords": [],
+    "min_size_mb": 100,
+    "max_size_mb": 50000
+  }
+}

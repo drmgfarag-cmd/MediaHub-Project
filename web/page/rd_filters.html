@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - Real-Debrid Filters</title>
+    <link rel="stylesheet" href="../assets/normalize.css">
+    <link rel="stylesheet" href="../assets/ui.css">
+    <style>
+        .filters-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .filter-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .filter-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .filter-item:last-child {
+            border-bottom: none;
+        }
+        
+        .filter-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .filter-control {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        input[type="text"], input[type="number"], select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        .save-button {
+            background: #4CAF50;
+            padding: 12px 30px;
+            font-size: 1rem;
+            margin-top: 20px;
+        }
+        
+        .save-button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="filters-container">
+        <h1>🔧 Real-Debrid Filters</h1>
+        <p>Configure filters for Real-Debrid link processing and quality preferences</p>
+        
+        <div class="filter-section">
+            <h2>Quality Filters</h2>
+            <div class="filter-item">
+                <span class="filter-label">Minimum Resolution</span>
+                <div class="filter-control">
+                    <select id="minResolution">
+                        <option value="any">Any</option>
+                        <option value="720p">720p</option>
+                        <option value="1080p">1080p</option>
+                        <option value="2160p">4K (2160p)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">Maximum Resolution</span>
+                <div class="filter-control">
+                    <select id="maxResolution">
+                        <option value="any">Any</option>
+                        <option value="1080p">1080p</option>
+                        <option value="2160p">4K (2160p)</option>
+                        <option value="4320p">8K (4320p)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">Preferred Codec</span>
+                <div class="filter-control">
+                    <select id="preferredCodec">
+                        <option value="any">Any</option>
+                        <option value="h264">H.264</option>
+                        <option value="h265">H.265 (HEVC)</option>
+                        <option value="av1">AV1</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <h2>File Size Filters</h2>
+            <div class="filter-item">
+                <span class="filter-label">Minimum File Size (MB)</span>
+                <div class="filter-control">
+                    <input type="number" id="minFileSize" placeholder="0" min="0">
+                </div>
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">Maximum File Size (GB)</span>
+                <div class="filter-control">
+                    <input type="number" id="maxFileSize" placeholder="Unlimited" min="0">
+                </div>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <h2>Release Group Filters</h2>
+            <div class="filter-item">
+                <span class="filter-label">Preferred Groups</span>
+                <div class="filter-control">
+                    <input type="text" id="preferredGroups" placeholder="e.g., SPARKS, FGT, RARBG" style="width: 300px;">
+                </div>
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">Blocked Groups</span>
+                <div class="filter-control">
+                    <input type="text" id="blockedGroups" placeholder="e.g., YIFY, EVO" style="width: 300px;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <h2>Content Filters</h2>
+            <div class="filter-item">
+                <span class="filter-label">Exclude Samples</span>
+                <div class="filter-control">
+                    <input type="checkbox" id="excludeSamples" checked>
+                </div>
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">Exclude Trailers</span>
+                <div class="filter-control">
+                    <input type="checkbox" id="excludeTrailers" checked>
+                </div>
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">Require Subtitles</span>
+                <div class="filter-control">
+                    <input type="checkbox" id="requireSubtitles">
+                </div>
+            </div>
+        </div>
+        
+        <button class="save-button" onclick="saveFilters()">💾 Save Filters</button>
+    </div>
+    
+    <script>
+        async function loadFilters() {
+            try {
+                // Updated to use v5.2 Golden Surface API
+                const response = await fetch('/api/rd/filters/config');
+                if (response.ok) {
+                    const data = await response.json();
+                    // Populate form with loaded data from v5.2 API structure
+                    if (data.config) {
+                        const config = data.config;
+                        document.getElementById('minResolution').value = config.quality_filters?.min_resolution || 'any';
+                        document.getElementById('maxResolution').value = config.quality_filters?.max_resolution || 'any';
+                        document.getElementById('preferredCodec').value = config.quality_filters?.preferred_codecs?.[0] || 'any';
+                        document.getElementById('minFileSize').value = config.size_filters?.min_size_mb || '';
+                        document.getElementById('maxFileSize').value = config.size_filters?.max_size_mb ? config.size_filters.max_size_mb / 1024 : '';
+                        document.getElementById('preferredGroups').value = config.content_filters?.require_keywords?.join(', ') || '';
+                        document.getElementById('blockedGroups').value = config.content_filters?.exclude_keywords?.join(', ') || '';
+                        document.getElementById('excludeSamples').checked = true;
+                        document.getElementById('excludeTrailers').checked = true;
+                        document.getElementById('requireSubtitles').checked = false;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading filters:', error);
+            }
+        }
+        
+        async function saveFilters() {
+            // Convert to v5.2 API structure
+            const config = {
+                enabled: true,
+                quality_filters: {
+                    min_resolution: document.getElementById('minResolution').value,
+                    preferred_codecs: [document.getElementById('preferredCodec').value].filter(c => c !== 'any'),
+                    require_hdr: false,
+                    min_audio_channels: 2
+                },
+                size_filters: {
+                    min_size_mb: parseInt(document.getElementById('minFileSize').value) || 100,
+                    max_size_mb: (parseFloat(document.getElementById('maxFileSize').value) || 50) * 1024
+                },
+                content_filters: {
+                    exclude_keywords: document.getElementById('blockedGroups').value.split(',').map(s => s.trim()).filter(s => s),
+                    require_keywords: document.getElementById('preferredGroups').value.split(',').map(s => s.trim()).filter(s => s)
+                }
+            };
+            
+            try {
+                // Updated to use v5.2 Golden Surface API
+                const response = await fetch('/api/rd/filters/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    alert('✓ Filters saved successfully!');
+                } else {
+                    alert('✗ Error saving filters');
+                }
+            } catch (error) {
+                alert('✗ Network error: ' + error.message);
+            }
+        }
+        
+        // Load filters on page load
+        document.addEventListener('DOMContentLoaded', loadFilters);
+    </script>
+</body>
+</html>

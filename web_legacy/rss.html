@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>RSS Feeds</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/auth.js"></script>
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}</style>
+</head><body>
+<div class="wrap">
+  <a href="downloads.html">&larr; Downloads</a>
+  <h1>RSS Feeds</h1>
+  <div class="card">
+    <h3>Feeds</h3>
+    <textarea id="feeds" style="width:100%;min-height:160px" placeholder='[{"url":"https://example.com/rss.xml","include":["720p","WEB-DL"],"exclude":["CAM"]}]'></textarea>
+    <button onclick="save()">Save</button> <span id="msg"></span>
+  </div>
+  <div class="card">
+    <h3>Poll a Feed</h3>
+    <input id="url" type="text" placeholder="https://.../rss.xml">
+    <input id="inc" type="text" placeholder="include regex (comma)">
+    <input id="exc" type="text" placeholder="exclude regex (comma)">
+    <button onclick="poll()">Poll</button>
+    <div id="items"></div>
+  </div>
+</div>
+<script>
+async function save(){
+  try{
+    const feeds=JSON.parse(document.getElementById('feeds').value||'[]');
+    const r=await fetch('/api/rss/feeds',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({feeds})});
+    document.getElementById('msg').textContent = r.ok ? 'Saved' : 'Error';
+  }catch(e){ alert('Invalid JSON'); }
+}
+async function load(){
+  const j=await (await fetch('/api/rss/feeds')).json();
+  document.getElementById('feeds').value = JSON.stringify(j.feeds||[], null, 2);
+}
+async function poll(){
+  const url=document.getElementById('url').value.trim();
+  const include=(document.getElementById('inc').value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const exclude=(document.getElementById('exc').value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const r=await fetch('/api/rss/poll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,include,exclude})});
+  const j=await r.json();
+  const box=document.getElementById('items'); box.innerHTML='';
+  (j.items||[]).forEach(it=>{
+    const row=document.createElement('div'); row.style='margin:4px 0'; row.innerHTML=`<a href="#" target="_blank">${it.title}</a>`; box.appendChild(row);
+  });
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

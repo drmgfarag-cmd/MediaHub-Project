@@ -1,0 +1,62 @@
+from flask import Blueprint, jsonify, request
+import os, json, io, tarfile, shutil
+import requests
+
+monaco_bp = Blueprint('monaco', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+WEB=os.path.join(ROOT,'web')
+DST=os.path.join(WEB,'assets','monaco')
+VER=os.path.join(DST,'version.txt')
+
+def _installed_version():
+    try:
+        if os.path.exists(os.path.join(DST,'vs','loader.js')):
+            return (open(VER,'r',encoding='utf-8').read().strip() if os.path.exists(VER) else 'unknown')
+    except Exception:
+        pass
+    return None
+
+@monaco_bp.route('/api/editor/monaco/status')
+def status():
+    try:
+        v=_installed_version()
+        return jsonify({'ok':True, 'installed': bool(v), 'version': v or ''})
+
+        @monaco_bp.route('/api/editor/monaco/fetch', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def fetch():
+    try:
+        want=(request.args.get('version') or 'latest').strip()
+        meta_url=f'https://registry.npmjs.org/monaco-editor/{want}'
+        r=requests.get(meta_url, timeout=30)
+        if r.status_code!=200:
+        return jsonify({'error': f'meta {r.status_code}'}), 502
+        meta=r.json()
+        ver=meta.get('version') or meta.get('dist-tags',{}).get('latest') or 'latest'
+        tarball = meta.get('dist',{}).get('tarball')
+        if not tarball:
+        r2=requests.get('https://registry.npmjs.org/monaco-editor/latest', timeout=30)
+        ver=r2.json().get('version','latest')
+        tarball=r2.json().get('dist',{}).get('tarball','')
+        if not tarball:
+        return jsonify({'error':'no tarball'}), 502
+        t=requests.get(tarball, timeout=60)
+        if t.status_code!=200:
+        return jsonify({'error': f'dl {t.status_code}'}), 502
+        os.makedirs(DST, exist_ok=True)
+        with tarfile.open(fileobj=io.BytesIO(t.content), mode='r:gz') as tf:
+        members=[m for m in tf.getmembers() if m.name.startswith('package/min/vs/')]
+        tf.extractall(path=DST, members=members)
+        src=os.path.join(DST,'package','min','vs')
+        if os.path.exists(src):
+        target=os.path.join(DST,'vs')
+        if os.path.exists(target):
+        shutil.rmtree(target, ignore_errors=True)
+        shutil.move(src, target)
+        shutil.rmtree(os.path.join(DST,'package'), ignore_errors=True)
+        open(VER,'w',encoding='utf-8').write(ver)
+        return jsonify({'ok':True,'version':ver})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

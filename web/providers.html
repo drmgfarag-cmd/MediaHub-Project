@@ -1,0 +1,237 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Providers / Metadata</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.provider-status { display: grid; grid-template-columns: 150px 100px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
+.status-indicator { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; text-align: center; }
+.status-active { background: #27ae60; color: white; }
+.status-inactive { background: #e74c3c; color: white; }
+.test-section { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin: 15px 0; }
+.test-result { background: #1a1a1a; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+</style>
+</head><body><div class="wrap">
+<div class="toolbar"><a href="tools.html">← Tools</a> · <strong>Providers / Metadata</strong></div>
+
+<div class="card">
+  <h3>API Key Status</h3>
+  <div id="providerStatus">Loading...</div>
+</div>
+
+<div class="card">
+  <h3>Live Providers</h3>
+  <label><input type="checkbox" id="liveEnabled"> Enable live metadata fetching (uses API keys)</label>
+  <p style="font-size: 12px; color: #999; margin-top: 8px;">
+    When enabled, MediaHub will automatically fetch metadata from external providers during library scans.
+  </p>
+</div>
+
+<div class="card">
+  <h3>Audio Enhancement</h3>
+  <label><input type='checkbox' id='autoAudioEnrich'> Auto-enrich audio metadata during scans (AcoustID + Discogs)</label>
+  <p style="font-size: 12px; color: #999; margin-top: 8px;">
+    Automatically identify and enhance audio files with metadata from music databases.
+  </p>
+</div>
+
+<div class="card">
+  <h3>Provider Configuration</h3>
+  <div class="test-section">
+    <h4>Provider Priority Order</h4>
+    <div style="margin: 10px 0;">
+      <label>Movies: <input type="text" id="movieProviders" placeholder="tmdb,omdb,tvdb" style="width: 200px;"></label>
+    </div>
+    <div style="margin: 10px 0;">
+      <label>TV Series: <input type="text" id="seriesProviders" placeholder="tvdb,tmdb,anilist" style="width: 200px;"></label>
+    </div>
+    <div style="margin: 10px 0;">
+      <label>Books: <input type="text" id="bookProviders" placeholder="googlebooks" style="width: 200px;"></label>
+    </div>
+    <div style="margin: 10px 0;">
+      <label>Audio: <input type="text" id="audioProviders" placeholder="discogs,acoustid" style="width: 200px;"></label>
+    </div>
+    <button onclick="saveProviderConfig()" style="margin-top: 10px;">Save Configuration</button>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Test Metadata Resolution</h3>
+  <div class="test-section">
+    <div style="display: grid; grid-template-columns: 100px 200px 100px 1fr 100px; gap: 10px; align-items: center;">
+      <label>Type:</label>
+      <select id="testType">
+        <option value="movie">Movie</option>
+        <option value="series">TV Series</option>
+        <option value="anime">Anime</option>
+        <option value="book">Book</option>
+        <option value="audio">Audio</option>
+      </select>
+      
+      <label>Title:</label>
+      <input id="testTitle" placeholder="Enter title to test" />
+      
+      <button id="testResolve">Test</button>
+    </div>
+    
+    <div style="margin-top: 10px;">
+      <label>Year (optional): <input id="testYear" placeholder="2023" style="width: 80px;" /></label>
+    </div>
+    
+    <div style="margin-top: 15px;">
+      <h4>Test Result:</h4>
+      <div id="testResult" class="test-result">No test run yet. Click "Test" to resolve metadata for a title.</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Cache Management</h3>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <button onclick="clearMetadataCache()">Clear Metadata Cache</button>
+    <span id="cacheStatus" style="font-size: 12px; color: #999;"></span>
+  </div>
+  <p style="font-size: 12px; color: #999; margin-top: 8px;">
+    Clears all cached metadata. Next library scan will re-fetch all metadata from providers.
+  </p>
+</div>
+
+<script>
+let currentConfig = {};
+
+async function loadProviderStatus() {
+  try {
+    const response = await fetch('/api/metadata/keys_status');
+    const data = await response.json();
+    
+    const statusHtml = Object.entries(data.has || {}).map(([provider, hasKey]) => `
+      <div class="provider-status">
+        <div>${provider.toUpperCase()}</div>
+        <div class="status-indicator ${hasKey ? 'status-active' : 'status-inactive'}">
+          ${hasKey ? 'Active' : 'No Key'}
+        </div>
+        <div>${hasKey ? 'API key configured and ready' : 'API key required for this provider'}</div>
+      </div>
+    `).join('');
+    
+    document.getElementById('providerStatus').innerHTML = statusHtml;
+  } catch (error) {
+    document.getElementById('providerStatus').innerHTML = 'Error loading provider status';
+  }
+}
+
+async function loadConfiguration() {
+  try {
+    const response = await fetch('/api/metadata/providers');
+    const config = await response.json();
+    currentConfig = config;
+    
+    // Set checkboxes
+    document.getElementById('liveEnabled').checked = config.live_enabled !== false;
+    document.getElementById('autoAudioEnrich').checked = config.auto_audio_enrich === true;
+    
+    // Set provider order inputs
+    const providers = config.providers || {};
+    document.getElementById('movieProviders').value = (providers.movie || []).join(',');
+    document.getElementById('seriesProviders').value = (providers.series || []).join(',');
+    document.getElementById('bookProviders').value = (providers.book || []).join(',');
+    document.getElementById('audioProviders').value = (providers.audio || []).join(',');
+    
+  } catch (error) {
+    console.error('Error loading configuration:', error);
+  }
+}
+
+async function saveProviderConfig() {
+  const config = {
+    ...currentConfig,
+    providers: {
+      movie: document.getElementById('movieProviders').value.split(',').map(s => s.trim()).filter(s => s),
+      series: document.getElementById('seriesProviders').value.split(',').map(s => s.trim()).filter(s => s),
+      book: document.getElementById('bookProviders').value.split(',').map(s => s.trim()).filter(s => s),
+      audio: document.getElementById('audioProviders').value.split(',').map(s => s.trim()).filter(s => s)
+    },
+    live_enabled: document.getElementById('liveEnabled').checked,
+    auto_audio_enrich: document.getElementById('autoAudioEnrich').checked
+  };
+  
+  try {
+    const response = await fetch('/api/metadata/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    
+    const result = await response.json();
+    if (result.ok) {
+      alert('Configuration saved successfully!');
+      currentConfig = config;
+    } else {
+      alert('Error saving configuration: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Network error: ' + error.message);
+  }
+}
+
+async function testMetadataResolution() {
+  const type = document.getElementById('testType').value;
+  const title = document.getElementById('testTitle').value.trim();
+  const year = document.getElementById('testYear').value.trim();
+  
+  if (!title) {
+    alert('Please enter a title to test');
+    return;
+  }
+  
+  document.getElementById('testResult').textContent = 'Testing...';
+  
+  try {
+    const response = await fetch('/api/metadata/resolve_live', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: type,
+        title: title,
+        year: year ? parseInt(year) : null
+      })
+    });
+    
+    const result = await response.json();
+    document.getElementById('testResult').textContent = JSON.stringify(result, null, 2);
+  } catch (error) {
+    document.getElementById('testResult').textContent = 'Error: ' + error.message;
+  }
+}
+
+async function clearMetadataCache() {
+  if (!confirm('Are you sure you want to clear the metadata cache? This will require re-fetching metadata on the next scan.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/metadata/clear_cache', { method: 'POST' });
+    const result = await response.json();
+    
+    if (result.ok) {
+      document.getElementById('cacheStatus').textContent = 'Cache cleared successfully';
+      setTimeout(() => {
+        document.getElementById('cacheStatus').textContent = '';
+      }, 3000);
+    } else {
+      alert('Error clearing cache: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Network error: ' + error.message);
+  }
+}
+
+// Event listeners
+document.getElementById('testResolve').onclick = testMetadataResolution;
+document.getElementById('liveEnabled').onchange = saveProviderConfig;
+document.getElementById('autoAudioEnrich').onchange = saveProviderConfig;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadProviderStatus();
+  loadConfiguration();
+});
+</script>
+</div></body></html>

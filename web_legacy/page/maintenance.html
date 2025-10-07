@@ -1,0 +1,12 @@
+<html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Maintenance</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+
+<h2>Maintenance</h2>
+<button onclick="backup()">Create Backup (download)</button>
+<button onclick="support()">Support Pack</button>
+<div id="msg"></div>
+<script>
+async function backup(){ const j=await (await fetch('/api/backup/create')).json(); const a=document.createElement('a'); a.href=j.download; a.click(); }
+async function support(){ const j=await (await fetch('/api/support/pack')).json(); const a=document.createElement('a'); a.href=j.download; a.click(); }
+</script>
+
+<script defer src="../assets/ui_enhance.js'></script></body></html>

@@ -1,0 +1,437 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Downloader - MediaHub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.downloader-container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+.downloader-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.downloader-header h1 { margin: 0; font-size: 28px; color: #eee; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #2e3547; }
+.tab-btn { padding: 12px 20px; border: none; background: transparent; color: #aaa; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.tab-btn.active { color: #4f7cff; border-bottom-color: #4f7cff; }
+.tab-btn:hover { color: #eee; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.link-grabber { background: #1b2130; border: 1px solid #2e3547; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.link-input { display: flex; gap: 12px; margin-bottom: 16px; }
+.link-input input { flex: 1; padding: 12px; border: 1px solid #2e3547; background: #252d3f; color: #eee; border-radius: 8px; font-size: 14px; }
+.link-input button { padding: 12px 24px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; }
+
+.extracted-links { margin-top: 20px; }
+.link-item { background: #252d3f; border: 1px solid #2e3547; border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.link-item .link-info { flex: 1; }
+.link-item .link-url { color: #eee; font-size: 13px; margin-bottom: 4px; }
+.link-item .link-meta { color: #aaa; font-size: 11px; }
+.link-item .link-actions { display: flex; gap: 8px; }
+.link-item button { padding: 6px 12px; border: 1px solid #2e3547; background: #2a3447; color: #eee; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.setting-card { background: #1b2130; border: 1px solid #2e3547; border-radius: 12px; padding: 20px; }
+.setting-card h3 { margin: 0 0 16px 0; font-size: 16px; color: #eee; }
+.setting-row { margin-bottom: 16px; }
+.setting-row label { display: block; color: #aaa; font-size: 13px; margin-bottom: 6px; }
+.setting-row input, .setting-row select { width: 100%; padding: 10px; border: 1px solid #2e3547; background: #252d3f; color: #eee; border-radius: 6px; font-size: 13px; }
+.setting-row input[type="checkbox"] { width: auto; }
+
+.container-upload { background: #1b2130; border: 2px dashed #2e3547; border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 20px; cursor: pointer; transition: all 0.2s; }
+.container-upload:hover { border-color: #4f7cff; background: #252d3f; }
+.container-upload input[type="file"] { display: none; }
+
+.downloads-list { background: #1b2130; border: 1px solid #2e3547; border-radius: 12px; padding: 20px; }
+.download-item { background: #252d3f; border: 1px solid #2e3547; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+.download-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.download-name { color: #eee; font-size: 14px; font-weight: 500; }
+.download-status { padding: 4px 10px; border-radius: 4px; font-size: 11px; }
+.download-status.active { background: #4f7cff; color: #fff; }
+.download-status.paused { background: #666; color: #fff; }
+.download-status.completed { background: #1db954; color: #fff; }
+.download-progress { background: #1b2130; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+.download-progress-bar { height: 100%; background: #4f7cff; transition: width 0.3s; }
+.download-meta { display: flex; justify-content: space-between; color: #aaa; font-size: 12px; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.stat-card { background: #1b2130; border: 1px solid #2e3547; border-radius: 10px; padding: 16px; }
+.stat-label { color: #aaa; font-size: 12px; margin-bottom: 6px; }
+.stat-value { color: #eee; font-size: 24px; font-weight: 600; }
+
+@media (max-width: 768px) {
+  .settings-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- Unified Top Nav -->
+<style>
+#topnav{position:sticky;top:0;z-index:1200;background:linear-gradient(180deg, rgba(8,12,20,.86), rgba(8,12,20,.38) 60%, rgba(8,12,20,0) 100%);backdrop-filter:saturate(140%) blur(8px);padding:8px 12px;display:flex;gap:12px;align-items:center}
+#topnav a{color:#e8ebf5;text-decoration:none;padding:6px 10px;border-radius:8px}
+#topnav a.cur{background:rgba(255,255,255,.06)}
+#navtoggle{position:fixed;left:12px;top:12px;z-index:1300;background:#0b1220;border:1px solid #1f2537;border-radius:10px;padding:6px 8px;cursor:pointer}
+</style>
+<div id="navtoggle">☰</div>
+<div id="topnav">
+  <a href="home_enhanced.html" id="nav_home">MediaHub</a>
+  <a href="discovery.html" id="nav_disc">Discovery</a>
+  <a href="downloader_enhanced.html" id="nav_dl" class="cur">Downloader</a>
+  <a href="rd_manager_enhanced.html" id="nav_rd">RD Manager</a>
+  <a href="editor_enhanced.html" id="nav_ed">Editor</a>
+  <span style="flex:1"></span>
+  <a href="tools.html">Tools</a>
+</div>
+
+<div class="downloader-container">
+  <div class="downloader-header">
+    <h1>Advanced Downloader</h1>
+  </div>
+
+  <!-- Statistics -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Active Downloads</div>
+      <div class="stat-value" id="stat_active">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Download Speed</div>
+      <div class="stat-value" id="stat_speed">0 MB/s</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Downloaded</div>
+      <div class="stat-value" id="stat_total">0 GB</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Success Rate</div>
+      <div class="stat-value" id="stat_success">0%</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="linkgrabber">LinkGrabber</button>
+    <button class="tab-btn" data-tab="downloads">Downloads</button>
+    <button class="tab-btn" data-tab="containers">Containers</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </div>
+
+  <!-- LinkGrabber Tab -->
+  <div class="tab-content active" data-content="linkgrabber">
+    <div class="link-grabber">
+      <h3 style="margin: 0 0 16px 0; color: #eee;">Deep Link Scanner</h3>
+      <div class="link-input">
+        <input type="text" id="url_input" placeholder="Enter URL to scan for download links...">
+        <button id="scan_btn">Scan Links</button>
+        <button id="validate_btn">Validate</button>
+      </div>
+      
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; color: #aaa; font-size: 13px;">
+          <input type="checkbox" id="auto_validate"> Auto-validate links
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; color: #aaa; font-size: 13px;">
+          <input type="checkbox" id="clipboard_monitor"> Monitor clipboard
+        </label>
+      </div>
+
+      <div class="extracted-links" id="extracted_links"></div>
+    </div>
+
+    <div class="link-grabber">
+      <h3 style="margin: 0 0 16px 0; color: #eee;">Processing Rules</h3>
+      <p style="color: #aaa; font-size: 13px; margin-bottom: 16px;">Define rules for automatic link processing</p>
+      <button id="add_rule_btn" style="padding: 10px 20px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 8px; cursor: pointer;">+ Add Rule</button>
+      <div id="rules_list" style="margin-top: 16px;"></div>
+    </div>
+  </div>
+
+  <!-- Downloads Tab -->
+  <div class="tab-content" data-content="downloads">
+    <div class="downloads-list">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; color: #eee;">Active Downloads</h3>
+        <div style="display: flex; gap: 8px;">
+          <button id="pause_all_btn" style="padding: 8px 16px; border: 1px solid #2e3547; background: #2a3447; color: #eee; border-radius: 6px; cursor: pointer;">Pause All</button>
+          <button id="resume_all_btn" style="padding: 8px 16px; border: 1px solid #2e3547; background: #2a3447; color: #eee; border-radius: 6px; cursor: pointer;">Resume All</button>
+          <button id="optimize_queue_btn" style="padding: 8px 16px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 6px; cursor: pointer;">Optimize Queue</button>
+        </div>
+      </div>
+      <div id="downloads_list"></div>
+    </div>
+  </div>
+
+  <!-- Containers Tab -->
+  <div class="tab-content" data-content="containers">
+    <div class="container-upload" id="container_upload">
+      <input type="file" id="container_file" accept=".dlc,.rsdf,.ccf,.txt">
+      <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+      <div style="color: #eee; font-size: 16px; margin-bottom: 8px;">Drop container file here or click to upload</div>
+      <div style="color: #aaa; font-size: 13px;">Supports DLC, RSDF, CCF, and text files</div>
+    </div>
+
+    <div class="link-grabber">
+      <h3 style="margin: 0 0 16px 0; color: #eee;">Create Container</h3>
+      <p style="color: #aaa; font-size: 13px; margin-bottom: 16px;">Package multiple links into a container file</p>
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <select id="container_type" style="padding: 10px; border: 1px solid #2e3547; background: #252d3f; color: #eee; border-radius: 6px;">
+          <option value="dlc">DLC Container</option>
+          <option value="rsdf">RSDF Container</option>
+          <option value="ccf">CCF Container</option>
+          <option value="txt">Text File</option>
+        </select>
+        <input type="password" id="container_password" placeholder="Password (optional)" style="flex: 1; padding: 10px; border: 1px solid #2e3547; background: #252d3f; color: #eee; border-radius: 6px;">
+        <button id="create_container_btn" style="padding: 10px 20px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 8px; cursor: pointer;">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Tab -->
+  <div class="tab-content" data-content="settings">
+    <div class="settings-grid">
+      <div class="setting-card">
+        <h3>Bandwidth Management</h3>
+        <div class="setting-row">
+          <label>Max Download Speed (KB/s, 0 = unlimited)</label>
+          <input type="number" id="max_download_speed" value="0" min="0">
+        </div>
+        <div class="setting-row">
+          <label>Max Upload Speed (KB/s, 0 = unlimited)</label>
+          <input type="number" id="max_upload_speed" value="0" min="0">
+        </div>
+        <div class="setting-row">
+          <label>Per-Download Limit (KB/s)</label>
+          <input type="number" id="per_download_limit" value="0" min="0">
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <h3>Connections</h3>
+        <div class="setting-row">
+          <label>Max Connections Per Server</label>
+          <input type="number" id="max_connections" value="4" min="1" max="16">
+        </div>
+        <div class="setting-row">
+          <label>Max Simultaneous Downloads</label>
+          <input type="number" id="max_simultaneous" value="3" min="1" max="10">
+        </div>
+        <div class="setting-row">
+          <label>Connection Timeout (seconds)</label>
+          <input type="number" id="connection_timeout" value="30" min="10" max="120">
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <h3>Resume & Verification</h3>
+        <div class="setting-row">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="auto_resume" checked>
+            Auto-resume interrupted downloads
+          </label>
+        </div>
+        <div class="setting-row">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="auto_verify" checked>
+            Auto-verify file integrity
+          </label>
+        </div>
+        <div class="setting-row">
+          <label>Verification Method</label>
+          <select id="verify_method">
+            <option value="md5">MD5</option>
+            <option value="sha1">SHA1</option>
+            <option value="sha256">SHA256</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <h3>Post-Download Actions</h3>
+        <div class="setting-row">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="move_to_library">
+            Move to library after download
+          </label>
+        </div>
+        <div class="setting-row">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="trigger_renamer">
+            Trigger automatic renaming
+          </label>
+        </div>
+        <div class="setting-row">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="run_custom_script">
+            Run custom script
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; text-align: right;">
+      <button id="save_settings_btn" style="padding: 12px 24px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 8px; cursor: pointer; font-size: 14px;">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[data-content="${tab}"]`).classList.add('active');
+  });
+});
+
+// LinkGrabber
+document.getElementById('scan_btn').addEventListener('click', async () => {
+  const url = document.getElementById('url_input').value;
+  if (!url) {
+    alert('Please enter a URL');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/downloader/linkgrabber/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await response.json();
+    
+    const container = document.getElementById('extracted_links');
+    container.innerHTML = `
+      <h4 style="color: #eee; margin-bottom: 12px;">Extracted Links (${data.count})</h4>
+      ${data.extracted_links.map(link => `
+        <div class="link-item">
+          <div class="link-info">
+            <div class="link-url">${link.filename}</div>
+            <div class="link-meta">${link.type} · ${link.size}</div>
+          </div>
+          <div class="link-actions">
+            <button onclick="downloadLink('${link.url}')">Download</button>
+            <button onclick="copyLink('${link.url}')">Copy</button>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  } catch (e) {
+    console.error('Error scanning links:', e);
+    alert('Failed to scan links');
+  }
+});
+
+// Container upload
+document.getElementById('container_upload').addEventListener('click', () => {
+  document.getElementById('container_file').click();
+});
+
+document.getElementById('container_file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('type', file.name.split('.').pop());
+  
+  try {
+    const response = await fetch('/api/downloader/container/decrypt', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await response.json();
+    
+    alert(`Container decrypted! Found ${data.count} links`);
+    // Display extracted links
+  } catch (e) {
+    console.error('Error decrypting container:', e);
+    alert('Failed to decrypt container');
+  }
+});
+
+// Save settings
+document.getElementById('save_settings_btn').addEventListener('click', async () => {
+  const settings = {
+    bandwidth: {
+      max_download_speed: parseInt(document.getElementById('max_download_speed').value),
+      max_upload_speed: parseInt(document.getElementById('max_upload_speed').value),
+      per_download_limit: parseInt(document.getElementById('per_download_limit').value)
+    },
+    connections: {
+      max_connections_per_server: parseInt(document.getElementById('max_connections').value),
+      max_simultaneous_downloads: parseInt(document.getElementById('max_simultaneous').value),
+      connection_timeout: parseInt(document.getElementById('connection_timeout').value)
+    },
+    resume: {
+      auto_resume: document.getElementById('auto_resume').checked
+    },
+    verification: {
+      auto_verify: document.getElementById('auto_verify').checked,
+      verify_methods: [document.getElementById('verify_method').value]
+    },
+    post_download: {
+      move_to_library: document.getElementById('move_to_library').checked,
+      trigger_renamer: document.getElementById('trigger_renamer').checked,
+      run_custom_script: document.getElementById('run_custom_script').checked
+    }
+  };
+  
+  try {
+    const response = await fetch('/api/downloader/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      alert('Settings saved successfully!');
+    }
+  } catch (e) {
+    console.error('Error saving settings:', e);
+    alert('Failed to save settings');
+  }
+});
+
+// Load stats
+async function loadStats() {
+  try {
+    const response = await fetch('/api/downloader/stats');
+    const data = await response.json();
+    
+    if (data.success) {
+      document.getElementById('stat_active').textContent = data.stats.active_downloads;
+      document.getElementById('stat_speed').textContent = data.stats.average_speed;
+      document.getElementById('stat_total').textContent = data.stats.total_downloaded;
+      document.getElementById('stat_success').textContent = data.stats.success_rate;
+    }
+  } catch (e) {
+    console.error('Error loading stats:', e);
+  }
+}
+
+// Helper functions
+function downloadLink(url) {
+  console.log('Download:', url);
+  // Implement download logic
+}
+
+function copyLink(url) {
+  navigator.clipboard.writeText(url);
+  alert('Link copied to clipboard!');
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', () => {
+  loadStats();
+  setInterval(loadStats, 5000); // Update stats every 5 seconds
+});
+</script>
+
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+</body></html>

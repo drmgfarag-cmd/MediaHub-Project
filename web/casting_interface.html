@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - Casting</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .device-card {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .device-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .cast-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            transition: all 0.3s ease;
+        }
+        .cast-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(255,107,107,0.4);
+        }
+        .discovery-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Header -->
+    <header class="hero-gradient p-6 shadow-2xl">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-cast text-3xl"></i>
+                <h1 class="text-3xl font-bold">Casting Center</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="discoverBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-300">
+                    <i class="fas fa-search mr-2"></i>Discover Devices
+                </button>
+                <button id="refreshBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-300">
+                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-6">
+        <!-- Discovery Status -->
+        <div id="discoveryStatus" class="mb-8 p-4 bg-blue-600 bg-opacity-20 rounded-lg border border-blue-500 hidden">
+            <div class="flex items-center">
+                <div class="discovery-animation mr-3">
+                    <i class="fas fa-wifi text-blue-400 text-xl"></i>
+                </div>
+                <span class="text-blue-300">Discovering devices on your network...</span>
+            </div>
+        </div>
+
+        <!-- Available Devices -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold mb-6 flex items-center">
+                <i class="fas fa-tv mr-3 text-purple-400"></i>
+                Available Devices
+            </h2>
+            <div id="devicesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Devices will be populated here -->
+            </div>
+        </section>
+
+        <!-- Cast Queue -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold mb-6 flex items-center">
+                <i class="fas fa-list mr-3 text-green-400"></i>
+                Cast Queue
+            </h2>
+            <div id="castQueue" class="bg-gray-800 rounded-lg p-6">
+                <div class="text-center text-gray-400">
+                    <i class="fas fa-queue text-4xl mb-4"></i>
+                    <p>No items in cast queue</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Active Sessions -->
+        <section>
+            <h2 class="text-2xl font-bold mb-6 flex items-center">
+                <i class="fas fa-play-circle mr-3 text-red-400"></i>
+                Active Cast Sessions
+            </h2>
+            <div id="activeSessions" class="bg-gray-800 rounded-lg p-6">
+                <div class="text-center text-gray-400">
+                    <i class="fas fa-cast text-4xl mb-4"></i>
+                    <p>No active cast sessions</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Cast Modal -->
+    <div id="castModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold">Cast to Device</h3>
+                <button id="closeCastModal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Media URL</label>
+                <input id="mediaUrl" type="url" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500" placeholder="Enter media URL to cast">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Selected Device</label>
+                <div id="selectedDevice" class="bg-gray-700 rounded-lg p-3 text-gray-300">
+                    No device selected
+                </div>
+            </div>
+            
+            <div class="flex space-x-4">
+                <button id="startCastBtn" class="cast-button flex-1 text-white px-6 py-3 rounded-lg font-medium">
+                    <i class="fas fa-cast mr-2"></i>Start Casting
+                </button>
+                <button id="cancelCastBtn" class="bg-gray-600 hover:bg-gray-500 flex-1 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CastingInterface {
+            constructor() {
+                this.devices = [];
+                this.selectedDevice = null;
+                this.activeSessions = [];
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.discoverDevices();
+            }
+
+            bindEvents() {
+                document.getElementById('discoverBtn').addEventListener('click', () => this.discoverDevices());
+                document.getElementById('refreshBtn').addEventListener('click', () => this.refreshDevices());
+                document.getElementById('closeCastModal').addEventListener('click', () => this.closeCastModal());
+                document.getElementById('cancelCastBtn').addEventListener('click', () => this.closeCastModal());
+                document.getElementById('startCastBtn').addEventListener('click', () => this.startCasting());
+            }
+
+            async discoverDevices() {
+                const statusEl = document.getElementById('discoveryStatus');
+                statusEl.classList.remove('hidden');
+
+                try {
+                    const response = await fetch('/api/enhanced/casting/discover');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.devices = data.devices;
+                        this.renderDevices();
+                    } else {
+                        this.showError('Failed to discover devices: ' + data.error);
+                    }
+                } catch (error) {
+                    this.showError('Network error: ' + error.message);
+                } finally {
+                    statusEl.classList.add('hidden');
+                }
+            }
+
+            renderDevices() {
+                const container = document.getElementById('devicesList');
+                
+                if (this.devices.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center text-gray-400 py-12">
+                            <i class="fas fa-tv text-6xl mb-4"></i>
+                            <p class="text-xl mb-2">No devices found</p>
+                            <p>Make sure your devices are on the same network</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.devices.map(device => `
+                    <div class="device-card bg-gray-800 bg-opacity-50 rounded-lg p-6 border border-gray-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-${this.getDeviceIcon(device.type)} text-2xl text-purple-400 mr-3"></i>
+                                <div>
+                                    <h3 class="font-bold text-lg">${device.name}</h3>
+                                    <p class="text-gray-400 text-sm">${device.type.toUpperCase()} • ${device.ip}</p>
+                                </div>
+                            </div>
+                            <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <button onclick="castingInterface.selectDevice('${device.id}')" class="cast-button flex-1 text-white px-4 py-2 rounded-lg font-medium text-sm">
+                                <i class="fas fa-cast mr-2"></i>Cast
+                            </button>
+                            <button onclick="castingInterface.testDevice('${device.id}')" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors">
+                                <i class="fas fa-vial mr-2"></i>Test
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            getDeviceIcon(type) {
+                const icons = {
+                    'webos': 'tv',
+                    'chromecast': 'chromecast',
+                    'airplay': 'airplay',
+                    'dlna': 'wifi'
+                };
+                return icons[type] || 'tv';
+            }
+
+            selectDevice(deviceId) {
+                this.selectedDevice = this.devices.find(d => d.id === deviceId);
+                this.showCastModal();
+            }
+
+            showCastModal() {
+                const modal = document.getElementById('castModal');
+                const selectedDeviceEl = document.getElementById('selectedDevice');
+                
+                if (this.selectedDevice) {
+                    selectedDeviceEl.innerHTML = `
+                        <div class="flex items-center">
+                            <i class="fas fa-${this.getDeviceIcon(this.selectedDevice.type)} text-purple-400 mr-3"></i>
+                            <div>
+                                <div class="font-medium">${this.selectedDevice.name}</div>
+                                <div class="text-sm text-gray-400">${this.selectedDevice.type.toUpperCase()}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            closeCastModal() {
+                const modal = document.getElementById('castModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            async startCasting() {
+                const mediaUrl = document.getElementById('mediaUrl').value;
+                
+                if (!mediaUrl) {
+                    this.showError('Please enter a media URL');
+                    return;
+                }
+
+                if (!this.selectedDevice) {
+                    this.showError('Please select a device');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/enhanced/casting/cast', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            device_info: this.selectedDevice,
+                            media_url: mediaUrl
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showSuccess('Casting started successfully!');
+                        this.closeCastModal();
+                        this.refreshActiveSessions();
+                    } else {
+                        this.showError('Failed to start casting: ' + data.error);
+                    }
+                } catch (error) {
+                    this.showError('Network error: ' + error.message);
+                }
+            }
+
+            async testDevice(deviceId) {
+                const device = this.devices.find(d => d.id === deviceId);
+                // Implement device testing logic
+                this.showSuccess(`Testing connection to ${device.name}...`);
+            }
+
+            refreshDevices() {
+                this.discoverDevices();
+            }
+
+            refreshActiveSessions() {
+                // Implement active sessions refresh
+            }
+
+            showError(message) {
+                // Implement error notification
+                alert('Error: ' + message);
+            }
+
+            showSuccess(message) {
+                // Implement success notification
+                alert('Success: ' + message);
+            }
+        }
+
+        // Initialize the casting interface
+        const castingInterface = new CastingInterface();
+    </script>
+</body>
+</html>

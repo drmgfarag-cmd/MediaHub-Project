@@ -1,0 +1,61 @@
+{
+  "name": "UserDefined",
+  "rd_filters": {
+    "include_words": [
+      "2160p",
+      "1080p",
+      "remux",
+      "webrip",
+      "hdr10",
+      "dolby vision",
+      "dual-audio",
+      "arabic",
+      "dub"
+    ],
+    "exclude_words": [
+      "sample",
+      "trailer",
+      "extras",
+      "cam",
+      "ts",
+      "r5",
+      "screener",
+      "workprint"
+    ],
+    "allow_ext": [
+      "mkv",
+      "mp4",
+      "flac",
+      "m4b",
+      "epub",
+      "pdf",
+      "mp3",
+      "aac"
+    ],
+    "deny_ext": [
+      "exe",
+      "bat",
+      "scr",
+      "com",
+      "apk",
+      "dmg",
+      "msi"
+    ]
+  },
+  "dedupe": {
+    "priority_groups": [
+      "CtrlHD",
+      "Cytsunee",
+      "OFT"
+    ],
+    "never_remove": [
+      "CtrlHD"
+    ],
+    "conditional": [
+      {
+        "remove": "Cytsunee",
+        "only_if_present": "CtrlHD"
+      }
+    ]
+  }
+}

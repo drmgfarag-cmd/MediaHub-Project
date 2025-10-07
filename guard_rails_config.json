@@ -1,0 +1,419 @@
+{
+  "monitoring": {
+    "enabled": true,
+    "interval_seconds": 300,
+    "auto_block_deployment": true,
+    "max_violations_before_block": 3,
+    "continuous_monitoring": false
+  },
+  "thresholds": {
+    "minimum_pillar_score": 90,
+    "minimum_category_score": 90,
+    "minimum_overall_score": 92,
+    "minimum_api_integration_score": 95,
+    "minimum_ui_accessibility_score": 95,
+    "critical_features": [
+      "omnibox_search",
+      "hero_interface",
+      "content_carousels",
+      "profile_system",
+      "api_integrations",
+      "mobile_responsive",
+      "casting_support",
+      "epub_reader",
+      "pdf_viewer",
+      "advanced_audio_player",
+      "linkgrabber_functionality",
+      "notepad_plus_plus_parity",
+      "real_debrid_integration",
+      "smart_collections",
+      "rss_automation"
+    ]
+  },
+  "deployment_gates": {
+    "require_all_pillars_pass": true,
+    "require_all_categories_pass": true,
+    "allow_warnings": false,
+    "block_on_critical_violations": true,
+    "require_api_keys_configured": true,
+    "require_ui_accessibility": true,
+    "require_mobile_responsive": true,
+    "require_casting_support": true
+  },
+  "feature_requirements": {
+    "core_pillars": {
+      "mediahub": {
+        "required_routes": [
+          "/api/ui/search",
+          "/api/pinned/list",
+          "/api/collections/list",
+          "/api/metadata/fetch",
+          "/api/smart_rails/generate"
+        ],
+        "required_ui_files": [
+          "web/hub.html",
+          "web/home.html",
+          "web/mediahub_movies.html",
+          "web/mediahub_tv.html",
+          "web/mediahub_books.html",
+          "web/mediahub_audio.html",
+          "web/mediahub_kids.html"
+        ],
+        "required_features": [
+          "omnibox_search",
+          "hero_interface",
+          "content_carousels",
+          "smart_collections",
+          "pinned_cards",
+          "synopsis_display",
+          "trailer_integration"
+        ],
+        "minimum_score": 95
+      },
+      "real_debrid": {
+        "required_routes": [
+          "/api/rd/status",
+          "/api/rd/links",
+          "/api/rd/add",
+          "/api/rd/delete",
+          "/api/rd/dedupe",
+          "/api/rd/bulk_operations",
+          "/api/rd/profiles"
+        ],
+        "required_ui_files": [
+          "web/rd_manager.html",
+          "web/rd_tab_enhanced.html",
+          "web/page/rd_status.html"
+        ],
+        "required_features": [
+          "bulk_operations",
+          "duplicate_detection",
+          "profile_based_deduplication",
+          "advanced_filtering",
+          "link_validation",
+          "double_extraction"
+        ],
+        "minimum_score": 90
+      },
+      "downloader": {
+        "required_routes": [
+          "/api/downloader/add",
+          "/api/downloader/queue",
+          "/api/downloader/linkgrabber",
+          "/api/downloader/containers",
+          "/api/rss/feeds",
+          "/api/rss/automation"
+        ],
+        "required_ui_files": [
+          "web/downloader.html",
+          "web/linkgrabber.html",
+          "web/page/rss_filters.html"
+        ],
+        "required_features": [
+          "linkgrabber_functionality",
+          "container_file_support",
+          "rss_automation",
+          "missing_episode_detection",
+          "browser_integration",
+          "captcha_solving"
+        ],
+        "minimum_score": 88
+      },
+      "text_editor": {
+        "required_routes": [
+          "/api/editor/open",
+          "/api/editor/save",
+          "/api/editor/text_operations",
+          "/api/editor/find_replace",
+          "/api/editor/column_mode"
+        ],
+        "required_ui_files": [
+          "web/editor.html",
+          "web/text_editor.html"
+        ],
+        "required_features": [
+          "notepad_plus_plus_parity",
+          "text_mechanic_integration",
+          "column_mode_editing",
+          "advanced_find_replace",
+          "syntax_highlighting",
+          "macro_support"
+        ],
+        "minimum_score": 85
+      }
+    },
+    "content_categories": {
+      "movies": {
+        "required_formats": ["mkv", "mp4", "avi", "mov", "wmv", "flv"],
+        "required_features": [
+          "metadata_integration",
+          "collection_management",
+          "quality_detection",
+          "trailer_integration",
+          "tmdb_integration",
+          "imdb_integration"
+        ],
+        "api_integrations": ["TMDB_API", "OMDB_API"],
+        "minimum_score": 85
+      },
+      "tv": {
+        "required_formats": ["mkv", "mp4", "avi", "mov", "wmv"],
+        "required_features": [
+          "season_episode_organization",
+          "missing_episode_detection",
+          "series_tracking",
+          "next_episode_recommendations",
+          "tvdb_integration"
+        ],
+        "api_integrations": ["TVDB_API", "TMDB_API"],
+        "minimum_score": 85
+      },
+      "books": {
+        "required_formats": ["epub", "pdf", "mobi", "azw", "azw3", "txt", "cbr", "cbz"],
+        "required_features": [
+          "epub_reader",
+          "pdf_viewer",
+          "google_books_integration",
+          "reading_progress_tracking",
+          "bookmarks_annotations",
+          "text_to_speech",
+          "dictionary_integration"
+        ],
+        "api_integrations": ["GOOGLE_BOOKS_API"],
+        "minimum_score": 90
+      },
+      "audio": {
+        "required_formats": ["flac", "mp3", "wav", "ogg", "m4a", "aac", "wma", "ape"],
+        "required_features": [
+          "advanced_audio_player",
+          "discogs_integration",
+          "acoustid_integration",
+          "playlist_management",
+          "metadata_editing",
+          "lyrics_integration",
+          "audio_visualization"
+        ],
+        "api_integrations": ["DISCOGS_API", "ACOUSTID_API"],
+        "minimum_score": 88
+      },
+      "kids": {
+        "required_formats": ["mkv", "mp4", "epub", "cbz", "mp3"],
+        "required_features": [
+          "parental_controls",
+          "age_based_filtering",
+          "kid_friendly_interface",
+          "educational_content_categorization",
+          "viewing_time_restrictions",
+          "safe_search"
+        ],
+        "minimum_score": 80
+      }
+    },
+    "api_integrations": {
+      "google_books": {
+        "key_name": "GOOGLE_BOOKS_API",
+        "expected_key": "AIzaSyA8OHWm7_imDTRCAEvC7rja2NZCInTw3d8",
+        "integration_routes": ["/api/metadata/books", "/api/books/search"],
+        "test_endpoint": "https://www.googleapis.com/books/v1/volumes?q=test",
+        "required_features": ["metadata_fetching", "cover_art_download", "series_detection"],
+        "minimum_score": 95
+      },
+      "discogs": {
+        "key_name": "DISCOGS_API",
+        "expected_key": "DlYcCvjWkCSKwuoxWznBrUDFitmPFTqBpIuoqizm",
+        "integration_routes": ["/api/metadata/audio", "/api/audio/discogs"],
+        "test_endpoint": "https://api.discogs.com/database/search?q=test",
+        "required_features": ["metadata_fetching", "album_art_download", "artist_info"],
+        "minimum_score": 95
+      },
+      "acoustid": {
+        "key_name": "ACOUSTID_API",
+        "expected_key": "W48qHR6eir",
+        "integration_routes": ["/api/audio/fingerprint", "/api/audio/identify"],
+        "test_endpoint": "https://api.acoustid.org/v2/lookup",
+        "required_features": ["audio_fingerprinting", "automatic_identification"],
+        "minimum_score": 90
+      },
+      "tmdb": {
+        "key_name": "TMDB_API",
+        "expected_key": "3aca2154c1d9223036904a86202897ba",
+        "integration_routes": ["/api/metadata/movies", "/api/metadata/tv"],
+        "test_endpoint": "https://api.themoviedb.org/3/movie/popular",
+        "required_features": ["metadata_fetching", "poster_download", "trailer_links"],
+        "minimum_score": 95
+      },
+      "real_debrid": {
+        "key_name": "REAL_DEBRID_API",
+        "expected_key": "HMPNSB7QFO4RL2DCIKRRPKFKLKBIR7LSWWUOVNDAADNHOTC2SAXA",
+        "integration_routes": ["/api/rd/status", "/api/rd/links", "/api/rd/add"],
+        "test_endpoint": "https://api.real-debrid.com/rest/1.0/user",
+        "required_features": ["link_management", "download_status", "account_info"],
+        "minimum_score": 95
+      }
+    },
+    "ui_accessibility": {
+      "navigation_structure": {
+        "top_tabs": ["Home", "Movies", "TV", "Books", "Audio", "Kids"],
+        "pillar_access": ["MediaHub", "RD Manager", "Downloader", "Editor"],
+        "required_menus": ["Settings", "Profiles", "Help", "Guard Rails"]
+      },
+      "hero_interface": {
+        "omnibox_search": true,
+        "content_carousels": true,
+        "hero_sections": true,
+        "synopsis_display": true,
+        "trailer_badges": true,
+        "immersive_design": true
+      },
+      "accessibility_features": {
+        "keyboard_navigation": true,
+        "context_menus": true,
+        "drag_drop_support": true,
+        "responsive_design": true,
+        "mobile_optimization": true,
+        "screen_reader_support": false
+      },
+      "minimum_score": 92
+    },
+    "profile_system": {
+      "deduplication_profiles": {
+        "config_file": "config/dedupe_profiles.json",
+        "required_profiles": ["UserDefined", "Default", "Aggressive", "Conservative"],
+        "ctrlhd_hierarchy_profile": true,
+        "custom_rules_support": true
+      },
+      "language_profiles": {
+        "config_file": "config/language_profiles.json",
+        "arabic_english_priority_profile": true,
+        "custom_chains": true,
+        "subtitle_preferences": true
+      },
+      "metadata_profiles": {
+        "config_file": "config/metadata_profiles.json",
+        "provider_chains": true,
+        "fallback_options": true,
+        "quality_preferences": true
+      },
+      "automation_profiles": {
+        "config_file": "config/automation_profiles.json",
+        "manual_to_automatic_spectrum": true,
+        "per_category_settings": true,
+        "scheduling_options": true
+      },
+      "minimum_score": 85
+    },
+    "mobile_responsive": {
+      "responsive_css": {
+        "breakpoints": ["mobile", "tablet", "desktop"],
+        "touch_optimization": true,
+        "mobile_navigation": true,
+        "gesture_support": true
+      },
+      "pwa_features": {
+        "manifest_json": true,
+        "service_worker": true,
+        "offline_functionality": false,
+        "app_installation": true
+      },
+      "mobile_streaming": {
+        "adaptive_bitrate": true,
+        "mobile_controls": true,
+        "background_playback": true,
+        "pip_support": true
+      },
+      "minimum_score": 80
+    },
+    "casting_streaming": {
+      "casting_protocols": {
+        "chromecast": true,
+        "airplay": false,
+        "dlna_upnp": true,
+        "webos_lg": true,
+        "custom_protocol": false
+      },
+      "streaming_features": {
+        "adaptive_bitrate": true,
+        "subtitle_support": true,
+        "multi_room_audio": false,
+        "session_management": true,
+        "queue_management": true
+      },
+      "ui_integration": {
+        "casting_interface": "web/casting_interface.html",
+        "device_discovery": true,
+        "playback_controls": true,
+        "remote_control": true
+      },
+      "minimum_score": 75
+    }
+  },
+  "notifications": {
+    "enabled": true,
+    "email_alerts": false,
+    "webhook_url": null,
+    "slack_webhook": null,
+    "discord_webhook": null,
+    "notification_levels": ["critical", "error", "warning"]
+  },
+  "security_compliance": {
+    "api_key_security": {
+      "environment_variables": true,
+      "log_redaction": true,
+      "secure_storage": true,
+      "key_rotation_support": false
+    },
+    "user_security": {
+      "session_management": true,
+      "input_validation": true,
+      "xss_protection": true,
+      "csrf_protection": true,
+      "rate_limiting": false
+    },
+    "privacy_compliance": {
+      "data_anonymization": false,
+      "consent_management": false,
+      "data_export": false,
+      "gdpr_compliance": false
+    },
+    "minimum_score": 70
+  },
+  "performance_requirements": {
+    "response_times": {
+      "api_endpoints_ms": 200,
+      "page_load_ms": 2000,
+      "search_results_ms": 500,
+      "metadata_fetch_ms": 1000
+    },
+    "resource_optimization": {
+      "memory_usage_monitoring": true,
+      "cpu_optimization": true,
+      "database_indexing": true,
+      "caching_strategy": true,
+      "compression": false
+    },
+    "scalability": {
+      "multi_threading": true,
+      "background_tasks": true,
+      "queue_management": true,
+      "load_balancing": false
+    },
+    "minimum_score": 75
+  },
+  "rule_compliance": {
+    "definitive_rulebook_adherence": true,
+    "immersive_hero_ui": true,
+    "desktop_application_feel": true,
+    "menu_accessibility": true,
+    "no_code_editing_required": true,
+    "established_navigation_structure": true,
+    "profile_based_preferences": true
+  },
+  "audit_reporting": {
+    "generate_html_report": true,
+    "generate_json_report": true,
+    "include_screenshots": false,
+    "include_performance_metrics": true,
+    "detailed_feature_analysis": true,
+    "compliance_matrix": true
+  }
+}

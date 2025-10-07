@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Implementation Guard Rails - MediaHub</title>
+    <link rel="stylesheet" href="assets/normalize.css">
+    <link rel="stylesheet" href="assets/ui.css">
+    <style>
+        .guard-rails-dashboard {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .status-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-card h3 {
+            margin: 0 0 10px 0;
+            color: #fff;
+            font-size: 1.1em;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-pass { background: #28a745; color: white; }
+        .status-warning { background: #ffc107; color: black; }
+        .status-fail { background: #dc3545; color: white; }
+        .status-excellent { background: #17a2b8; color: white; }
+        
+        .score-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .score-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .score-excellent { background: #17a2b8; }
+        .score-pass { background: #28a745; }
+        .score-warning { background: #ffc107; }
+        .score-fail { background: #dc3545; }
+        
+        .audit-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .audit-section h2 {
+            margin: 0 0 20px 0;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .pillar-grid, .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .pillar-card, .category-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .pillar-card h4, .category-card h4 {
+            margin: 0 0 15px 0;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        
+        .feature-list li {
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        
+        .feature-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .feature-pass { background: #28a745; }
+        .feature-warning { background: #ffc107; }
+        .feature-fail { background: #dc3545; }
+        
+        .issues-list {
+            background: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .issues-list h5 {
+            margin: 0 0 10px 0;
+            color: #dc3545;
+        }
+        
+        .issues-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .issues-list li {
+            color: #ffcccb;
+            margin-bottom: 5px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: black;
+        }
+        
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ccc;
+        }
+        
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .deployment-status {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid;
+        }
+        
+        .deployment-ready {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        
+        .deployment-blocked {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        
+        .deployment-status h2 {
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .deployment-ready h2 {
+            color: #28a745;
+        }
+        
+        .deployment-blocked h2 {
+            color: #dc3545;
+        }
+        
+        .critical-violations {
+            background: rgba(220, 53, 69, 0.15);
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        
+        .critical-violations h4 {
+            margin: 0 0 15px 0;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="toolbar">
+            <a href="home.html">← MediaHub</a> · <strong>Implementation Guard Rails</strong>
+        </div>
+        
+        <div class="guard-rails-dashboard">
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="runFullAudit()">
+                    🔍 Run Full Audit
+                </button>
+                <button class="btn btn-warning" onclick="checkDeploymentReadiness()">
+                    🚀 Check Deployment Readiness
+                </button>
+                <button class="btn btn-primary" onclick="exportAuditReport()">
+                    📊 Export Report
+                </button>
+                <button class="btn btn-danger" onclick="blockDeployment()" id="blockBtn" style="display: none;">
+                    🚫 Block Deployment
+                </button>
+            </div>
+            
+            <div id="deploymentStatus"></div>
+            
+            <div class="status-overview" id="statusOverview">
+                <div class="loading">Loading audit data...</div>
+            </div>
+            
+            <div class="audit-section" id="pillarsSection" style="display: none;">
+                <h2>🏛️ Core Pillars Audit</h2>
+                <div class="pillar-grid" id="pillarsGrid"></div>
+            </div>
+            
+            <div class="audit-section" id="categoriesSection" style="display: none;">
+                <h2>📁 Content Categories Audit</h2>
+                <div class="category-grid" id="categoriesGrid"></div>
+            </div>
+            
+            <div class="audit-section" id="apiSection" style="display: none;">
+                <h2>🔗 API Integrations Audit</h2>
+                <div class="pillar-grid" id="apiGrid"></div>
+            </div>
+            
+            <div class="audit-section" id="uiSection" style="display: none;">
+                <h2>🎨 UI Accessibility Audit</h2>
+                <div id="uiResults"></div>
+            </div>
+            
+            <div class="audit-section" id="profileSection" style="display: none;">
+                <h2>👤 Profile System Audit</h2>
+                <div id="profileResults"></div>
+            </div>
+            
+            <div class="audit-section" id="mobileSection" style="display: none;">
+                <h2>📱 Mobile Responsive Audit</h2>
+                <div id="mobileResults"></div>
+            </div>
+            
+            <div class="audit-section" id="castingSection" style="display: none;">
+                <h2>📺 Casting & Streaming Audit</h2>
+                <div id="castingResults"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentAuditData = null;
+        
+        async function runFullAudit() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/guard_rails/audit');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentAuditData = data.audit_results;
+                    displayAuditResults(currentAuditData);
+                } else {
+                    showError('Audit failed: ' + data.error);
+                }
+            } catch (error) {
+                showError('Failed to run audit: ' + error.message);
+            }
+        }
+        
+        async function checkDeploymentReadiness() {
+            try {
+                const response = await fetch('/api/guard_rails/block_deployment');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayDeploymentStatus(data);
+                } else {
+                    showError('Failed to check deployment readiness: ' + data.error);
+                }
+            } catch (error) {
+                showError('Failed to check deployment: ' + error.message);
+            }
+        }
+        
+        function displayDeploymentStatus(data) {
+            const statusDiv = document.getElementById('deploymentStatus');
+            const isBlocked = data.block_deployment;
+            
+            statusDiv.innerHTML = `
+                <div class="deployment-status ${isBlocked ? 'deployment-blocked' : 'deployment-ready'}">
+                    <h2>
+                        ${isBlocked ? '🚫' : '✅'} 
+                        Deployment ${isBlocked ? 'BLOCKED' : 'READY'}
+                    </h2>
+                    <p><strong>Overall Status:</strong> ${data.overall_status}</p>
+                    <div class="status-overview">
+                        <div class="status-card">
+                            <h3>Pillars Status</h3>
+                            <p>${data.summary.pillars_passing} passing</p>
+                        </div>
+                        <div class="status-card">
+                            <h3>Categories Status</h3>
+                            <p>${data.summary.categories_passing} passing</p>
+                        </div>
+                        <div class="status-card">
+                            <h3>Total Issues</h3>
+                            <p>${data.summary.total_issues} issues found</p>
+                        </div>
+                    </div>
+                    ${data.critical_violations.length > 0 ? `
+                        <div class="critical-violations">
+                            <h4>Critical Violations</h4>
+                            <ul>
+                                ${data.critical_violations.map(v => `<li>${v}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Show/hide block button
+            const blockBtn = document.getElementById('blockBtn');
+            if (isBlocked) {
+                blockBtn.style.display = 'inline-block';
+            } else {
+                blockBtn.style.display = 'none';
+            }
+        }
+        
+        function displayAuditResults(auditData) {
+            displayStatusOverview(auditData);
+            displayPillarsAudit(auditData.pillars);
+            displayCategoriesAudit(auditData.categories);
+            displayApiAudit(auditData.api_integrations);
+            displayUiAudit(auditData.ui_accessibility);
+            displayProfileAudit(auditData.profile_system);
+            displayMobileAudit(auditData.mobile_responsive);
+            displayCastingAudit(auditData.casting_streaming);
+            
+            // Show all sections
+            document.getElementById('pillarsSection').style.display = 'block';
+            document.getElementById('categoriesSection').style.display = 'block';
+            document.getElementById('apiSection').style.display = 'block';
+            document.getElementById('uiSection').style.display = 'block';
+            document.getElementById('profileSection').style.display = 'block';
+            document.getElementById('mobileSection').style.display = 'block';
+            document.getElementById('castingSection').style.display = 'block';
+        }
+        
+        function displayStatusOverview(auditData) {
+            const overviewDiv = document.getElementById('statusOverview');
+            
+            const overallScore = calculateOverallScore(auditData);
+            const overallStatus = getStatusFromScore(overallScore);
+            
+            overviewDiv.innerHTML = `
+                <div class="status-card">
+                    <h3>Overall Status</h3>
+                    <div class="status-indicator">
+                        <span class="status-badge status-${overallStatus.toLowerCase()}">${auditData.overall_status}</span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill score-${overallStatus.toLowerCase()}" style="width: ${overallScore}%"></div>
+                    </div>
+                    <p>${overallScore.toFixed(1)}% Complete</p>
+                </div>
+                
+                <div class="status-card">
+                    <h3>Core Pillars</h3>
+                    <div class="status-indicator">
+                        <span class="status-badge status-${getPillarsStatus(auditData.pillars).toLowerCase()}">${getPillarsStatus(auditData.pillars)}</span>
+                    </div>
+                    <p>${Object.keys(auditData.pillars).length} pillars audited</p>
+                </div>
+                
+                <div class="status-card">
+                    <h3>Content Categories</h3>
+                    <div class="status-indicator">
+                        <span class="status-badge status-${getCategoriesStatus(auditData.categories).toLowerCase()}">${getCategoriesStatus(auditData.categories)}</span>
+                    </div>
+                    <p>${Object.keys(auditData.categories).length} categories audited</p>
+                </div>
+                
+                <div class="status-card">
+                    <h3>API Integrations</h3>
+                    <div class="status-indicator">
+                        <span class="status-badge status-${getApiStatus(auditData.api_integrations).toLowerCase()}">${getApiStatus(auditData.api_integrations)}</span>
+                    </div>
+                    <p>${Object.keys(auditData.api_integrations).length} APIs audited</p>
+                </div>
+            `;
+        }
+        
+        function displayPillarsAudit(pillars) {
+            const pillarsGrid = document.getElementById('pillarsGrid');
+            
+            pillarsGrid.innerHTML = Object.entries(pillars).map(([pillarId, pillar]) => `
+                <div class="pillar-card">
+                    <h4>
+                        ${pillar.name}
+                        <span class="status-badge status-${pillar.status.toLowerCase()}">${pillar.status}</span>
+                    </h4>
+                    <div class="score-bar">
+                        <div class="score-fill score-${pillar.status.toLowerCase()}" style="width: ${pillar.score}%"></div>
+                    </div>
+                    <p>Score: ${pillar.score.toFixed(1)}%</p>
+                    
+                    <ul class="feature-list">
+                        ${Object.entries(pillar.routes).map(([route, status]) => `
+                            <li>
+                                <div class="feature-status feature-${status.exists && status.accessible ? 'pass' : 'fail'}"></div>
+                                Route: ${route}
+                            </li>
+                        `).join('')}
+                        
+                        ${Object.entries(pillar.ui_files).map(([file, status]) => `
+                            <li>
+                                <div class="feature-status feature-${status.exists && status.linked ? 'pass' : 'fail'}"></div>
+                                UI: ${file}
+                            </li>
+                        `).join('')}
+                        
+                        ${Object.entries(pillar.features).map(([feature, status]) => `
+                            <li>
+                                <div class="feature-status feature-${status.implemented && status.accessible ? 'pass' : 'fail'}"></div>
+                                Feature: ${feature.replace(/_/g, ' ')}
+                            </li>
+                        `).join('')}
+                    </ul>
+                    
+                    ${pillar.issues.length > 0 ? `
+                        <div class="issues-list">
+                            <h5>Issues Found</h5>
+                            <ul>
+                                ${pillar.issues.map(issue => `<li>${issue}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function displayCategoriesAudit(categories) {
+            const categoriesGrid = document.getElementById('categoriesGrid');
+            
+            categoriesGrid.innerHTML = Object.entries(categories).map(([categoryId, category]) => `
+                <div class="category-card">
+                    <h4>
+                        ${category.name}
+                        <span class="status-badge status-${category.status.toLowerCase()}">${category.status}</span>
+                    </h4>
+                    <div class="score-bar">
+                        <div class="score-fill score-${category.status.toLowerCase()}" style="width: ${category.score}%"></div>
+                    </div>
+                    <p>Score: ${category.score.toFixed(1)}%</p>
+                    
+                    <ul class="feature-list">
+                        ${Object.entries(category.formats).map(([format, supported]) => `
+                            <li>
+                                <div class="feature-status feature-${supported ? 'pass' : 'fail'}"></div>
+                                Format: ${format.toUpperCase()}
+                            </li>
+                        `).join('')}
+                        
+                        ${Object.entries(category.features).map(([feature, implemented]) => `
+                            <li>
+                                <div class="feature-status feature-${implemented ? 'pass' : 'fail'}"></div>
+                                Feature: ${feature.replace(/_/g, ' ')}
+                            </li>
+                        `).join('')}
+                        
+                        ${Object.entries(category.api_integration).map(([api, integrated]) => `
+                            <li>
+                                <div class="feature-status feature-${integrated ? 'pass' : 'fail'}"></div>
+                                API: ${api.replace(/_/g, ' ')}
+                            </li>
+                        `).join('')}
+                    </ul>
+                    
+                    ${category.issues.length > 0 ? `
+                        <div class="issues-list">
+                            <h5>Issues Found</h5>
+                            <ul>
+                                ${category.issues.map(issue => `<li>${issue}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function displayApiAudit(apiIntegrations) {
+            const apiGrid = document.getElementById('apiGrid');
+            
+            apiGrid.innerHTML = Object.entries(apiIntegrations).map(([apiId, api]) => `
+                <div class="pillar-card">
+                    <h4>
+                        ${apiId.replace(/_/g, ' ').toUpperCase()}
+                        <span class="status-badge status-${api.status.toLowerCase()}">${api.status}</span>
+                    </h4>
+                    <div class="score-bar">
+                        <div class="score-fill score-${api.status.toLowerCase()}" style="width: ${api.score}%"></div>
+                    </div>
+                    <p>Integration Score: ${api.score.toFixed(1)}%</p>
+                </div>
+            `).join('');
+        }
+        
+        function displayUiAudit(uiAccessibility) {
+            const uiResults = document.getElementById('uiResults');
+            uiResults.innerHTML = `
+                <div class="status-card">
+                    <h3>UI Accessibility Status</h3>
+                    <div class="status-indicator">
+                        <span class="status-badge status-${uiAccessibility.status.toLowerCase()}">${uiAccessibility.status}</span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill score-${uiAccessibility.status.toLowerCase()}" style="width: ${uiAccessibility.score}%"></div>
+                    </div>
+                    <p>Score: ${uiAccessibility.score}%</p>
+                </div>
+            `;
+        }
+        
+        function displayProfileAudit(profileSystem) {
+            const profileResults = document.getElementById('profileResults');
+            profileResults.innerHTML = `
+                <div class="status-card">
+                    <h3>Profile System Status</h3>
+                    <div class="status-indicator">
+                        <span class="status-badge status-${profileSystem.status.toLowerCase()}">${profileSystem.status}</span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill score-${profileSystem.status.toLowerCase()}" style="width: ${profileSystem.score}%"></div>
+                    </div>
+                    <p>Score: ${profileSystem.score}%</p>
+                </div>
+            `;
+        }
+        
+        function displayMobileAudit(mobileResponsive) {
+            const mobileResults = document.getElementById('mobileResults');
+            mobileResults.innerHTML = `
+                <div class="status-card">
+                    <h3>Mobile Responsive Status</h3>
+                    <div class="status-indicator">
+                        <span class="status-badge status-${mobileResponsive.status.toLowerCase()}">${mobileResponsive.status}</span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill score-${mobileResponsive.status.toLowerCase()}" style="width: ${mobileResponsive.score}%"></div>
+                    </div>
+                    <p>Score: ${mobileResponsive.score}%</p>
+                </div>
+            `;
+        }
+        
+        function displayCastingAudit(castingStreaming) {
+            const castingResults = document.getElementById('castingResults');
+            castingResults.innerHTML = `
+                <div class="status-card">
+                    <h3>Casting & Streaming Status</h3>
+                    <div class="status-indicator">
+                        <span class="status-badge status-${castingStreaming.status.toLowerCase()}">${castingStreaming.status}</span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill score-${castingStreaming.status.toLowerCase()}" style="width: ${castingStreaming.score}%"></div>
+                    </div>
+                    <p>Score: ${castingStreaming.score}%</p>
+                </div>
+            `;
+        }
+        
+        function calculateOverallScore(auditData) {
+            const scores = [];
+            
+            Object.values(auditData.pillars).forEach(pillar => scores.push(pillar.score));
+            Object.values(auditData.categories).forEach(category => scores.push(category.score));
+            
+            if (auditData.ui_accessibility.score) scores.push(auditData.ui_accessibility.score);
+            if (auditData.profile_system.score) scores.push(auditData.profile_system.score);
+            if (auditData.mobile_responsive.score) scores.push(auditData.mobile_responsive.score);
+            if (auditData.casting_streaming.score) scores.push(auditData.casting_streaming.score);
+            
+            return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+        }
+        
+        function getStatusFromScore(score) {
+            if (score >= 95) return 'EXCELLENT';
+            if (score >= 90) return 'PASS';
+            if (score >= 70) return 'WARNING';
+            return 'FAIL';
+        }
+        
+        function getPillarsStatus(pillars) {
+            const statuses = Object.values(pillars).map(p => p.status);
+            if (statuses.every(s => s === 'PASS')) return 'PASS';
+            if (statuses.some(s => s === 'FAIL')) return 'FAIL';
+            return 'WARNING';
+        }
+        
+        function getCategoriesStatus(categories) {
+            const statuses = Object.values(categories).map(c => c.status);
+            if (statuses.every(s => s === 'PASS')) return 'PASS';
+            if (statuses.some(s => s === 'FAIL')) return 'FAIL';
+            return 'WARNING';
+        }
+        
+        function getApiStatus(apis) {
+            const statuses = Object.values(apis).map(a => a.status);
+            if (statuses.every(s => s === 'PASS')) return 'PASS';
+            if (statuses.some(s => s === 'FAIL')) return 'FAIL';
+            return 'WARNING';
+        }
+        
+        function showLoading() {
+            document.getElementById('statusOverview').innerHTML = '<div class="loading">Running comprehensive audit...</div>';
+        }
+        
+        function showError(message) {
+            document.getElementById('statusOverview').innerHTML = `
+                <div class="status-card">
+                    <h3>❌ Error</h3>
+                    <p style="color: #dc3545;">${message}</p>
+                </div>
+            `;
+        }
+        
+        function exportAuditReport() {
+            if (!currentAuditData) {
+                alert('No audit data available. Please run an audit first.');
+                return;
+            }
+            
+            const reportData = {
+                timestamp: new Date().toISOString(),
+                audit_results: currentAuditData
+            };
+            
+            const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mediahub_audit_report_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function blockDeployment() {
+            if (confirm('Are you sure you want to block deployment? This will prevent the application from being deployed until issues are resolved.')) {
+                alert('Deployment blocked. Resolve critical issues before attempting deployment.');
+            }
+        }
+        
+        // Auto-run audit on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            runFullAudit();
+        });
+    </script>
+</body>
+</html>

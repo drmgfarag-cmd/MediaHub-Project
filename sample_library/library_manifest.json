@@ -1,0 +1,64 @@
+{
+  "library_info": {
+    "name": "MediaHub Phase 1C Sample Library",
+    "version": "1.0",
+    "created": "2025-10-06",
+    "total_simulated_size_gb": 2.1,
+    "purpose": "Testing and demonstration of MediaHub organization capabilities"
+  },
+  "structure": {
+    "Movies": {
+      "Action": "High-quality action movies with full metadata",
+      "Comedy": "Comedy collection with subtitles",
+      "Drama": "Dramatic films",
+      "Sci-Fi": "Science fiction collection",
+      "Horror": "Horror movie collection"
+    },
+    "TV Shows": {
+      "description": "Complete TV series with season/episode organization",
+      "examples": [
+        "Breaking Bad",
+        "The Office",
+        "Stranger Things"
+      ]
+    },
+    "Documentaries": {
+      "description": "Documentary series and films",
+      "examples": [
+        "Planet Earth III",
+        "Our Universe"
+      ]
+    },
+    "Music Videos": {
+      "description": "Music video collections by artist",
+      "examples": [
+        "Taylor Swift",
+        "The Weeknd",
+        "Billie Eilish"
+      ]
+    },
+    "Audiobooks": {
+      "description": "Audiobook collections with chapter organization",
+      "examples": [
+        "Harry Potter",
+        "The Hobbit",
+        "1984"
+      ]
+    },
+    "Test Cases": {
+      "Duplicates": "Files with same content but different qualities",
+      "Missing Metadata": "Files with incomplete or missing information",
+      "International": "Foreign language content with multiple subtitles"
+    }
+  },
+  "features_demonstrated": [
+    "Proper naming conventions",
+    "Multi-language subtitle support",
+    "NFO metadata files",
+    "Quality and codec variations",
+    "Release group patterns",
+    "Franchise organization",
+    "Duplicate detection scenarios",
+    "International content handling"
+  ]
+}

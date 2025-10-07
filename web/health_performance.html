@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Health — Performance</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px} .mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Health — Performance</strong></div>
+  <div class="grid">
+    <div class="card">
+      <h3>SQLite Index</h3>
+      <div id="s">—</div>
+      <div style="margin-top:6px"><button id="build">Rebuild Index</button></div>
+    </div>
+    <div class="card">
+      <h3>Spotlight Search (demo)</h3>
+      <input id="q" placeholder="type to search…" style="width:70%"><button id="go">Search</button>
+      <div id="res" class="mono" style="margin-top:6px;max-height:240px;overflow:auto">—</div>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:12px">
+    <div class="card">
+      <h3>FFprobe (lite) Cache</h3>
+      <div><button id="ffscan">Scan</button></div>
+      <div id="ffout" class="mono" style="margin-top:6px">—</div>
+    </div>
+    <div class="card">
+      <h3>Posters Cache Manifest</h3>
+      <div><button id="pbuild">Build Manifest</button></div>
+      <div id="pout" class="mono" style="margin-top:6px">—</div>
+    </div>
+  </div>
+</div>
+<script>
+async function loadStat(){
+  const j=await (await fetch('/api/index/sqlite_status')).json();
+  s.textContent = j.exists? ('Rows: '+j.rows+' · Size: '+(j.size_bytes||0)+' bytes') : 'No index yet.';
+}
+build.onclick=async ()=>{ const j=await (await fetch('/api/index/sqlite_build',{method:'POST'})).json(); await loadStat(); alert('Rebuilt: '+(j.rows||0)+' rows in '+(j.took_ms||0)+'ms'); };
+go.onclick=async ()=>{
+  const j=await (await fetch('/api/search/spotlight?q='+encodeURIComponent(q.value))).json();
+  res.textContent = (j.items||[]).slice(0,30).map(x=>(x.type||'')+' · '+(x.title||'')+' · '+(x.year||'')+'\n').join('') + '\n' + 'took: '+(j.took_ms||0)+'ms';
+};
+ffscan.onclick=async ()=>{ const j=await (await fetch('/api/ffprobe/batch',{method:'POST'})).json(); ffout.textContent = JSON.stringify(j); };
+pbuild.onclick=async ()=>{ const j=await (await fetch('/api/posters/cache_build',{method:'POST'})).json(); pout.textContent = JSON.stringify(j); };
+document.addEventListener('DOMContentLoaded', loadStat);
+</script>
+</body></html>

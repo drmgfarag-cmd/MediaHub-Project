@@ -1,0 +1,12 @@
+{
+  "discogs_enabled": true,
+  "discogs_api_key": "DlYcCvjWkCSKwuoxWznBrUDFitmPFTqBpIuoqizm",
+  "acoustid_enabled": true,
+  "acoustid_api_key": "W48qHR6eir",
+  "audio_quality": {
+    "preferred_format": "flac",
+    "min_bitrate": 320,
+    "enable_replaygain": true
+  },
+  "library_path": "/storage/audio"
+}

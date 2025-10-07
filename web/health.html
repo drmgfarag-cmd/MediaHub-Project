@@ -1,0 +1,84 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Health & Reliability</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Health & Reliability</strong></div>
+  <div id="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="card"><h3>System</h3><pre id="sys">…</pre></div>
+    <div class="card"><h3>Security</h3>
+      <div>CSRF enforce: <label><input type="checkbox" id="csrf_on"> Enable</label></div>
+      <div style="margin-top:6px">CORS allow origin: <input id="cors" placeholder="https://example.com"></div>
+      <button id="sec_save" style="margin-top:6px">Save</button>
+      <div style="margin-top:6px">Current CSRF token: <code id="csrf_tok">…</code></div>
+    </div>
+    <div class="card" style="grid-column:1 / span 2"><h3>Jobs</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button data-job="scan_library">Scan Library</button>
+        <button data-job="refresh_rails">Refresh Rails</button>
+        <button data-job="backup">Backup</button>
+        <button data-job="reindex_sqlite">Reindex (SQLite)</button>
+      </div>
+      <div id="jobs" style="margin-top:8px"></div>
+    </div>
+    <div class="card" style="grid-column:1 / span 2"><h3>Secrets Vault</h3>
+      <div>Status: <span id="vault_stat">…</span></div>
+      <div style="margin-top:6px">
+        <input id="sv_key" placeholder="key" style="width:200px">
+        <input id="sv_val" placeholder="value (kept secret)" type="password" style="width:260px">
+        <button id="sv_put">Save/Update</button>
+      </div>
+      <div style="margin-top:6px">
+        <button id="sv_setm">Set/Update Master Pass (enables encryption)</button>
+      </div>
+      <div style="margin-top:6px">
+        Keys: <span id="sv_keys">…</span>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+async function refresh(){
+  const h=await (await fetch('/api/health/comprehensive)).json(); 
+  document.getElementById('sys').textContent = JSON.stringify(h, null, 2);
+  const s=await (await fetch('/api/security/get')).json();
+  document.getElementById('csrf_on').checked = !!s.csrf_enforce;
+  document.getElementById('cors').value = s.cors_allow_origin||'';
+  const t=await (await fetch('/api/csrf/token')).json();
+  document.getElementById('csrf_tok').textContent = t.token||'';
+  const k=await (await fetch('/api/secrets/list')).json();
+  document.getElementById('sv_keys').textContent = (k.keys||[]).join(', ') || '(none)';
+  document.getElementById('vault_stat').textContent = 'Ready' + (window.__CSRF_TOKEN__?' (protected)':'');
+  const jl=await (await fetch('/api/jobs/list')).json();
+  document.getElementById('jobs').innerHTML = '<pre>'+JSON.stringify(jl,null,2)+'</pre>';
+}
+document.getElementById('sec_save').onclick=async ()=>{
+  const c=await (await fetch('/api/config/get')).json();
+  c.security=c.security||{};
+  c.security.csrf_enforce = document.getElementById('csrf_on').checked;
+  c.security.cors_allow_origin = document.getElementById('cors').value.trim();
+  await fetch('/api/config/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)});
+  alert('Saved security settings.');
+  refresh();
+};
+document.querySelectorAll('[data-job]').forEach(b=> b.onclick=async ()=>{
+  const typ=b.getAttribute('data-job');
+  const r=await fetch('/api/jobs/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:typ})});
+  const j=await r.json();
+  if(j.ok){ setTimeout(refresh, 500); } else { alert('Submit failed: '+(j.error||'')); }
+});
+document.getElementById('sv_put').onclick=async ()=>{
+  const k=document.getElementById('sv_key').value.trim();
+  const v=document.getElementById('sv_val').value;
+  if(!k) return alert('key required');
+  await fetch('/api/secrets/put',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,value:v})});
+  refresh();
+};
+document.getElementById('sv_setm').onclick=async ()=>{
+  const pass=prompt('Enter master passphrase (will be stored server-side to unlock on restart).');
+  if(!pass) return;
+  await fetch('/api/secrets/set_master',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({passphrase:pass,store:'file'})});
+  alert('Master set. New values will be encrypted.');
+  refresh();
+};
+document.addEventListener('DOMContentLoaded', refresh);
+</script>
+</body></html>

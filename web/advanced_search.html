@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Advanced Search</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Advanced Search</strong></div>
+  <div class="card">
+    <div>Query syntax examples:</div>
+    <ul>
+      <li><code>type:movie year>=2015 genre:action</code></li>
+      <li><code>lang:AR path_re:(?i)\b4k\b</code></li>
+      <li><code>"lord of the rings" type:movie</code></li>
+    </ul>
+    <input id="q" style="width:80%" placeholder='e.g., type:series year>=2020 "planet"'><button id="go">Search</button>
+  </div>
+  <div id="out" class="card"></div>
+</div>
+<script>
+async function run(){
+  const q=document.getElementById('q').value.trim();
+  const r=await (await fetch('/api/search/advanced?q='+encodeURIComponent(q)+'&n=300')).json();
+  const out=document.getElementById('out');
+  out.innerHTML='<div><strong>'+r.count+'</strong> results</div>' + (r.items||[]).map(it=>`<div style="margin:6px 0"><strong>${it.title||it.path||''}</strong><div style="opacity:.8">${it.type||''} · ${it.year||''}</div><div class="text-clip">${it.path||''}</div></div>`).join('');
+}
+document.getElementById('go').onclick=run;
+document.getElementById('q').addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
+</script>
+</body></html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Debrid Manager - MediaHub</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #fff; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header h1 { font-size: 32px; font-weight: 700; }
+        .add-btn { padding: 12px 24px; background: #e50914; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .add-btn:hover { background: #c40812; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #1a1a1a; padding: 20px; border-radius: 8px; }
+        .stat-label { font-size: 13px; color: #999; margin-bottom: 8px; }
+        .stat-value { font-size: 24px; font-weight: 700; }
+        .downloads-list { display: flex; flex-direction: column; gap: 15px; }
+        .download-item { background: #1a1a1a; padding: 20px; border-radius: 8px; display: flex; align-items: center; gap: 20px; }
+        .download-icon { width: 50px; height: 50px; background: #333; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+        .download-info { flex: 1; min-width: 0; }
+        .download-name { font-size: 16px; font-weight: 600; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .download-meta { font-size: 13px; color: #999; margin-bottom: 8px; }
+        .progress-bar { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-bottom: 5px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #e50914, #ff6b6b); transition: width 0.3s; }
+        .progress-text { font-size: 12px; color: #999; }
+        .download-actions { display: flex; gap: 10px; }
+        .action-btn { padding: 8px 16px; background: #333; border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 13px; }
+        .action-btn:hover { background: #444; }
+        .action-btn.delete { background: #e50914; }
+        .action-btn.delete:hover { background: #c40812; }
+        .status-badge { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .status-queued { background: #666; }
+        .status-downloading { background: #e50914; }
+        .status-completed { background: #46d369; }
+        .status-error { background: #ff6b6b; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+        .empty-state svg { width: 80px; height: 80px; margin-bottom: 20px; opacity: 0.3; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: #1a1a1a; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; }
+        .modal-header { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+        .modal-input { width: 100%; padding: 12px; background: #0f0f0f; border: 1px solid #333; border-radius: 6px; color: #fff; font-size: 14px; margin-bottom: 15px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Real-Debrid Manager</h1>
+            <button class="add-btn" onclick="showAddModal()">+ Add Download</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Active Downloads</div>
+                <div class="stat-value" id="active-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Completed</div>
+                <div class="stat-value" id="completed-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Size</div>
+                <div class="stat-value" id="total-size">0 GB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Download Speed</div>
+                <div class="stat-value" id="total-speed">0 MB/s</div>
+            </div>
+        </div>
+        
+        <div id="downloads-container" class="downloads-list">
+            <div class="loading">Loading downloads...</div>
+        </div>
+        
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+            </svg>
+            <h2>No Downloads</h2>
+            <p>Add a torrent or magnet link to start downloading</p>
+        </div>
+    </div>
+    
+    <!-- Add Download Modal -->
+    <div id="add-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Download</div>
+            <input type="text" id="link-input" class="modal-input" placeholder="Enter magnet link or torrent URL...">
+            <div class="modal-buttons">
+                <button class="action-btn" onclick="hideAddModal()">Cancel</button>
+                <button class="action-btn" style="background: #e50914;" onclick="addDownload()">Add</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let allDownloads = [];
+        let refreshInterval;
+        
+        async function loadDownloads() {
+            try {
+                const response = await fetch('/api/rd/downloads');
+                const data = await response.json();
+                allDownloads = data.downloads || [];
+                renderDownloads();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading downloads:', error);
+                document.getElementById('downloads-container').innerHTML = '<div class="loading">Error loading downloads</div>';
+            }
+        }
+        
+        function renderDownloads() {
+            const container = document.getElementById('downloads-container');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (allDownloads.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            container.style.display = 'flex';
+            emptyState.style.display = 'none';
+            
+            container.innerHTML = allDownloads.map(item => {
+                const statusClass = `status-${item.status}`;
+                const progressPercent = item.progress || 0;
+                const speed = formatSpeed(item.speed || 0);
+                const size = formatSize(item.filesize || 0);
+                
+                return `
+                    <div class="download-item">
+                        <div class="download-icon">${getFileIcon(item.filename)}</div>
+                        <div class="download-info">
+                            <div class="download-name">${item.filename}</div>
+                            <div class="download-meta">
+                                <span class="status-badge ${statusClass}">${item.status.toUpperCase()}</span>
+                                ${item.host ? ` • ${item.host}` : ''}
+                                ${size ? ` • ${size}` : ''}
+                            </div>
+                            ${item.status === 'downloading' || item.status === 'queued' ? `
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                                </div>
+                                <div class="progress-text">${progressPercent.toFixed(1)}% • ${speed}</div>
+                            ` : ''}
+                        </div>
+                        <div class="download-actions">
+                            ${item.status === 'completed' ? `
+                                <button class="action-btn" onclick="playFile('${item.rd_id}')">▶ Play</button>
+                            ` : ''}
+                            <button class="action-btn delete" onclick="deleteDownload('${item.rd_id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateStats() {
+            const active = allDownloads.filter(d => d.status === 'downloading' || d.status === 'queued').length;
+            const completed = allDownloads.filter(d => d.status === 'completed').length;
+            const totalSize = allDownloads.reduce((sum, d) => sum + (d.filesize || 0), 0);
+            const totalSpeed = allDownloads.filter(d => d.status === 'downloading').reduce((sum, d) => sum + (d.speed || 0), 0);
+            
+            document.getElementById('active-count').textContent = active;
+            document.getElementById('completed-count').textContent = completed;
+            document.getElementById('total-size').textContent = formatSize(totalSize);
+            document.getElementById('total-speed').textContent = formatSpeed(totalSpeed);
+        }
+        
+        function showAddModal() {
+            document.getElementById('add-modal').style.display = 'flex';
+            document.getElementById('link-input').focus();
+        }
+        
+        function hideAddModal() {
+            document.getElementById('add-modal').style.display = 'none';
+            document.getElementById('link-input').value = '';
+        }
+        
+        async function addDownload() {
+            const link = document.getElementById('link-input').value.trim();
+            if (!link) return;
+            
+            try {
+                await fetch('/api/rd/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link })
+                });
+                hideAddModal();
+                loadDownloads();
+            } catch (error) {
+                console.error('Error adding download:', error);
+                alert('Failed to add download');
+            }
+        }
+        
+        async function deleteDownload(rdId) {
+            if (!confirm('Delete this download?')) return;
+            
+            try {
+                await fetch(`/api/rd/downloads/${rdId}`, { method: 'DELETE' });
+                loadDownloads();
+            } catch (error) {
+                console.error('Error deleting download:', error);
+                alert('Failed to delete download');
+            }
+        }
+        
+        function playFile(rdId) {
+            window.location.href = `/player?rd=${rdId}`;
+        }
+        
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            if (['mp4', 'mkv', 'avi', 'mov'].includes(ext)) return '🎬';
+            if (['mp3', 'flac', 'wav'].includes(ext)) return '🎵';
+            if (['zip', 'rar', '7z'].includes(ext)) return '📦';
+            return '📄';
+        }
+        
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function formatSpeed(bytesPerSec) {
+            if (bytesPerSec === 0) return '0 MB/s';
+            return formatSize(bytesPerSec) + '/s';
+        }
+        
+        // Auto-refresh every 2 seconds
+        loadDownloads();
+        refreshInterval = setInterval(loadDownloads, 2000);
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
+    </script>
+</body>
+</html>

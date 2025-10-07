@@ -1,0 +1,16 @@
+{
+    "default_rules": [
+        {
+            "name": "Organize Movies",
+            "match": "type:movie",
+            "action": "move",
+            "destination": "/media/movies/{title} ({year})"
+        },
+        {
+            "name": "Organize TV Shows",
+            "match": "type:series",
+            "action": "move",
+            "destination": "/media/tvshows/{series}/Season {season:02d}"
+        }
+    ]
+}

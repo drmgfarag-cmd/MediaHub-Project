@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Self‑Test</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Self‑Test</strong> <button id="run">Run</button></div>
+  <div id="out" class="card"></div>
+</div>
+<script>
+async function run(){ const j=await (await fetch('/api/selftest/run')).json(); const r=j.results||{}; const icon=(b)=> b?'✅':'❌'; document.getElementById('out').innerHTML = `
+  <div>${icon(r.ffmpeg)} FFmpeg</div>
+  <div>${icon(r.sevenzip)} 7‑Zip</div>
+  <div>${icon(r.aria2)} aria2 RPC</div>
+  <div>${icon(r.qb)} qBittorrent Web</div>
+  <div>${icon(r.storage_perm)} Storage write</div>
+  <div>${icon(r.downloads_perm)} Downloads write</div>
+`; }
+document.getElementById('run').onclick=run;
+document.addEventListener('DOMContentLoaded', run);
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

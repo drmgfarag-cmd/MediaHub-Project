@@ -1,0 +1,130 @@
+
+
+=== Consolidated Gates 18–20 (v67.05) — minimal integration ===
+
+=== v67.06 — Full-featured Gates 18–20 ===
+- Packages: grouped queue + CRUD + clipboard ingest + rules test/apply
+- Accounts/Connectors/Captcha: full settings UIs and APIs (secrets sealed at rest)
+- Views drawer counts + status/filetype badges; status-bar speed sparkline
+- Export/Import JSON (versioned) + import preview/apply; LinkGrabber templates
+- Editor Utilities page: encoding/lang menus, live Ln/Col + selection/doc counts, regex marks + navigation
+- Updates ribbon UI remains removed per instruction
+
+=== v67.09 — Gate 24: Scanner/Indexer + Search/Facets + Stream ===
+- Background-capable scanner endpoint: POST /api/library/scan { paths, include_ext, exclude }
+- Unified index written to storage/library_index.json (movies/series/episodes/tracks/books/comics/audiobooks)
+- Superset item API: GET /api/library/item/:id (back-compat: /title/:id works)
+- Facets & Search: GET /api/library/facets, GET /api/library/search?q=&type=
+- Local streaming with HTTP Range: GET /media/stream?path= (restricted to scanned paths)
+- Home: non-disruptive Search drawer from navbar
+
+=== v67.10 — Gate 24 No-Regression Snapshot ===
+- Home rails: added **Top Albums** (audio) and kept Top Artists/Recent/Continue Listening
+- Scanner auto-sets `stream` URLs for scanned media via /media/stream?path=...
+- Pinned rails API: GET/POST /api/home/rails/order; Home respects pinned list and custom order
+
+=== v67.15 — Taxonomy fix: Others as Movie/TV subcategories ===
+- Taxonomy limited to 4 pillars: Movies, TV, Books, Audio; Kids as subcategory under each
+- Added rails: Movies/TV Documentaries & Stand-Up; Collections (Series/Franchise/Awards/Crossovers/Universes)
+- Updated default pins to surface Kids + Books subcards, and Documentaries front-and-center
+\n=== v67.17 — Smart-rule rails + Seeded Collections ===\n- Auto-rails: Movies (4K/HDR, DV, Atmos, By-Genre, By-Decade); TV (On-going, Mini-series, Anthology)\n- Auto-rails: Books (eBooks, Comics, Manga, Audiobooks, Continue Reading, By Series/Author)\n- Auto-rails: Audio (Hi-Res/Lossless, Atmos/Spatial, Live, Soundtracks)\n- Kids overlays: Animated, Educational\n- Collections from collections.json now appear as rails (plus MCU, Oscar Winners, Arrowverse, Star Wars pre-seeded)\n
+=== v67.18 — Importers (TMDb/Trakt/IMDb CSV/TXT) + Extra Rails ===
+- New /api/collections/import with TMDb, Trakt public lists, IMDb CSV, and text import
+- Tools ▸ Collections Import page to run imports from the UI
+- Added many extra rails: Movies (Language/New/Runtime/Remasters/Extras), TV Returning This Week, Books (Graphic/Light/Omnibus/One-shots/Language), Audio (Decade/Mood/Activity/Instrumental/Hi-Def), Kids (Ages/Franchises/Characters)
+
+=== v67.19 — Top-50 Presets (Movies/TV via TMDb/Trakt) + Help for other categories ===
+- New import sources: tmdb_top_rated_movies, tmdb_top_rated_tv, trakt_popular_movies, trakt_popular_shows (first N=50)
+- Collections Import UI: Top 50 preset buttons and help block with reliable list sources for Books/Comics/Manga/Audiobooks/Audio/Kids
+
+=== v67.20 — Auto-Refresh Presets + Editable N + Credentials ===
+- New /api/integrations to store TMDb API key and Trakt client_id
+- Presets registry at /api/presets with seeds for TMDb/Trakt; background scheduler refreshes enabled presets
+- Collections Import UI updated with credentials form and Presets Manager (edit N & refresh interval; run now)
+- Added sources: tmdb_popular_movies/tv, trakt_trending_movies/shows
+
+=== v67.23 — Gated Features + Logs Tail + Pause/Resume + Global POST Token ===
+- Added feature flags (/api/flags) with default OFF: enable_logs_tail
+- Added /api/logs/tail (gated + API key protected)
+- Global token gating applied to all POST/PUT/PATCH/DELETE routes
+- Presets: /api/presets/pause + footer Pause/Resume; scheduler respects paused flag
+- App-level logging to storage/logs/app.log; Tools page gains Admin Flags controls
+
+=== v67.24 — Control Center (All Features via UI) ===
+- New /settings.html aggregates Security, Integrations, Features (feature flags), Limits, Scheduler — no code edits needed
+- New /api/config for general settings (bandwidth, UI, scheduler); POST is token-gated, writes are atomic
+- Expanded feature flags schema to include Package Grouping, Per-row Progress, Bandwidth Limiter, LinkGrabber, Local Metrics, Status Footer
+- Linked Settings from Home and Tools pages
+
+=== v67.25 — Stability & Polish ===
+- Request rate limiting (configurable); local-only server gate; auto-injected X-API-Key in UI
+- Backups: create/list/restore storage/*.json (atomic)
+- Importers: dry-run mode; retry/backoff for API fetches
+- Logging: rotating handler (2MB x5)
+- Health expanded: version, disk usage, storage mtimes
+- Keyboard shortcuts: g s (Settings), p (pause/resume), ? (help), / (focus search)
+
+=== v67.26 — Gate C (Packages) + Dry-Run UI + Footer Limiters ===
+- Collections Import: Dry-run checkbox to preview imports via API without writes
+- Status footer: now shows limiter state and values (On/Off, global/per-task kbps)
+- Gate C scaffold: /api/packages (list/save) and /api/packages/group_suggest + Packages UI (flag-gated)
+- Packages link appears on Home only when 'Package Grouping' feature flag is ON
+
+=== v67.27 — Add-All: Preset Progress + Status Colors + Logs Card ===
+- Presets: progress tracked in presets_state.json; /api/presets/state exposes progress/last_status/last_count
+- Presets Manager UI: per-row progress bars, colored outlines, counts
+- Tools: Logs card appears when Logs Tail flag is enabled
+
+=== v67.28 — Wired: Package Grouping drawer on Home + Per-item progress + Bulk mark ===
+- Home: 'Group by Package' side drawer (appears when flag enabled); expand/collapse packages; per-item progress bars; bulk mark processed/unprocessed
+- Routes: /api/packages/item_status, /api/packages/update, /api/packages/delete, /api/packages/rollup
+- Assets: row_progress.js utility for progress bars
+
+=== v67.29 — Downloader + RSS (Gated) ===
+- Feature flags: enable_downloader, enable_rss, enable_download_drawer
+- Routes: /api/downloader/* (config, queue, add/remove/update), /api/rss/* (feeds, poll), /api/missing/tv (TMDb-based)
+- UI: Downloads page (add URL/magnet, queue view, Missing Episodes), RSS Feeds manager, Downloads drawer on Home when enabled
+- Security: POST routes token-gated + rate-limited; local-only required on /api/downloader/add and /api/rss/feeds edits
+
+=== v67.30 — Quick Switches + Bundles terminology ===
+- Home: Quick Switches dropdown (toggle Bundles, Downloads Drawer, Downloader, RSS, Logs Tail, Status Footer, Bandwidth Limiter)
+- Terminology: 'Package Grouping' is now labeled 'Bundles (multi-file sets)' across the UI; alias page /web/bundles.html
+- Links/buttons updated: 'Group by Package' → 'Bundles'; 'Packages' headings → 'Bundles'
+
+=== v67.31 — Polish Pack A+B+C ===
+- Hero: automatic brightness-aware gradient overlay for readability
+- Footer: Active/Queued counts + ETA placeholder (click-through logic supported by drawer)
+- Table UX: column visibility chooser, sticky header, compact/comfortable density
+- Rails: drag-to-reorder pinned rails, overflow to 'More' beyond six
+- Bundles drawer: multi-select, Select All in Folder, inline save path/tags, bulk Move/Tag, Export list
+- New endpoint /api/rails/polish for Smart rails (New in 30/90, Language, Runtime, UHD/Remasters, Extras) + Continue rails stub
+- Flags: enable_polish_pack, enable_bundles_polish, enable_rails_polish
+
+=== v67.32 — Real‑Debrid Manager + Native Downloader (independent) ===
+- Feature flags: enable_real_debrid, enable_native_downloader, enable_rss_to_rd
+- Real‑Debrid: /web/rd.html manager; config/token; add magnet; list torrents; unrestrict link; optional auto‑pipe to downloader
+- Native downloader engine: background thread processes HTTP/HTTPS URLs; pause/resume via queue status; start/stop endpoints
+- Settings/Downloads updated; Quick Switches now include RD + Native toggles
+
+=== v67.36 — Unified Live Plus ===
+- Connectors: aria2 and qBittorrent (UI + API)
+- Kids: age rails (3–6, 7–9, 10–12) + Disney/Pixar/DreamWorks pins
+- Tools: Sort Editor, Dedupe Editor, Library Tree
+- Links: Settings → Download Engines; Downloads → Engines section
+
+=== v67.37 — CloudPull + Combined Queue + Editor Find/Replace + RD Dedup ===
+- RD Cloud→Local puller (start/stop/status endpoints) honoring preferred downloader
+- Combined Queue API + table with per-engine speed/ETA
+- Editor: Find/Replace popup (regex, case, whole word, selection scope)
+- RD Dedup Browser: scrollable, duplicate groups by normalized names; open links
+
+=== v67.40 — Per-engine limits + Bulk actions + 9 audit items ===
+- Per-engine rate limits (native/aria2/qB) + global limiter persists
+- Multi-select + bulk pause/resume/remove in Downloader
+- Collections timeline uses library+collections rules; drawer UI
+- Lists Directory with IMDb/TMDb/Trakt seeds + refresh timestamps
+- Queue metadata capture via /api/queue/meta/set + merged in Combined Queue
+- LinkGrabber advanced collapsible options (referrer, hoster, path, rename, include/exclude)
+- RD CloudPull filters (min/max size) + UI
+- Hero mini menu (mute/loop/poster fallback)
+- Diagnostics cache stats; Import Validator tool

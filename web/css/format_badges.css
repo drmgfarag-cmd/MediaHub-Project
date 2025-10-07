@@ -1,0 +1,59 @@
+/* Format Badge Styling for MediaHub Categories */
+.format-support {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.format-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.format-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Category-specific badge colors */
+.mediahub_movies .format-badge {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+}
+
+.mediahub_tv .format-badge {
+    background: linear-gradient(135deg, #4834d4 0%, #686de0 100%);
+}
+
+.mediahub_books .format-badge {
+    background: linear-gradient(135deg, #00d2d3 0%, #54a0ff 100%);
+}
+
+.mediahub_audio .format-badge {
+    background: linear-gradient(135deg, #ff9ff3 0%, #f368e0 100%);
+}
+
+.mediahub_kids .format-badge {
+    background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .format-support {
+        gap: 6px;
+    }
+    
+    .format-badge {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+}

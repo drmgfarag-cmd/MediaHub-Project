@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub Status</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mobile_responsive.css">
+</head>
+<body>
+    <div class="container">
+        <h1>MediaHub Guard Enforcer Status</h1>
+        <div id="status-results">Loading status...</div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch("/api/guard/scan")
+                .then(response => response.json())
+                .then(data => {
+                    const resultsDiv = document.getElementById("status-results");
+                    if (data.ok) {
+                        let html = `<h2>Overall Status: <span style="color: ${data.overall_passed ? 'green' : 'red'}">${data.overall_passed ? 'PASSED' : 'FAILED'}</span></h2>`;
+                        for (const surface in data.surfaces) {
+                            const surfaceData = data.surfaces[surface];
+                            html += `<h3>${surface.charAt(0).toUpperCase() + surface.slice(1)} Check: <span style="color: ${surfaceData.passed ? 'green' : 'red'}">${surfaceData.passed ? 'PASSED' : 'FAILED'}</span></h3>`;
+                            if (Array.isArray(surfaceData.reason)) {
+                                html += `<ul>`;
+                                surfaceData.reason.forEach(item => {
+                                    html += `<li>${item.check}: <span style="color: ${item.passed ? 'green' : 'red'}">${item.passed ? 'PASSED' : 'FAILED'}</span> - ${item.reason}</li>`;
+                                });
+                                html += `</ul>`;
+                            } else {
+                                html += `<p>${surfaceData.reason}</p>`;
+                            }
+                        }
+                        resultsDiv.innerHTML = html;
+                    } else {
+                        resultsDiv.innerHTML = `<p>Error fetching status: ${data.error}</p>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("status-results").innerHTML = `<p>Network error: ${error}</p>`;
+                });
+        });
+    </script>
+</body>
+</html>
+

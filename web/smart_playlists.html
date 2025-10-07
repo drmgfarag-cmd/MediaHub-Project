@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Smart Playlists</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Smart Playlists</strong> <button id="save">Save</button> <button id="preview">Preview</button></div>
+  <div class="card">
+    <table id="tbl"><thead><tr><th>Name</th><th>Type</th><th>Rules (field / op / value)</th><th></th></tr></thead><tbody></tbody></table>
+    <button id="add">Add playlist</button>
+  </div>
+  <div id="out" class="card"></div>
+</div>
+<script>
+const FIELDS=['title','path','genre','year','is_kids','path_re'];
+const OPS={'title':['contains','not_contains'],'path':['contains','not_contains'],'genre':['has_any','has_all','not_any'],'year':['>=','<=','between'],'is_kids':['='],'path_re':['re']};
+function row(p){ const tr=document.createElement('tr'); const rules=(p.rules||[]).map(rc=>`${rc.field||''}:${rc.op||''}:${rc.value||''}`).join('\n'); tr.innerHTML=`
+  <td contenteditable>${p.name||''}</td>
+  <td><select>${['','movie','series','ebook','comic','manga','audiobook','audio'].map(x=>`<option ${x===p.type?'selected':''}>${x}</option>`).join('')}</select></td>
+  <td><textarea rows="4" placeholder="One rule per line: field:op:value">${rules}</textarea></td>
+  <td><button class="del">✕</button></td>`; return tr; }
+async function load(){ const j=await (await fetch('/api/smartplaylists/list')).json(); const tb=document.querySelector('#tbl tbody'); tb.innerHTML=''; (j.lists||[]).forEach(p=>tb.appendChild(row(p))); }
+document.getElementById('add').onclick=()=>{ document.querySelector('#tbl tbody').appendChild(row({name:'My List', type:'movie', rules:[{field:'year',op:'>=',value:'2015'}]})); };
+document.getElementById('save').onclick=async ()=>{
+  const rows=[...document.querySelectorAll('#tbl tbody tr')].map(tr=>{ const name=tr.children[0].innerText.trim(); const type=tr.children[1].querySelector('select').value; const rs=tr.children[2].querySelector('textarea').value.split(/\n/).map(l=>{ const [f,o,...rest]=l.split(':'); return f?{field:f.trim(),op:o.trim(),value:rest.join(':').trim()}:null; }).filter(Boolean); return {name, type, rules: rs}; });
+  await fetch('/api/smartplaylists/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lists:rows})}); alert('Saved.');
+};
+document.getElementById('preview').onclick=async ()=>{
+  const tr=document.querySelector('#tbl tbody tr'); if(!tr) return;
+  const name=tr.children[0].innerText.trim(); const j=await (await fetch('/api/smartplaylists/eval?name='+encodeURIComponent(name))).json();
+  const out=document.getElementById('out'); out.innerHTML='<h3>Preview: '+name+'</h3>'+(j.items||[]).slice(0,50).map(it=>`${it.type||''} · ${it.year||''} · ${it.title||it.path||''}`).join('<br>');
+};
+document.addEventListener('click', (e)=>{ const b=e.target.closest('button.del'); if(!b) return; b.closest('tr')?.remove(); });
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+</body></html>

@@ -1,0 +1,18 @@
+(function(){const actions=[
+{id:'open_rules_audit',label:'Rules Audit (open)',run:()=>location.href='/web/self_audit.html#rules'},
+{id:'run_self_audit',label:'Self-Audit (run & open)',run:()=>location.href='/web/self_audit.html?run=1'},
+{id:'guard_enforcer',label:'Guard Enforcer (scan now)',run:()=>location.href='/web/guard.html?scan=1'},
+{id:'create_backup',label:'Create Backup (download zip)',run:()=>fetch('/api/backup/create').then(r=>r.json()).then(j=>UI.toast('Backup: '+(j.file||'done')))},
+{id:'support_pack',label:'Support Pack (collect & download)',run:()=>fetch('/api/support/pack').then(r=>r.json()).then(j=>UI.toast('Support Pack: '+(j.file||'')))},
+{id:'open_profiles',label:'Open Profiles',run:()=>location.href='/web/page/profiles.html'},
+{id:'toggle_subs',label:'Toggle AR->EN subtitles priority',run:()=>fetch('/api/subs/policy/toggle',{method:'POST'})},
+{id:'reindex_library',label:'Re-index library',run:()=>fetch('/api/library/reindex',{method:'POST'}).then(()=>UI.toast('Reindex started'))},
+{id:'filters_overlay',label:'Library Filters (toggle overlay)',run:()=>window.toggleFilters?.()},
+{id:'sort_recent',label:'Sort: Recent',run:()=>window.applySort?.('recent')},
+{id:'sort_rating',label:'Sort: Rating',run:()=>window.applySort?.('rating')},
+{id:'dl_start',label:'Downloader: Start',run:()=>window.bulkStart?.()},
+{id:'dl_pause',label:'Downloader: Pause',run:()=>window.bulkPause?.()},
+{id:'dl_remove',label:'Downloader: Remove',run:()=>window.bulkRemove?.()},
+{id:'open_link_grabber',label:'Downloader: Focus Link Grabber',run:()=>document.querySelector('[data-tab="linkgrabber"]').click()},
+{id:'rd_apply_profile',label:'RD Manager: Apply filters profile…',run:()=>window.openRDProfiles?.()},
+];const root=document.createElement('div');root.id='cmd_palette';root.style.cssText='position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.35);z-index:3000';root.innerHTML='<div style="margin-top:12vh;width:720px;background:#0f1520;border:1px solid #2b3a4a;border-radius:12px;box-shadow:0 24px 48px rgba(0,0,0,.45)"><input id="cmd_input" placeholder="Type a command..." style="width:100%;padding:12px 14px;background:#0c111b;border:0;border-bottom:1px solid #223041;color:#e8eef5;border-radius:12px 12px 0 0;outline:0;font-size:16px"><div id="cmd_list" style="max-height:50vh;overflow:auto"></div></div>';document.body.appendChild(root);const input=root.querySelector('#cmd_input');const list=root.querySelector('#cmd_list');function show(){root.style.display='flex';input.value='';render('');input.focus()}function hide(){root.style.display='none'}function render(q){const m=(q||'').toLowerCase();const arr=actions.filter(a=>a.label.toLowerCase().includes(m));list.innerHTML=arr.map(a=>"<div class='cmd_row' data-id='"+a.id+"' style='padding:8px 14px;border-top:1px solid #182232;cursor:pointer'>"+a.label+"</div>").join('')}input.addEventListener('input',()=>render(input.value));list.addEventListener('click',ev=>{const id=ev.target.closest('.cmd_row')?.dataset.id;const a=actions.find(x=>x.id===id);if(a){hide();try{a.run()}catch(e){}}});document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();show()}if(e.key==='Escape'&&root.style.display!=='none'){hide()}});window.CMD={show,hide};})();

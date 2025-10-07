@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Sort Editor</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px} code{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:2px 4px}</style>
+</head><body><div class="wrap">
+  <a href="tools.html">&larr; Tools</a><h1>Sort Editor</h1>
+  <div class="card"><button onclick="load()">Suggest</button></div>
+  <div class="card"><table id="t"><thead><tr><th>Path</th><th>Current</th><th>Suggested</th></tr></thead><tbody></tbody></table></div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/sort/suggest')).json(); const tb=document.querySelector('#t tbody'); tb.innerHTML='';
+  (j.items||[]).forEach(it=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><code>${it.path}</code></td><td>${it.current}</td><td>${it.suggested}</td>`; tb.appendChild(tr); });
+}
+</script></body></html>

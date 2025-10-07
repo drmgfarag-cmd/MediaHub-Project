@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<movie>
+    <title>Funny Business 2024</title>
+    <year>2024</year>
+    <rating>7.9</rating>
+    <plot>Hilarious comedy from 2024</plot>
+    <genre>Comedy</genre>
+    <director>Comedy Director</director>
+    <runtime>95 min</runtime>
+    <mpaa>R</mpaa>
+</movie>

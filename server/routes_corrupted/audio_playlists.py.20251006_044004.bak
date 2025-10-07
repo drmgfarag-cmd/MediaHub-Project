@@ -1,0 +1,91 @@
+from flask import Blueprint, jsonify, request
+import os, json, re, time, hashlib
+
+mix_bp = Blueprint('mix', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+CFG=os.path.join(STO,'config.json')
+IDX=os.path.join(STO,'library_index.json')
+PL=os.path.join(STO,'audio_playlists.json')
+
+def _cfg():
+    try: return json.load(open(CFG,'r',encoding='utf-8'))
+    except Exception: return {}
+
+def _items():
+    try: return json.load(open(IDX,'r',encoding='utf-8'))
+    except Exception: return []
+
+def _load():
+    try: return json.load(open(PL,'r',encoding='utf-8'))
+    except Exception: return {'mixes':[]}
+
+def _save(obj):
+    tmp=PL+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, PL)
+
+def _match_tokens(txt, toks):
+    txt=(txt or '').lower()
+    for t in toks:
+        if t.lower() in txt: return True
+    return False
+
+@mix_bp.route('/api/audio/mixes/auto')
+def auto():
+    try:
+        cfg=_cfg(); rules=cfg.get('audio',{}).get('mood_rules',{})
+        its=_items()
+        out=[]
+        for mood, toks in rules.items():
+        tracks=[it for it in its if it.get('type') in ('audio','music') and _match_tokens((it.get('genres') or []) and ' '.join(it.get('genres')) or (it.get('path','')+' '+it.get('title','')), toks)]
+        if tracks:
+        out.append({'name': f'Mood — {mood}', 'count': len(tracks)})
+        return jsonify({'mixes': out})
+
+        @mix_bp.route('/api/audio/mixes/list')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def list_():
+    try:
+        return jsonify(_load())
+
+        @mix_bp.route('/api/audio/mixes/create', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def create():
+    try:
+        js=request.get_json(silent=True) or {}
+        name=(js.get('name') or '').strip()
+        typ=(js.get('type') or 'auto')  # auto|manual|radio
+        query=(js.get('query') or '').strip()
+        if not name: return jsonify({'error':'name required'}), 400
+        items=_items()
+        if typ=='radio':
+        # radio: artist or album contained in path/title
+        q=query.lower()
+        tracks=[it for it in items if it.get('type') in ('audio','music') and (q in (it.get('artist','')+' '+it.get('album','')+' '+it.get('path','')+' '+it.get('title','')).lower())]
+        else:
+        # auto by mood/activity tokens
+        cfg=_cfg(); rules=cfg.get('audio',{}).get('mood_rules',{}).get(name.replace('Mood — ','').strip(), [])
+        tracks=[it for it in items if it.get('type') in ('audio','music') and ((it.get('genres') and any(t in ' '.join(it.get('genres')).lower() for t in rules)) or any(t in (it.get('path','')+' '+it.get('title','')).lower() for t in rules))]
+        pl=_load()
+        # store just minimal references
+        pl['mixes']=[m for m in pl.get('mixes',[]) if m.get('name')!=name]
+        pl['mixes'].append({'name':name,'type':typ,'query':query,'count':len(tracks),'ts': int(time.time())})
+        _save(pl)
+        return jsonify({'ok':True,'count':len(tracks)})
+
+        @mix_bp.route('/api/audio/mixes/delete', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def delete():
+    try:
+        js=request.get_json(silent=True) or {}
+        name=(js.get('name') or '').strip()
+        pl=_load(); n0=len(pl.get('mixes',[]))
+        pl['mixes']=[m for m in pl.get('mixes',[]) if m.get('name')!=name]
+        _save(pl); return jsonify({'ok':True,'removed': n0-len(pl.get('mixes',[]))})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

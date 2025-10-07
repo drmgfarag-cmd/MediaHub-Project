@@ -1,0 +1,66 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Discovery Settings</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Discovery Settings</strong> <button id="save">Save</button></div>
+  <div class="card">
+    <label><input type="checkbox" id="enabled"> Enable Discovery rails</label>
+  </div>
+  <div class="card">
+    <h3>Language rail</h3>
+    <label><input type="checkbox" id="lang_on"> Enabled</label><br>
+    Languages (CSV): <input id="langs" style="width:60%">
+    Min items: <input id="lang_min" type="number" style="width:80px">
+  </div>
+  <div class="card">
+    <h3>Runtime rail (Movies)</h3>
+    <label><input type="checkbox" id="rt_on"> Enabled</label><br>
+    Buckets (CSV): <input id="rt_buckets" style="width:40%" placeholder="<=90,90-120,>120">
+    Min items: <input id="rt_min" type="number" style="width:80px">
+  </div>
+  <div class="card">
+    <h3>Remasters / 4K</h3>
+    <label><input type="checkbox" id="rem_on"> Enabled</label><br>
+    Tokens (CSV): <input id="rem_tokens" style="width:60%" placeholder="Remastered,UHD-Remux,4K,2160p,UHD">
+    Min items: <input id="rem_min" type="number" style="width:80px">
+  </div>
+  <div class="card">
+    <h3>Extras / Featurettes</h3>
+    <label><input type="checkbox" id="ex_on"> Enabled</label><br>
+    Tokens (CSV): <input id="ex_tokens" style="width:60%" placeholder="Extras,Featurette,Behind the Scenes,Bloopers,Interview">
+    Min items: <input id="ex_min" type="number" style="width:80px">
+  </div>
+  <div class="card">
+    <h3>Badges</h3>
+    <label><input type="checkbox" id="fmt_badge"> Format badges (DV/HDR/4K/Atmos/Lossless)</label><br>
+    <label><input type="checkbox" id="awd_badge"> Award badges (Oscar/Globe/BAFTA/Cannes/Venice/Berlin)</label>
+  </div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/discovery/config')).json();
+  document.getElementById('enabled').checked = !!j.enabled;
+  const lr=j.rails?.language||{}; document.getElementById('lang_on').checked=!!lr.enabled; document.getElementById('langs').value=(lr.langs||[]).join(','); document.getElementById('lang_min').value=lr.min_items||6;
+  const rr=j.rails?.runtime||{}; document.getElementById('rt_on').checked=!!rr.enabled; document.getElementById('rt_buckets').value=(rr.buckets||['<=90','90-120','>120']).join(','); document.getElementById('rt_min').value=rr.min_items||6;
+  const mr=j.rails?.remasters||{}; document.getElementById('rem_on').checked=!!mr.enabled; document.getElementById('rem_tokens').value=(mr.tokens||[]).join(','); document.getElementById('rem_min').value=mr.min_items||4;
+  const er=j.rails?.extras||{}; document.getElementById('ex_on').checked=!!er.enabled; document.getElementById('ex_tokens').value=(er.tokens||[]).join(','); document.getElementById('ex_min').value=er.min_items||4;
+  document.getElementById('fmt_badge').checked = !!(j.badges?.format);
+  document.getElementById('awd_badge').checked = !!(j.badges?.awards);
+}
+document.getElementById('save').onclick=async ()=>{
+  const js = {
+    enabled: document.getElementById('enabled').checked,
+    rails: {
+      language: {enabled: document.getElementById('lang_on').checked, langs: document.getElementById('langs').value.split(',').map(s=>s.trim()).filter(Boolean), min_items: parseInt(document.getElementById('lang_min').value||'6')||6},
+      runtime: {enabled: document.getElementById('rt_on').checked, buckets: document.getElementById('rt_buckets').value.split(',').map(s=>s.trim()).filter(Boolean), min_items: parseInt(document.getElementById('rt_min').value||'6')||6},
+      remasters: {enabled: document.getElementById('rem_on').checked, tokens: document.getElementById('rem_tokens').value.split(',').map(s=>s.trim()).filter(Boolean), min_items: parseInt(document.getElementById('rem_min').value||'4')||4},
+      extras: {enabled: document.getElementById('ex_on').checked, tokens: document.getElementById('ex_tokens').value.split(',').map(s=>s.trim()).filter(Boolean), min_items: parseInt(document.getElementById('ex_min').value||'4')||4}
+    },
+    badges: {format: document.getElementById('fmt_badge').checked, awards: document.getElementById('awd_badge').checked}
+  };
+  await fetch('/api/discovery/config_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(js)});
+  alert('Saved.');
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

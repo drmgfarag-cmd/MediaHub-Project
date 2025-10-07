@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "UserDefined": {
+      "include": [],
+      "exclude": [],
+      "allow_ext": [],
+      "deny_ext": [],
+      "codecs": [],
+      "qualities": [],
+      "groups": []
+    }
+  },
+  "active_profile": "UserDefined"
+}

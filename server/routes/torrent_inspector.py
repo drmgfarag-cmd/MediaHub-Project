@@ -1,0 +1,437 @@
+from flask import Blueprint, jsonify, request, send_file
+import os, json, re
+import bencodepy
+from datetime import datetime
+
+torrent_inspector_bp = Blueprint('torrent_inspector', __name__)
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+STO = os.path.join(ROOT, 'storage')
+TEMP_DIR = os.path.join(STO, 'tmp')
+
+def _parse_torrent_file(file_path):
+    """
+    Parse a .torrent file and extract metadata
+    Returns dict with: name, files, total_size, piece_length, announce, comment, created_by
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            torrent_data = bencodepy.decode(f.read())
+        
+        info = torrent_data.get(b'info', {})
+        
+        # Extract basic metadata
+        name = info.get(b'name', b'').decode('utf-8', errors='ignore')
+        piece_length = info.get(b'piece length', 0)
+        
+        # Extract announce URLs
+        announce = torrent_data.get(b'announce', b'').decode('utf-8', errors='ignore')
+        announce_list = []
+        if b'announce-list' in torrent_data:
+            for tier in torrent_data[b'announce-list']:
+                for url in tier:
+                    announce_list.append(url.decode('utf-8', errors='ignore'))
+        
+        # Extract optional metadata
+        comment = torrent_data.get(b'comment', b'').decode('utf-8', errors='ignore')
+        created_by = torrent_data.get(b'created by', b'').decode('utf-8', errors='ignore')
+        creation_date = torrent_data.get(b'creation date', 0)
+        
+        # Extract file list
+        files = []
+        total_size = 0
+        
+        if b'files' in info:
+            # Multi-file torrent
+            for file_info in info[b'files']:
+                path_parts = [part.decode('utf-8', errors='ignore') for part in file_info[b'path']]
+                file_path = '/'.join(path_parts)
+                file_size = file_info[b'length']
+                
+                files.append({
+                    'path': file_path,
+                    'size_bytes': file_size,
+                    'size_mb': round(file_size / (1024 * 1024), 2),
+                    'size_gb': round(file_size / (1024 * 1024 * 1024), 3)
+                })
+                total_size += file_size
+        else:
+            # Single-file torrent
+            file_size = info.get(b'length', 0)
+            files.append({
+                'path': name,
+                'size_bytes': file_size,
+                'size_mb': round(file_size / (1024 * 1024), 2),
+                'size_gb': round(file_size / (1024 * 1024 * 1024), 3)
+            })
+            total_size = file_size
+        
+        return {
+            'ok': True,
+            'name': name,
+            'files': files,
+            'file_count': len(files),
+            'total_size_bytes': total_size,
+            'total_size_mb': round(total_size / (1024 * 1024), 2),
+            'total_size_gb': round(total_size / (1024 * 1024 * 1024), 3),
+            'piece_length': piece_length,
+            'announce': announce,
+            'announce_list': announce_list,
+            'comment': comment,
+            'created_by': created_by,
+            'creation_date': datetime.fromtimestamp(creation_date).isoformat() + 'Z' if creation_date else None
+        }
+    
+    except Exception as e:
+        return {
+            'ok': False,
+            'error': f'Failed to parse torrent file: {str(e)}'
+        }
+
+def _detect_archive_files(files):
+    """
+    Detect archive files within the torrent
+    Returns dict with: archives, nested_level, total_archives
+    """
+    archive_extensions = ['.rar', '.zip', '.7z', '.tar', '.gz', '.bz2', '.r00', '.r01']
+    
+    archives = []
+    for file_info in files:
+        file_path = file_info['path']
+        file_ext = os.path.splitext(file_path)[1].lower()
+        
+        if file_ext in archive_extensions or re.search(r'\.part\d+\.rar$', file_path, re.IGNORECASE):
+            archives.append({
+                'path': file_path,
+                'size_bytes': file_info['size_bytes'],
+                'size_mb': file_info['size_mb'],
+                'extension': file_ext,
+                'is_split': bool(re.search(r'\.(part\d+|r\d{2,3})$', file_path, re.IGNORECASE))
+            })
+    
+    # Detect nesting level (archives within subdirectories)
+    max_depth = 0
+    for archive in archives:
+        depth = archive['path'].count('/')
+        if depth > max_depth:
+            max_depth = depth
+    
+    return {
+        'archives': archives,
+        'total_archives': len(archives),
+        'max_nesting_level': max_depth,
+        'has_split_archives': any(a['is_split'] for a in archives)
+    }
+
+def _categorize_files(files):
+    """
+    Categorize files by type
+    Returns dict with counts and lists for each category
+    """
+    categories = {
+        'video': [],
+        'audio': [],
+        'subtitles': [],
+        'images': [],
+        'documents': [],
+        'archives': [],
+        'samples': [],
+        'other': []
+    }
+    
+    video_exts = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpg', '.mpeg', '.ts']
+    audio_exts = ['.mp3', '.flac', '.aac', '.wav', '.ogg', '.m4a', '.wma']
+    subtitle_exts = ['.srt', '.sub', '.ass', '.ssa', '.vtt']
+    image_exts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+    document_exts = ['.txt', '.nfo', '.pdf', '.doc', '.docx']
+    archive_exts = ['.rar', '.zip', '.7z', '.tar', '.gz', '.bz2']
+    
+    for file_info in files:
+        file_path = file_info['path']
+        file_lower = file_path.lower()
+        file_ext = os.path.splitext(file_path)[1].lower()
+        
+        # Check for samples
+        if re.search(r'\bsample\b', file_lower):
+            categories['samples'].append(file_info)
+        elif file_ext in video_exts:
+            categories['video'].append(file_info)
+        elif file_ext in audio_exts:
+            categories['audio'].append(file_info)
+        elif file_ext in subtitle_exts:
+            categories['subtitles'].append(file_info)
+        elif file_ext in image_exts:
+            categories['images'].append(file_info)
+        elif file_ext in document_exts:
+            categories['documents'].append(file_info)
+        elif file_ext in archive_exts or re.search(r'\.(part\d+|r\d{2,3})$', file_lower):
+            categories['archives'].append(file_info)
+        else:
+            categories['other'].append(file_info)
+    
+    # Calculate totals
+    summary = {}
+    for category, items in categories.items():
+        total_size = sum(item['size_bytes'] for item in items)
+        summary[category] = {
+            'count': len(items),
+            'total_size_mb': round(total_size / (1024 * 1024), 2),
+            'files': items
+        }
+    
+    return summary
+
+def _build_tree_structure(files):
+    """
+    Build a tree structure from flat file list
+    Returns nested dict representing directory structure
+    """
+    tree = {}
+    
+    for file_info in files:
+        path_parts = file_info['path'].split('/')
+        current_level = tree
+        
+        for i, part in enumerate(path_parts):
+            if i == len(path_parts) - 1:
+                # Leaf node (file)
+                current_level[part] = {
+                    'type': 'file',
+                    'size_bytes': file_info['size_bytes'],
+                    'size_mb': file_info['size_mb']
+                }
+            else:
+                # Directory node
+                if part not in current_level:
+                    current_level[part] = {'type': 'directory', 'children': {}}
+                current_level = current_level[part]['children']
+    
+    return tree
+
+@torrent_inspector_bp.route('/api/torrent/inspect', methods=['POST'])
+def inspect_torrent():
+    """
+    Inspect a .torrent file
+    Accepts file upload or file path
+    """
+    # Check if file was uploaded
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'ok': False, 'error': 'No file selected'}), 400
+        
+        # Save temporarily
+        os.makedirs(TEMP_DIR, exist_ok=True)
+        temp_path = os.path.join(TEMP_DIR, f'temp_{datetime.utcnow().timestamp()}.torrent')
+        file.save(temp_path)
+        
+        # Parse torrent
+        result = _parse_torrent_file(temp_path)
+        
+        # Clean up
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
+        
+        if not result.get('ok'):
+            return jsonify(result), 400
+        
+        # Add additional analysis
+        files = result.get('files', [])
+        result['archive_analysis'] = _detect_archive_files(files)
+        result['file_categories'] = _categorize_files(files)
+        
+        return jsonify(result)
+    
+    # Check if file path was provided
+    req_data = request.get_json(silent=True) or {}
+    file_path = req_data.get('file_path')
+    
+    if not file_path:
+        return jsonify({'ok': False, 'error': 'No file provided'}), 400
+    
+    if not os.path.exists(file_path):
+        return jsonify({'ok': False, 'error': 'File not found'}), 404
+    
+    # Parse torrent
+    result = _parse_torrent_file(file_path)
+    
+    if not result.get('ok'):
+        return jsonify(result), 400
+    
+    # Add additional analysis
+    files = result.get('files', [])
+    result['archive_analysis'] = _detect_archive_files(files)
+    result['file_categories'] = _categorize_files(files)
+    
+    return jsonify(result)
+
+@torrent_inspector_bp.route('/api/torrent/tree', methods=['POST'])
+def get_torrent_tree():
+    """
+    Get tree structure of torrent contents
+    Accepts file upload or file path
+    """
+    # Similar to inspect_torrent but returns tree structure
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'ok': False, 'error': 'No file selected'}), 400
+        
+        os.makedirs(TEMP_DIR, exist_ok=True)
+        temp_path = os.path.join(TEMP_DIR, f'temp_{datetime.utcnow().timestamp()}.torrent')
+        file.save(temp_path)
+        
+        result = _parse_torrent_file(temp_path)
+        
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
+        
+        if not result.get('ok'):
+            return jsonify(result), 400
+        
+        files = result.get('files', [])
+        tree = _build_tree_structure(files)
+        
+        return jsonify({
+            'ok': True,
+            'name': result.get('name'),
+            'tree': tree,
+            'file_count': len(files),
+            'total_size_gb': result.get('total_size_gb')
+        })
+    
+    req_data = request.get_json(silent=True) or {}
+    file_path = req_data.get('file_path')
+    
+    if not file_path:
+        return jsonify({'ok': False, 'error': 'No file provided'}), 400
+    
+    if not os.path.exists(file_path):
+        return jsonify({'ok': False, 'error': 'File not found'}), 404
+    
+    result = _parse_torrent_file(file_path)
+    
+    if not result.get('ok'):
+        return jsonify(result), 400
+    
+    files = result.get('files', [])
+    tree = _build_tree_structure(files)
+    
+    return jsonify({
+        'ok': True,
+        'name': result.get('name'),
+        'tree': tree,
+        'file_count': len(files),
+        'total_size_gb': result.get('total_size_gb')
+    })
+
+@torrent_inspector_bp.route('/api/torrent/select-media', methods=['POST'])
+def select_media_only():
+    """
+    Filter torrent files to media only (exclude samples, archives, etc.)
+    Body: {
+        "file_path": "/path/to/torrent",
+        "exclude_samples": true,
+        "exclude_archives": true,
+        "exclude_subtitles": false,
+        "min_size_mb": 100
+    }
+    """
+    req_data = request.get_json(silent=True) or {}
+    file_path = req_data.get('file_path')
+    exclude_samples = req_data.get('exclude_samples', True)
+    exclude_archives = req_data.get('exclude_archives', True)
+    exclude_subtitles = req_data.get('exclude_subtitles', False)
+    min_size_mb = req_data.get('min_size_mb', 0)
+    
+    if not file_path:
+        return jsonify({'ok': False, 'error': 'file_path required'}), 400
+    
+    if not os.path.exists(file_path):
+        return jsonify({'ok': False, 'error': 'File not found'}), 404
+    
+    result = _parse_torrent_file(file_path)
+    
+    if not result.get('ok'):
+        return jsonify(result), 400
+    
+    files = result.get('files', [])
+    categories = _categorize_files(files)
+    
+    # Build selected files list
+    selected_files = []
+    
+    # Always include video and audio
+    selected_files.extend(categories['video']['files'])
+    selected_files.extend(categories['audio']['files'])
+    
+    # Conditionally include other categories
+    if not exclude_subtitles:
+        selected_files.extend(categories['subtitles']['files'])
+    
+    if not exclude_samples:
+        selected_files.extend(categories['samples']['files'])
+    
+    if not exclude_archives:
+        selected_files.extend(categories['archives']['files'])
+    
+    # Apply size filter
+    if min_size_mb > 0:
+        selected_files = [f for f in selected_files if f['size_mb'] >= min_size_mb]
+    
+    # Calculate totals
+    total_selected_size = sum(f['size_bytes'] for f in selected_files)
+    
+    return jsonify({
+        'ok': True,
+        'torrent_name': result.get('name'),
+        'total_files': len(files),
+        'selected_files': len(selected_files),
+        'excluded_files': len(files) - len(selected_files),
+        'selected_size_gb': round(total_selected_size / (1024 * 1024 * 1024), 3),
+        'files': selected_files
+    })
+
+@torrent_inspector_bp.route('/api/torrent/copy-filenames', methods=['POST'])
+def copy_all_filenames():
+    """
+    Get all filenames from torrent for audit trail
+    Body: {
+        "file_path": "/path/to/torrent"
+    }
+    """
+    req_data = request.get_json(silent=True) or {}
+    file_path = req_data.get('file_path')
+    
+    if not file_path:
+        return jsonify({'ok': False, 'error': 'file_path required'}), 400
+    
+    if not os.path.exists(file_path):
+        return jsonify({'ok': False, 'error': 'File not found'}), 404
+    
+    result = _parse_torrent_file(file_path)
+    
+    if not result.get('ok'):
+        return jsonify(result), 400
+    
+    files = result.get('files', [])
+    filenames = [f['path'] for f in files]
+    
+    # Create formatted text output
+    text_output = f"Torrent: {result.get('name')}\n"
+    text_output += f"Total Files: {len(filenames)}\n"
+    text_output += f"Total Size: {result.get('total_size_gb')} GB\n\n"
+    text_output += "Files:\n"
+    text_output += "\n".join(filenames)
+    
+    return jsonify({
+        'ok': True,
+        'torrent_name': result.get('name'),
+        'file_count': len(filenames),
+        'filenames': filenames,
+        'text_output': text_output
+    })

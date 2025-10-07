@@ -1,0 +1,22 @@
+{
+  "connectors": [
+    {
+      "id": "rd",
+      "name": "Real-Debrid",
+      "tos": "https://real-debrid.com/terms",
+      "version": "1.0.0",
+      "enabled": false
+    },
+    {
+      "id": "generic_direct",
+      "name": "Direct HTTP(S)",
+      "tos": "about:blank",
+      "version": "0.9.0",
+      "enabled": true
+    }
+  ],
+  "latest": {
+    "rd": "1.1.0",
+    "generic_direct": "0.9.0"
+  }
+}

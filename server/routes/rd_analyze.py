@@ -1,0 +1,144 @@
+# Real-Debrid Analysis and Auto-Selection
+from flask import Blueprint, jsonify, request
+import os, json, re
+
+ra_bp = Blueprint('ra', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+INB=os.path.join(STO,'rd_inbox.json')
+PRF=os.path.join(STO,'profiles.json')
+
+def _load(path, default):
+  if os.path.exists(path):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+    except: pass
+  return default
+
+def _save(path, obj):
+  os.makedirs(os.path.dirname(path), exist_ok=True)
+  with open(path,'w',encoding='utf-8') as f: json.dump(obj, f, indent=2)
+
+def _score(item, prof):
+  v=item.get('value','') or item.get('path','')
+  score=50; reasons=[]
+  # extensions
+  ext=v.split('.')[-1].lower() if '.' in v else ''
+  if prof.get('allow_ext') and ext in prof['allow_ext']: score+=10; reasons.append('allowed ext')
+  if prof.get('exclude_ext') and ext in prof['exclude_ext']: score-=30; reasons.append('excluded ext')
+  # tokens
+  low=v.lower()
+  for t in prof.get('include_tokens',[]): 
+    if t.lower() in low: score+=5; reasons.append('incl:'+t)
+  for t in prof.get('exclude_tokens',[]): 
+    if t.lower() in low: score-=10; reasons.append('excl:'+t)
+  # simple quality bump
+  if re.search(r'(?i)2160p|UHD|4K', v): score+=10; reasons.append('4K')
+  elif re.search(r'(?i)1080p', v): score+=6; reasons.append('1080p')
+  elif re.search(r'(?i)720p', v): score+=3; reasons.append('720p')
+  # REMUX bonus
+  if re.search(r'(?i)REMUX', v): score+=8; reasons.append('REMUX')
+  # Codec preferences
+  if re.search(r'(?i)x265|HEVC', v): score+=4; reasons.append('x265/HEVC')
+  elif re.search(r'(?i)x264', v): score+=2; reasons.append('x264')
+  # Release group preferences
+  if re.search(r'(?i)ctrlhd', v): score+=15; reasons.append('ctrlhd')
+  elif re.search(r'(?i)cytsunee', v): score+=8; reasons.append('cytsunee')
+  elif re.search(r'(?i)oft', v): score+=5; reasons.append('oft')
+  # duplicates normalized
+  norm=re.sub(r'(?i)[^a-z0-9]+','', v)
+  return score, reasons, norm
+
+@ra_bp.route('/api/rd/analyze', methods=['POST'])
+def analyze():
+  js=request.get_json(force=True) or {}
+  prof_id=js.get('profile_id','movies_default')
+  profiles=_load(PRF, {"profiles":[]})
+  prof=next((p for p in profiles.get('profiles',[]) if p.get('id')==prof_id), profiles.get('profiles',[{}])[0])
+  db=_load(INB, {'items': []})
+  rows=[]
+  seen={}
+  for it in db.get('items',[]):
+    s, reasons, norm = _score(it, prof)
+    decision = 'keep' if s >= 60 else 'remove'
+    rows.append({
+      "id":it.get('id'), 
+      "value": it.get('value') or it.get('path'), 
+      "score": s, 
+      "reasons": reasons, 
+      "norm": norm,
+      "decision": decision
+    })
+    if norm in seen:
+      if s>seen[norm]['score']: 
+        seen[norm]['decision'] = 'remove'  # Mark previous as remove
+        seen[norm]=rows[-1]
+      else:
+        rows[-1]['decision'] = 'duplicate'
+    else:
+      seen[norm]=rows[-1]
+  
+  return jsonify({"ok": True, "rows": rows, "profile": prof_id})
+
+@ra_bp.route('/api/rd/auto_select', methods=['POST'])
+def auto_select():
+  js=request.get_json(force=True) or {}
+  prof_id=js.get('profile_id','movies_default')
+  
+  # Get analysis results
+  analysis = analyze()
+  analysis_data = analysis.get_json()
+  
+  if not analysis_data.get('ok'):
+    return jsonify({"ok": False, "error": "Analysis failed"})
+  
+  rows = analysis_data.get('rows', [])
+  keep_items = [row for row in rows if row.get('decision') == 'keep']
+  
+  # Update the inbox to only keep the selected items
+  db = _load(INB, {'items': []})
+  keep_ids = [item['id'] for item in keep_items]
+  db['items'] = [item for item in db['items'] if item.get('id') in keep_ids]
+  _save(INB, db)
+  
+  return jsonify({
+    "ok": True, 
+    "kept": len(keep_items),
+    "removed": len(rows) - len(keep_items),
+    "profile": prof_id
+  })
+
+@ra_bp.route('/api/rd/analysis_stats')
+def analysis_stats():
+  """Get overall analysis statistics"""
+  db = _load(INB, {'items': []})
+  total_items = len(db.get('items', []))
+  
+  # Quick analysis with default profile
+  profiles = _load(PRF, {"profiles": []})
+  default_prof = profiles.get('profiles', [{}])[0] if profiles.get('profiles') else {}
+  
+  stats = {
+    "total_items": total_items,
+    "quality_distribution": {},
+    "size_distribution": {},
+    "format_distribution": {}
+  }
+  
+  for item in db.get('items', []):
+    v = item.get('value', '') or item.get('path', '')
+    
+    # Quality analysis
+    if re.search(r'(?i)2160p|UHD|4K', v):
+      stats["quality_distribution"]["4K"] = stats["quality_distribution"].get("4K", 0) + 1
+    elif re.search(r'(?i)1080p', v):
+      stats["quality_distribution"]["1080p"] = stats["quality_distribution"].get("1080p", 0) + 1
+    elif re.search(r'(?i)720p', v):
+      stats["quality_distribution"]["720p"] = stats["quality_distribution"].get("720p", 0) + 1
+    else:
+      stats["quality_distribution"]["Other"] = stats["quality_distribution"].get("Other", 0) + 1
+    
+    # Format analysis
+    ext = v.split('.')[-1].lower() if '.' in v else 'unknown'
+    stats["format_distribution"][ext] = stats["format_distribution"].get(ext, 0) + 1
+  
+  return jsonify({"ok": True, "stats": stats})

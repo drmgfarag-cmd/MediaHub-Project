@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - Language Settings</title>
+    <link rel="stylesheet" href="../assets/normalize.css">
+    <link rel="stylesheet" href="../assets/ui.css">
+    <style>
+        .locale-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .locale-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .locale-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .locale-item:last-child {
+            border-bottom: none;
+        }
+        
+        .locale-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        
+        button {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        .preview-box {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .preview-text {
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="locale-container">
+        <h1>🌍 Language & Localization</h1>
+        <p>Configure interface language and regional settings</p>
+        
+        <div class="locale-section">
+            <h2>Interface Language</h2>
+            <div class="locale-item">
+                <span class="locale-label">UI Language</span>
+                <select id="uiLanguage">
+                    <option value="en">English</option>
+                    <option value="ar">العربية (Arabic)</option>
+                    <option value="es">Español (Spanish)</option>
+                    <option value="fr">Français (French)</option>
+                    <option value="de">Deutsch (German)</option>
+                    <option value="it">Italiano (Italian)</option>
+                    <option value="ja">日本語 (Japanese)</option>
+                    <option value="ko">한국어 (Korean)</option>
+                    <option value="zh">中文 (Chinese)</option>
+                    <option value="ru">Русский (Russian)</option>
+                </select>
+            </div>
+            <div class="locale-item">
+                <span class="locale-label">Text Direction</span>
+                <select id="textDirection">
+                    <option value="auto">Auto-detect</option>
+                    <option value="ltr">Left-to-Right (LTR)</option>
+                    <option value="rtl">Right-to-Left (RTL)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="locale-section">
+            <h2>Regional Settings</h2>
+            <div class="locale-item">
+                <span class="locale-label">Date Format</span>
+                <select id="dateFormat">
+                    <option value="mdy">MM/DD/YYYY (US)</option>
+                    <option value="dmy">DD/MM/YYYY (Europe)</option>
+                    <option value="ymd">YYYY-MM-DD (ISO)</option>
+                </select>
+            </div>
+            <div class="locale-item">
+                <span class="locale-label">Time Format</span>
+                <select id="timeFormat">
+                    <option value="12">12-hour (AM/PM)</option>
+                    <option value="24">24-hour</option>
+                </select>
+            </div>
+            <div class="locale-item">
+                <span class="locale-label">Timezone</span>
+                <select id="timezone">
+                    <option value="auto">Auto-detect</option>
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">Eastern Time (US)</option>
+                    <option value="America/Los_Angeles">Pacific Time (US)</option>
+                    <option value="Europe/London">London</option>
+                    <option value="Europe/Paris">Paris</option>
+                    <option value="Asia/Dubai">Dubai</option>
+                    <option value="Asia/Tokyo">Tokyo</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="locale-section">
+            <h2>Preview</h2>
+            <div class="preview-box">
+                <p class="preview-text" id="previewText">Loading preview...</p>
+            </div>
+        </div>
+        
+        <button onclick="saveLocale()">💾 Save Settings</button>
+    </div>
+    
+    <script>
+        async function loadLocale() {
+            try {
+                const response = await fetch('/api/ui/locale');
+                if (response.ok) {
+                    const data = await response.json();
+                    const config = data.config || {};
+                    
+                    document.getElementById('uiLanguage').value = config.language || 'en';
+                    document.getElementById('textDirection').value = config.direction || 'auto';
+                    document.getElementById('dateFormat').value = config.date_format || 'mdy';
+                    document.getElementById('timeFormat').value = config.time_format || '12';
+                    document.getElementById('timezone').value = config.timezone || 'auto';
+                    
+                    updatePreview();
+                }
+            } catch (error) {
+                console.error('Error loading locale:', error);
+            }
+        }
+        
+        function updatePreview() {
+            const lang = document.getElementById('uiLanguage').value;
+            const dateFormat = document.getElementById('dateFormat').value;
+            const timeFormat = document.getElementById('timeFormat').value;
+            const now = new Date();
+            
+            let dateStr, timeStr;
+            
+            if (dateFormat === 'mdy') {
+                dateStr = `${now.getMonth()+1}/${now.getDate()}/${now.getFullYear()}`;
+            } else if (dateFormat === 'dmy') {
+                dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+            } else {
+                dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            }
+            
+            if (timeFormat === '12') {
+                const hours = now.getHours() % 12 || 12;
+                const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+                timeStr = `${hours}:${String(now.getMinutes()).padStart(2,'0')} ${ampm}`;
+            } else {
+                timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            }
+            
+            document.getElementById('previewText').textContent = 
+                `Current date/time: ${dateStr} ${timeStr} | Language: ${lang.toUpperCase()}`;
+        }
+        
+        async function saveLocale() {
+            const config = {
+                language: document.getElementById('uiLanguage').value,
+                direction: document.getElementById('textDirection').value,
+                date_format: document.getElementById('dateFormat').value,
+                time_format: document.getElementById('timeFormat').value,
+                timezone: document.getElementById('timezone').value
+            };
+            
+            try {
+                const response = await fetch('/api/ui/locale', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    alert('✓ Language settings saved! Reload the page to apply changes.');
+                } else {
+                    alert('✗ Error saving settings');
+                }
+            } catch (error) {
+                alert('✗ Network error: ' + error.message);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadLocale);
+        document.getElementById('uiLanguage').addEventListener('change', updatePreview);
+        document.getElementById('dateFormat').addEventListener('change', updatePreview);
+        document.getElementById('timeFormat').addEventListener('change', updatePreview);
+    </script>
+</body>
+</html>

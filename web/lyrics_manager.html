@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Lyrics Manager</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Lyrics Manager</strong></div>
+  <div class="card">
+    <div>Artist: <input id="art" style="width:40%"></div>
+    <div>Title: <input id="tit" style="width:40%"></div>
+    <div style="margin-top:6px">
+      <button id="get">Get (cache/local)</button>
+      <input id="url" placeholder="fetch from URL (optional)" style="width:40%"><button id="fetch">Fetch URL</button>
+    </div>
+    <textarea id="txt" style="width:100%;height:220px;margin-top:6px" placeholder="Paste/edit lyrics here…"></textarea>
+    <div style="margin-top:6px"><button id="save">Save to cache</button></div>
+  </div>
+  <div class="card" id="out">—</div>
+</div>
+<script>
+get.onclick=async ()=>{
+  const j=await (await fetch('/api/lyrics/get?artist='+encodeURIComponent(art.value)+'&title='+encodeURIComponent(tit.value))).json();
+  out.textContent = j.ok? ('Loaded from '+(j.source||'')+'.') : ('Error: '+(j.error||''));
+  if(j.lyrics) txt.value=j.lyrics;
+};
+fetch.onclick=async ()=>{
+  const j=await (await fetch('/api/lyrics/fetch_url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({artist: art.value, title: tit.value, url: url.value})})).json();
+  out.textContent = j.ok? 'Fetched and saved.' : ('Error: '+(j.error||''));
+  if(j.ok) get.click();
+};
+save.onclick=async ()=>{
+  const j=await (await fetch('/api/lyrics/put',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({artist: art.value, title: tit.value, lyrics: txt.value})})).json();
+  out.textContent = j.ok? 'Saved.' : ('Error: '+(j.error||''));
+};
+</script>
+</body></html>

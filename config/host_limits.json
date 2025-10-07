@@ -1,0 +1,8 @@
+{
+  "per_host": {
+    "*": {
+      "max_conn": 4,
+      "speed_kbps": 0
+    }
+  }
+}

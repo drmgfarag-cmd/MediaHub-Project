@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Rails - MediaHub Mobile</title>
+    
+    <!-- Mobile-optimized CSS -->
+    <link rel="stylesheet" href="css/mobile_responsive.css">
+    <style>
+        /* Mobile Smart Rails Specific Styles */
+        .mobile-smart-rails {
+            padding: 0;
+            margin: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .mobile-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 16px;
+        }
+
+        .mobile-header h1 {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mobile-header .subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        /* Touch-friendly rail navigation */
+        .rails-nav {
+            display: flex;
+            overflow-x: auto;
+            padding: 16px;
+            gap: 12px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .rails-nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        .rail-nav-item {
+            flex-shrink: 0;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: fit-content;
+            text-align: center;
+        }
+
+        .rail-nav-item.active,
+        .rail-nav-item:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Smart rail sections */
+        .smart-rail-section {
+            margin-bottom: 32px;
+            display: none;
+        }
+
+        .smart-rail-section.active {
+            display: block;
+        }
+
+        .rail-header {
+            padding: 0 16px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .rail-title {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rail-count {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .rail-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            margin-top: 4px;
+            padding: 0 16px;
+        }
+
+        /* Touch-optimized content grid */
+        .rail-content {
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .content-card:hover,
+        .content-card:active {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .quality-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .quality-badge.premium { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+        .quality-badge.hdr { background: linear-gradient(135deg, #a55eea, #8b5cf6); }
+        .quality-badge.atmos { background: linear-gradient(135deg, #26de81, #20bf6b); }
+
+        .card-content {
+            padding: 12px;
+        }
+
+        .card-title {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-meta {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .card-rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #ffd700;
+            font-size: 12px;
+        }
+
+        /* Loading states */
+        .loading-skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-card {
+            height: 280px;
+            border-radius: 12px;
+        }
+
+        /* Pull to refresh */
+        .pull-to-refresh {
+            padding: 20px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        .refresh-icon {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .empty-state-description {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Touch feedback */
+        .touch-feedback {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .touch-feedback::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .touch-feedback:active::after {
+            width: 200px;
+            height: 200px;
+        }
+
+        /* Floating action button */
+        .fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .fab:hover,
+        .fab:active {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .rail-content {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .card-image {
+                height: 160px;
+            }
+
+            .mobile-header {
+                padding: 10px 12px;
+            }
+
+            .rails-nav {
+                padding: 12px;
+                gap: 8px;
+            }
+
+            .rail-nav-item {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+        }
+
+        /* Dark mode optimizations */
+        @media (prefers-color-scheme: dark) {
+            .mobile-smart-rails {
+                background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);
+            }
+
+            .mobile-header {
+                background: rgba(10, 10, 10, 0.95);
+            }
+        }
+    </style>
+</head>
+<body class="mobile-smart-rails">
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <h1>
+            🎯 Smart Rails
+            <span class="subtitle">AI-Powered Content Discovery</span>
+        </h1>
+    </header>
+
+    <!-- Pull to Refresh -->
+    <div class="pull-to-refresh" id="pullToRefresh" style="display: none;">
+        <span class="refresh-icon">🔄</span>
+        Pull to refresh rails...
+    </div>
+
+    <!-- Rail Navigation -->
+    <nav class="rails-nav" id="railsNav">
+        <div class="rail-nav-item active touch-feedback" data-rail="recommended">
+            🎯 For You
+        </div>
+        <div class="rail-nav-item touch-feedback" data-rail="premium">
+            💎 Premium
+        </div>
+        <div class="rail-nav-item touch-feedback" data-rail="trending">
+            🔥 Trending
+        </div>
+        <div class="rail-nav-item touch-feedback" data-rail="discovery">
+            🔍 Discover
+        </div>
+        <div class="rail-nav-item touch-feedback" data-rail="collections">
+            📚 Collections
+        </div>
+    </nav>
+
+    <!-- Smart Rail Sections -->
+    <main id="railsContainer">
+        <!-- Recommended Rail -->
+        <section class="smart-rail-section active" id="rail-recommended">
+            <div class="rail-header">
+                <div>
+                    <h2 class="rail-title">
+                        🎯 Recommended for You
+                        <span class="rail-count" id="recommended-count">0</span>
+                    </h2>
+                    <p class="rail-description">Personalized picks based on your viewing history</p>
+                </div>
+            </div>
+            <div class="rail-content" id="recommended-content">
+                <!-- Content will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Premium Rail -->
+        <section class="smart-rail-section" id="rail-premium">
+            <div class="rail-header">
+                <div>
+                    <h2 class="rail-title">
+                        💎 Premium Quality
+                        <span class="rail-count" id="premium-count">0</span>
+                    </h2>
+                    <p class="rail-description">4K HDR, Dolby Vision, and premium releases</p>
+                </div>
+            </div>
+            <div class="rail-content" id="premium-content">
+                <!-- Content will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Trending Rail -->
+        <section class="smart-rail-section" id="rail-trending">
+            <div class="rail-header">
+                <div>
+                    <h2 class="rail-title">
+                        🔥 Trending Now
+                        <span class="rail-count" id="trending-count">0</span>
+                    </h2>
+                    <p class="rail-description">Popular content trending in your library</p>
+                </div>
+            </div>
+            <div class="rail-content" id="trending-content">
+                <!-- Content will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Discovery Rail -->
+        <section class="smart-rail-section" id="rail-discovery">
+            <div class="rail-header">
+                <div>
+                    <h2 class="rail-title">
+                        🔍 Hidden Gems
+                        <span class="rail-count" id="discovery-count">0</span>
+                    </h2>
+                    <p class="rail-description">High-quality content you might have missed</p>
+                </div>
+            </div>
+            <div class="rail-content" id="discovery-content">
+                <!-- Content will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Collections Rail -->
+        <section class="smart-rail-section" id="rail-collections">
+            <div class="rail-header">
+                <div>
+                    <h2 class="rail-title">
+                        📚 Smart Collections
+                        <span class="rail-count" id="collections-count">0</span>
+                    </h2>
+                    <p class="rail-description">Curated collections and franchises</p>
+                </div>
+            </div>
+            <div class="rail-content" id="collections-content">
+                <!-- Content will be loaded here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button class="fab touch-feedback" id="refreshFab" title="Refresh Rails">
+        🔄
+    </button>
+
+    <!-- JavaScript for Mobile Smart Rails -->
+    <script>
+        class MobileSmartRails {
+            constructor() {
+                this.currentRail = 'recommended';
+                this.railsData = {};
+                this.isLoading = false;
+                this.touchStartY = 0;
+                this.pullThreshold = 80;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadInitialData();
+                this.setupPullToRefresh();
+            }
+
+            setupEventListeners() {
+                // Rail navigation
+                document.querySelectorAll('.rail-nav-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const rail = e.target.dataset.rail;
+                        this.switchRail(rail);
+                    });
+                });
+
+                // Refresh button
+                document.getElementById('refreshFab').addEventListener('click', () => {
+                    this.refreshCurrentRail();
+                });
+
+                // Content card clicks
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.content-card')) {
+                        const card = e.target.closest('.content-card');
+                        this.handleContentClick(card);
+                    }
+                });
+            }
+
+            setupPullToRefresh() {
+                let startY = 0;
+                let currentY = 0;
+                let isPulling = false;
+
+                document.addEventListener('touchstart', (e) => {
+                    if (window.scrollY === 0) {
+                        startY = e.touches[0].clientY;
+                        isPulling = true;
+                    }
+                });
+
+                document.addEventListener('touchmove', (e) => {
+                    if (!isPulling) return;
+
+                    currentY = e.touches[0].clientY;
+                    const pullDistance = currentY - startY;
+
+                    if (pullDistance > 0) {
+                        const pullToRefresh = document.getElementById('pullToRefresh');
+                        if (pullDistance > this.pullThreshold) {
+                            pullToRefresh.style.display = 'block';
+                            pullToRefresh.innerHTML = '<span class="refresh-icon">🔄</span>Release to refresh...';
+                        } else if (pullDistance > 20) {
+                            pullToRefresh.style.display = 'block';
+                            pullToRefresh.innerHTML = '<span class="refresh-icon">⬇️</span>Pull to refresh...';
+                        }
+                    }
+                });
+
+                document.addEventListener('touchend', (e) => {
+                    if (!isPulling) return;
+
+                    const pullDistance = currentY - startY;
+                    const pullToRefresh = document.getElementById('pullToRefresh');
+
+                    if (pullDistance > this.pullThreshold) {
+                        this.refreshCurrentRail();
+                    }
+
+                    pullToRefresh.style.display = 'none';
+                    isPulling = false;
+                });
+            }
+
+            switchRail(railName) {
+                // Update navigation
+                document.querySelectorAll('.rail-nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                document.querySelector(`[data-rail="${railName}"]`).classList.add('active');
+
+                // Update sections
+                document.querySelectorAll('.smart-rail-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(`rail-${railName}`).classList.add('active');
+
+                this.currentRail = railName;
+
+                // Load data if not already loaded
+                if (!this.railsData[railName]) {
+                    this.loadRailData(railName);
+                }
+            }
+
+            async loadInitialData() {
+                this.showLoading('recommended');
+                await this.loadRailData('recommended');
+            }
+
+            async loadRailData(railName) {
+                try {
+                    this.isLoading = true;
+                    this.showLoading(railName);
+
+                    // Simulate API call - replace with actual API endpoint
+                    const response = await fetch(`/api/smart_rails/mobile/${railName}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.railsData[railName] = data.items || [];
+                        this.renderRailContent(railName, this.railsData[railName]);
+                    } else {
+                        this.showError(railName, data.error || 'Failed to load content');
+                    }
+                } catch (error) {
+                    console.error(`Error loading ${railName} rail:`, error);
+                    this.showError(railName, 'Network error - please try again');
+                } finally {
+                    this.isLoading = false;
+                }
+            }
+
+            showLoading(railName) {
+                const container = document.getElementById(`${railName}-content`);
+                container.innerHTML = '';
+
+                // Create skeleton cards
+                for (let i = 0; i < 6; i++) {
+                    const skeleton = document.createElement('div');
+                    skeleton.className = 'loading-skeleton skeleton-card';
+                    container.appendChild(skeleton);
+                }
+
+                // Update count
+                document.getElementById(`${railName}-count`).textContent = '...';
+            }
+
+            showError(railName, message) {
+                const container = document.getElementById(`${railName}-content`);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Unable to Load Content</div>
+                        <div class="empty-state-description">${message}</div>
+                    </div>
+                `;
+
+                document.getElementById(`${railName}-count`).textContent = '0';
+            }
+
+            renderRailContent(railName, items) {
+                const container = document.getElementById(`${railName}-content`);
+                
+                if (!items || items.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <div class="empty-state-title">No Content Available</div>
+                            <div class="empty-state-description">Check back later for new recommendations</div>
+                        </div>
+                    `;
+                    document.getElementById(`${railName}-count`).textContent = '0';
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                items.forEach(item => {
+                    const card = this.createContentCard(item);
+                    container.appendChild(card);
+                });
+
+                // Update count
+                document.getElementById(`${railName}-count`).textContent = items.length;
+            }
+
+            createContentCard(item) {
+                const card = document.createElement('div');
+                card.className = 'content-card touch-feedback';
+                card.dataset.itemId = item.id;
+                card.dataset.itemType = item.type;
+
+                const qualityBadge = this.getQualityBadge(item);
+                const rating = item.rating ? `⭐ ${item.rating.toFixed(1)}` : '';
+                const year = item.year || item.release_date?.split('-')[0] || '';
+
+                card.innerHTML = `
+                    <div class="card-image">
+                        ${item.poster || item.thumbnail ? 
+                            `<img src="${item.poster || item.thumbnail}" alt="${item.title}" loading="lazy">` :
+                            `<div style="font-size: 32px;">${this.getTypeIcon(item.type)}</div>`
+                        }
+                        ${qualityBadge}
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">${item.title}</h3>
+                        <div class="card-meta">
+                            <span>${year}</span>
+                            ${item.type ? `<span>•</span><span>${item.type.toUpperCase()}</span>` : ''}
+                        </div>
+                        ${rating ? `<div class="card-rating">${rating}</div>` : ''}
+                    </div>
+                `;
+
+                return card;
+            }
+
+            getQualityBadge(item) {
+                const qualities = [];
+                
+                if (item.quality_features) {
+                    if (item.quality_features['4k_uhd']) qualities.push('4K');
+                    if (item.quality_features['hdr']) qualities.push('HDR');
+                    if (item.quality_features['dolby_vision']) qualities.push('DV');
+                    if (item.quality_features['atmos']) qualities.push('ATMOS');
+                    if (item.quality_features['remux']) qualities.push('REMUX');
+                }
+
+                if (qualities.length === 0) return '';
+
+                const badgeText = qualities[0]; // Show first quality
+                const badgeClass = this.getQualityBadgeClass(badgeText);
+
+                return `<div class="quality-badge ${badgeClass}">${badgeText}</div>`;
+            }
+
+            getQualityBadgeClass(quality) {
+                if (['4K', 'DV', 'REMUX'].includes(quality)) return 'premium';
+                if (['HDR'].includes(quality)) return 'hdr';
+                if (['ATMOS'].includes(quality)) return 'atmos';
+                return '';
+            }
+
+            getTypeIcon(type) {
+                const icons = {
+                    'movie': '🎬',
+                    'tv': '📺',
+                    'book': '📚',
+                    'album': '🎵',
+                    'collection': '📁'
+                };
+                return icons[type] || '🎬';
+            }
+
+            handleContentClick(card) {
+                const itemId = card.dataset.itemId;
+                const itemType = card.dataset.itemType;
+
+                // Add touch feedback
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.style.transform = '';
+                }, 150);
+
+                // Navigate to content details or play
+                console.log(`Opening ${itemType} with ID: ${itemId}`);
+                
+                // In a real implementation, this would:
+                // 1. Navigate to content details page
+                // 2. Start playback if streaming
+                // 3. Show download options
+                
+                // For now, show a simple alert
+                const item = this.findItemById(itemId);
+                if (item) {
+                    alert(`Opening: ${item.title}\nType: ${itemType}\nID: ${itemId}`);
+                }
+            }
+
+            findItemById(itemId) {
+                for (const railData of Object.values(this.railsData)) {
+                    const item = railData.find(item => item.id == itemId);
+                    if (item) return item;
+                }
+                return null;
+            }
+
+            async refreshCurrentRail() {
+                const refreshIcon = document.querySelector('#refreshFab');
+                refreshIcon.style.transform = 'rotate(360deg)';
+                
+                // Clear cached data for current rail
+                delete this.railsData[this.currentRail];
+                
+                // Reload data
+                await this.loadRailData(this.currentRail);
+                
+                // Reset icon
+                setTimeout(() => {
+                    refreshIcon.style.transform = '';
+                }, 500);
+            }
+        }
+
+        // Initialize Mobile Smart Rails when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.mobileSmartRails = new MobileSmartRails();
+        });
+
+        // Service Worker for offline support (optional)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(console.error);
+        }
+    </script>
+</body>
+</html>

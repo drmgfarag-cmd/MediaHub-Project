@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><title>System & Logs</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>#log{white-space:pre-wrap;background:#0b1220;border:1px solid #1f2537;border-radius:12px;padding:8px;max-height:60vh;overflow:auto}</style>
+</head><body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>System & Logs</strong></div>
+  <div class="card">
+    <h3>Logs</h3>
+    <label><input type="checkbox" id="always"> Always show overlay</label>
+    <button id="refresh">Refresh</button>
+    <div id="log">Loading…</div>
+  </div>
+</div>
+<script>
+async function loadLog(){ const j=await (await fetch('/api/sys/logs_tail?lines=400')).json(); log.textContent=j.lines.join('\n'); log.scrollTop=log.scrollHeight; }
+refresh.onclick=loadLog;
+async function init(){
+  const c=await (await fetch('/api/config/get')).json();
+  always.checked=!!(c.sys_settings&&c.sys_settings.always_log_overlay);
+  loadLog(); setInterval(loadLog, 2000);
+}
+always.onchange=async ()=>{ await fetch('/api/sys/logs_overlay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled: always.checked})}); };
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body></html>

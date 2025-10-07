@@ -1,0 +1,9 @@
+{
+  "strip_params_prefix": [
+    "utm_",
+    "ref",
+    "fbclid",
+    "gclid"
+  ],
+  "force_https": true
+}

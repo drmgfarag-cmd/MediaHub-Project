@@ -1,0 +1,14 @@
+<html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Renamer</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+<h2>FileBot-Compatible Format</h2>
+<input id="fmt" style="width:80%" value="{n} ({y})/{n} ({y}) - {s00e00} - {vf} {vc}">
+<button onclick="testFmt()">Preview</button>
+<pre id="out"></pre>
+<script>
+async function testFmt(){
+  const fmt=document.getElementById('fmt').value;
+  const items=[{id:'1', name:'Old.mkv', meta:{title:'Example', year:2022, resolution:'2160p', videoCodec:'HEVC', season:1, episode:1, imdb:{id:'tt123'}, tmdb:{id:987}}}];
+  const j = await (await fetch('/api/rename/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({format:fmt, items})})).json();
+  document.getElementById('out').textContent = JSON.stringify(j,null,2);
+}
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

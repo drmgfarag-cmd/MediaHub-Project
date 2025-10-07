@@ -1,0 +1,16 @@
+{
+    "enabled_services": [
+        {"name": "Real-Debrid", "enabled": true},
+        {"name": "TMDB", "enabled": true},
+        {"name": "Google Books", "enabled": true}
+    ],
+    "service_settings": {
+        "Real-Debrid": {
+            "priority": 1,
+            "max_downloads": 5
+        },
+        "TMDB": {
+            "language": "en-US"
+        }
+    }
+}

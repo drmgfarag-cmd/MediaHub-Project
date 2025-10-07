@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>RD De‑dup</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grp{border:1px solid #1f2537;border-radius:8px;padding:8px;margin:8px 0}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="rd_manager.html">← RD</a> · <strong>RD De‑dup</strong> <a class="btn" href="rd_browser.html">Browser</a> <a class="btn" href="downloader.html">Downloader</a></div>
+  <div class="card" id="out">Scanning…</div>
+</div>
+<script>
+function fmtMB(x){ return x? (x>=1024? (Math.round(x/102.4)/10+' GB') : (x+' MB')) : '—'; }
+async function load(){
+  const j=await (await fetch('/api/rd/dedupe')).json();
+  out.innerHTML = (j.groups||[]).map(g=>{
+    const best=g.best||{};
+    let html=`<div class="grp"><div><strong>Group</strong> · ${g.count} items — Best: ${best.title||''} (${fmtMB(best.size_mb)})</div>`;
+    html += (g.items||[]).map(it=>`<div class="mono" style="margin-top:4px">${it.kind||''} · ${fmtMB(it.size_mb)} · ${it.title||''} <button class="q" data-id="${it.id}">Queue</button></div>`).join('');
+    html += `</div>`;
+    return html;
+  }).join('') || 'No duplicates found.';
+}
+document.addEventListener('click', async (e)=>{
+  const q=e.target.closest('button.q'); if(q){ await fetch('/api/rd/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:q.dataset.id})}); alert('Queued.'); }
+});
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

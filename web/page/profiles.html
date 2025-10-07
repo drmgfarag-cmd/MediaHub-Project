@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - User Profiles</title>
+    <link rel="stylesheet" href="../assets/normalize.css">
+    <link rel="stylesheet" href="../assets/ui.css">
+    <style>
+        .profiles-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .profiles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .profile-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin: 0 auto 15px;
+        }
+        
+        .profile-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .profile-type {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .profile-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: #999;
+        }
+        
+        .add-profile-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 250px;
+        }
+        
+        .add-profile-card:hover {
+            opacity: 0.9;
+        }
+        
+        .add-icon {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .form-field {
+            margin-bottom: 15px;
+        }
+        
+        .form-field label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .form-field input, .form-field select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95rem;
+        }
+        
+        .avatar-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .avatar-option {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .avatar-option:hover, .avatar-option.selected {
+            border-color: #667eea;
+            transform: scale(1.1);
+        }
+        
+        .submit-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .submit-button:hover {
+            background: #5568d3;
+        }
+        
+        .delete-button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        
+        .delete-button:hover {
+            background: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <div class="profiles-container">
+        <h1>👤 User Profiles</h1>
+        <p>Manage user profiles and personalized settings</p>
+        
+        <div class="profiles-grid" id="profilesGrid">
+            <div class="profile-card add-profile-card" onclick="openAddProfileModal()">
+                <div class="add-icon">➕</div>
+                <h3>Add New Profile</h3>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Profile</h2>
+                <button class="close-button" onclick="closeModal()">×</button>
+            </div>
+            
+            <form id="profileForm" onsubmit="saveProfile(event)">
+                <div class="form-field">
+                    <label>Profile Name</label>
+                    <input type="text" id="profileName" required placeholder="Enter profile name">
+                </div>
+                
+                <div class="form-field">
+                    <label>Profile Type</label>
+                    <select id="profileType">
+                        <option value="standard">Standard</option>
+                        <option value="admin">Admin</option>
+                        <option value="kids">Kids</option>
+                    </select>
+                </div>
+                
+                <div class="form-field">
+                    <label>Avatar</label>
+                    <div class="avatar-selector">
+                        <div class="avatar-option selected" data-avatar="👤" onclick="selectAvatar(this)">👤</div>
+                        <div class="avatar-option" data-avatar="👨" onclick="selectAvatar(this)">👨</div>
+                        <div class="avatar-option" data-avatar="👩" onclick="selectAvatar(this)">👩</div>
+                        <div class="avatar-option" data-avatar="👦" onclick="selectAvatar(this)">👦</div>
+                        <div class="avatar-option" data-avatar="👧" onclick="selectAvatar(this)">👧</div>
+                        <div class="avatar-option" data-avatar="🧑" onclick="selectAvatar(this)">🧑</div>
+                        <div class="avatar-option" data-avatar="🐶" onclick="selectAvatar(this)">🐶</div>
+                        <div class="avatar-option" data-avatar="🐱" onclick="selectAvatar(this)">🐱</div>
+                        <div class="avatar-option" data-avatar="🦊" onclick="selectAvatar(this)">🦊</div>
+                        <div class="avatar-option" data-avatar="🐼" onclick="selectAvatar(this)">🐼</div>
+                    </div>
+                </div>
+                
+                <div class="form-field">
+                    <label>PIN (Optional)</label>
+                    <input type="password" id="profilePin" placeholder="4-digit PIN" maxlength="4" pattern="[0-9]{4}">
+                </div>
+                
+                <button type="submit" class="submit-button">💾 Save Profile</button>
+                <button type="button" class="delete-button" id="deleteButton" style="display: none;" onclick="deleteProfile()">🗑️ Delete Profile</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let profiles = [];
+        let currentProfileId = null;
+        let selectedAvatar = '👤';
+        
+        async function loadProfiles() {
+            try {
+                const response = await fetch('/api/profiles');
+                if (response.ok) {
+                    const data = await response.json();
+                    profiles = data.profiles || [];
+                    renderProfiles();
+                }
+            } catch (error) {
+                console.error('Error loading profiles:', error);
+            }
+        }
+        
+        function renderProfiles() {
+            const grid = document.getElementById('profilesGrid');
+            const addCard = grid.querySelector('.add-profile-card');
+            
+            grid.innerHTML = '';
+            
+            profiles.forEach(profile => {
+                const card = document.createElement('div');
+                card.className = 'profile-card';
+                card.onclick = () => openEditProfileModal(profile);
+                
+                card.innerHTML = `
+                    <div class="profile-avatar">${profile.avatar || '👤'}</div>
+                    <div class="profile-name">${profile.name}</div>
+                    <div class="profile-type">${profile.type || 'Standard'}</div>
+                    <div class="profile-stats">
+                        <div class="stat">
+                            <span class="stat-value">${profile.stats?.watched || 0}</span>
+                            <span class="stat-label">Watched</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value">${profile.stats?.watchlist || 0}</span>
+                            <span class="stat-label">Watchlist</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value">${profile.stats?.favorites || 0}</span>
+                            <span class="stat-label">Favorites</span>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+            
+            grid.appendChild(addCard);
+        }
+        
+        function openAddProfileModal() {
+            currentProfileId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Profile';
+            document.getElementById('profileForm').reset();
+            document.getElementById('deleteButton').style.display = 'none';
+            selectedAvatar = '👤';
+            document.querySelectorAll('.avatar-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.avatar === selectedAvatar);
+            });
+            document.getElementById('profileModal').classList.add('active');
+        }
+        
+        function openEditProfileModal(profile) {
+            currentProfileId = profile.id;
+            document.getElementById('modalTitle').textContent = 'Edit Profile';
+            document.getElementById('profileName').value = profile.name;
+            document.getElementById('profileType').value = profile.type || 'standard';
+            selectedAvatar = profile.avatar || '👤';
+            document.querySelectorAll('.avatar-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.avatar === selectedAvatar);
+            });
+            document.getElementById('deleteButton').style.display = 'block';
+            document.getElementById('profileModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('profileModal').classList.remove('active');
+        }
+        
+        function selectAvatar(element) {
+            document.querySelectorAll('.avatar-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedAvatar = element.dataset.avatar;
+        }
+        
+        async function saveProfile(event) {
+            event.preventDefault();
+            
+            const profileData = {
+                name: document.getElementById('profileName').value,
+                type: document.getElementById('profileType').value,
+                avatar: selectedAvatar,
+                pin: document.getElementById('profilePin').value || null
+            };
+            
+            try {
+                const url = currentProfileId 
+                    ? `/api/profiles/${currentProfileId}` 
+                    : '/api/profiles';
+                const method = currentProfileId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profileData)
+                });
+                
+                if (response.ok) {
+                    alert('✓ Profile saved successfully!');
+                    closeModal();
+                    loadProfiles();
+                } else {
+                    alert('✗ Error saving profile');
+                }
+            } catch (error) {
+                alert('✗ Network error: ' + error.message);
+            }
+        }
+        
+        async function deleteProfile() {
+            if (!confirm('Are you sure you want to delete this profile?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/profiles/${currentProfileId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('✓ Profile deleted successfully!');
+                    closeModal();
+                    loadProfiles();
+                } else {
+                    alert('✗ Error deleting profile');
+                }
+            } catch (error) {
+                alert('✗ Network error: ' + error.message);
+            }
+        }
+        
+        // Load profiles on page load
+        document.addEventListener('DOMContentLoaded', loadProfiles);
+        
+        // Close modal when clicking outside
+        document.getElementById('profileModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

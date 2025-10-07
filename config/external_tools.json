@@ -1,0 +1,14 @@
+{
+  "seven_zip": {
+    "path": "",
+    "enabled": false
+  },
+  "unrar": {
+    "path": "",
+    "enabled": false
+  },
+  "container_decrypter": {
+    "path": "",
+    "enabled": false
+  }
+}

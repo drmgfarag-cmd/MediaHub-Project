@@ -1,0 +1,35 @@
+{
+  "tmdb": {
+    "api_key": "YOUR_TMDB_API_KEY_HERE",
+    "enabled": true
+  },
+  "trakt": {
+    "client_id": "YOUR_TRAKT_CLIENT_ID_HERE",
+    "client_secret": "YOUR_TRAKT_CLIENT_SECRET_HERE",
+    "enabled": false
+  },
+  "real_debrid": {
+    "api_key": "YOUR_REAL_DEBRID_API_KEY_HERE",
+    "enabled": true
+  },
+  "opensubtitles": {
+    "api_key": "YOUR_OPENSUBTITLES_API_KEY_HERE",
+    "username": "",
+    "password": "",
+    "enabled": true
+  },
+  "fanart_tv": {
+    "api_key": "YOUR_FANART_TV_API_KEY_HERE",
+    "enabled": false
+  },
+  "omdb": {
+    "api_key": "YOUR_OMDB_API_KEY_HERE",
+    "enabled": false
+  },
+  "tvmaze": {
+    "enabled": true
+  },
+  "imdb": {
+    "enabled": true
+  }
+}

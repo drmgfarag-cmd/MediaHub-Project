@@ -1,0 +1,1 @@
+Place ffmpeg binary here (ffmpeg / ffmpeg.exe). Path will be detected from Tools → Dependencies.

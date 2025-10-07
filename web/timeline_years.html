@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Timeline — By Year</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Timeline — By Year</strong></div>
+  <div class="card" id="out">—</div>
+</body>
+<script>
+async function load(){
+  const j=await (await fetch('/api/timeline/by_year')).json();
+  out.innerHTML=(j.buckets||[]).map(b=>`<div style="margin:8px 0"><h3>${b.year} <span class="badge">${b.count}</span></h3>` + (b.examples||[]).map(i=>`<div>${i.title}</div>`).join('') + `</div>`).join('') || 'No data';
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</html>

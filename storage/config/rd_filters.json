@@ -1,0 +1,16 @@
+{
+    "global_filters": {
+        "min_seeders": 5,
+        "min_resolution": "720p",
+        "allowed_groups": ["group1", "group2"],
+        "blocked_groups": ["group3"]
+    },
+    "movie_filters": {
+        "min_size_gb": 1,
+        "max_size_gb": 20
+    },
+    "tv_filters": {
+        "min_size_gb": 0.5,
+        "max_size_gb": 10
+    }
+}

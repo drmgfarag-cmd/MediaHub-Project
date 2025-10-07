@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - Real-Debrid Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .scrollable-list {
+            max-height: 600px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #4a5568 #2d3748;
+        }
+        .scrollable-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .scrollable-list::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        .scrollable-list::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+        .rd-item {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .rd-item:hover {
+            background-color: rgba(99, 102, 241, 0.1);
+            border-left-color: #6366f1;
+        }
+        .rd-item.selected {
+            background-color: rgba(99, 102, 241, 0.2);
+            border-left-color: #6366f1;
+        }
+        .duplicate-item {
+            border-left-color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+        .add-button {
+            background: linear-gradient(45deg, #10b981, #059669);
+            transition: all 0.3s ease;
+        }
+        .add-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+        }
+        .remove-button {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            transition: all 0.3s ease;
+        }
+        .remove-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Header -->
+    <header class="hero-gradient p-6 shadow-2xl">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-cloud-download-alt text-3xl"></i>
+                <h1 class="text-3xl font-bold">Real-Debrid Manager</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="addLinksBtn" class="add-button text-white px-4 py-2 rounded-lg font-medium">
+                    <i class="fas fa-plus mr-2"></i>Add Links
+                </button>
+                <button id="findDuplicatesBtn" class="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-search mr-2"></i>Find Duplicates
+                </button>
+                <button id="refreshBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-300">
+                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-6">
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Items</p>
+                        <p id="totalItems" class="text-2xl font-bold">0</p>
+                    </div>
+                    <i class="fas fa-file text-blue-400 text-2xl"></i>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Selected</p>
+                        <p id="selectedItems" class="text-2xl font-bold">0</p>
+                    </div>
+                    <i class="fas fa-check-square text-green-400 text-2xl"></i>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Duplicates</p>
+                        <p id="duplicateItems" class="text-2xl font-bold">0</p>
+                    </div>
+                    <i class="fas fa-copy text-red-400 text-2xl"></i>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Size</p>
+                        <p id="totalSize" class="text-2xl font-bold">0 GB</p>
+                    </div>
+                    <i class="fas fa-hdd text-purple-400 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bg-gray-800 rounded-lg p-4 mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="selectAll" class="mr-2">
+                        <span>Select All</span>
+                    </label>
+                    <select id="filterType" class="bg-gray-700 border border-gray-600 rounded px-3 py-1">
+                        <option value="all">All Items</option>
+                        <option value="torrents">Torrents</option>
+                        <option value="links">Links</option>
+                        <option value="duplicates">Duplicates Only</option>
+                    </select>
+                    <input type="text" id="searchFilter" placeholder="Search files..." class="bg-gray-700 border border-gray-600 rounded px-3 py-1 w-64">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="removeSelectedBtn" class="remove-button text-white px-4 py-2 rounded-lg font-medium">
+                        <i class="fas fa-trash mr-2"></i>Remove Selected
+                    </button>
+                    <button id="exportSelectedBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-download mr-2"></i>Export
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable List -->
+        <div class="bg-gray-800 rounded-lg">
+            <div class="p-4 border-b border-gray-700">
+                <h2 class="text-xl font-bold flex items-center">
+                    <i class="fas fa-list mr-3 text-green-400"></i>
+                    Real-Debrid Items
+                </h2>
+            </div>
+            <div id="rdItemsList" class="scrollable-list">
+                <div id="loadingIndicator" class="flex items-center justify-center p-12">
+                    <div class="loading-spinner w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full mr-3"></div>
+                    <span class="text-gray-400">Loading items...</span>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-700 flex items-center justify-between">
+                <div class="text-sm text-gray-400">
+                    Showing <span id="showingCount">0</span> of <span id="totalCount">0</span> items
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="loadMoreBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-medium transition-colors">
+                        Load More
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Links Modal -->
+    <div id="addLinksModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-8 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold">Add Links to Real-Debrid</h3>
+                <button id="closeAddModal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Links, Magnets, or Torrent Files</label>
+                <textarea id="linksInput" rows="10" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500" placeholder="Paste your links, magnet URLs, or torrent file names here...
+One per line or separated by spaces"></textarea>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Options</label>
+                <div class="space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="autoExtract" class="mr-2" checked>
+                        <span>Auto-extract archives</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="checkDuplicates" class="mr-2" checked>
+                        <span>Check for duplicates before adding</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="flex space-x-4">
+                <button id="addLinksConfirmBtn" class="add-button flex-1 text-white px-6 py-3 rounded-lg font-medium">
+                    <i class="fas fa-plus mr-2"></i>Add Links
+                </button>
+                <button id="cancelAddBtn" class="bg-gray-600 hover:bg-gray-500 flex-1 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class RDTabManager {
+            constructor() {
+                this.items = [];
+                this.selectedItems = new Set();
+                this.duplicates = [];
+                this.currentOffset = 0;
+                this.itemsPerPage = 50;
+                this.isLoading = false;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.loadItems();
+            }
+
+            bindEvents() {
+                document.getElementById('addLinksBtn').addEventListener('click', () => this.showAddLinksModal());
+                document.getElementById('findDuplicatesBtn').addEventListener('click', () => this.findDuplicates());
+                document.getElementById('refreshBtn').addEventListener('click', () => this.refreshItems());
+                document.getElementById('selectAll').addEventListener('change', (e) => this.selectAll(e.target.checked));
+                document.getElementById('removeSelectedBtn').addEventListener('click', () => this.removeSelected());
+                document.getElementById('loadMoreBtn').addEventListener('click', () => this.loadMoreItems());
+                
+                // Modal events
+                document.getElementById('closeAddModal').addEventListener('click', () => this.closeAddLinksModal());
+                document.getElementById('cancelAddBtn').addEventListener('click', () => this.closeAddLinksModal());
+                document.getElementById('addLinksConfirmBtn').addEventListener('click', () => this.addLinks());
+                
+                // Search and filter
+                document.getElementById('searchFilter').addEventListener('input', (e) => this.filterItems(e.target.value));
+                document.getElementById('filterType').addEventListener('change', (e) => this.filterByType(e.target.value));
+            }
+
+            async loadItems() {
+                if (this.isLoading) return;
+                
+                this.isLoading = true;
+                this.showLoading();
+
+                // Simulate API call with mock data
+                setTimeout(() => {
+                    const mockItems = this.generateMockItems();
+                    if (this.currentOffset === 0) {
+                        this.items = mockItems;
+                    } else {
+                        this.items = [...this.items, ...mockItems];
+                    }
+                    this.renderItems();
+                    this.updateStats();
+                    this.isLoading = false;
+                    this.hideLoading();
+                }, 1000);
+            }
+
+            generateMockItems() {
+                const mockItems = [];
+                for (let i = 0; i < this.itemsPerPage; i++) {
+                    const id = `item_${this.currentOffset + i}`;
+                    mockItems.push({
+                        id: id,
+                        name: `Sample.Movie.${2020 + (i % 5)}.1080p.BluRay.x264-GROUP${i % 3 === 0 ? '.part1' : ''}.mkv`,
+                        size: Math.floor(Math.random() * 10000000000),
+                        status: ['completed', 'downloading', 'pending', 'error'][i % 4],
+                        type: ['torrent', 'link', 'archive'][i % 3],
+                        added_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+                    });
+                }
+                return mockItems;
+            }
+
+            renderItems() {
+                const container = document.getElementById('rdItemsList');
+                
+                if (this.items.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-gray-400 py-12">
+                            <i class="fas fa-cloud-download-alt text-6xl mb-4"></i>
+                            <p class="text-xl mb-2">No items found</p>
+                            <p>Add some links to get started</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const itemsHtml = this.items.map((item, index) => `
+                    <div class="rd-item p-4 border-b border-gray-700 ${this.duplicates.includes(item.id) ? 'duplicate-item' : ''}" data-item-id="${item.id}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4 flex-1">
+                                <input type="checkbox" class="item-checkbox" data-item-id="${item.id}" ${this.selectedItems.has(item.id) ? 'checked' : ''}>
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-${this.getItemIcon(item)} text-blue-400"></i>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-white">${item.name}</h4>
+                                        <div class="flex items-center space-x-4 text-sm text-gray-400">
+                                            <span><i class="fas fa-hdd mr-1"></i>${this.formatSize(item.size)}</span>
+                                            <span><i class="fas fa-calendar mr-1"></i>${this.formatDate(item.added_at)}</span>
+                                            <span class="px-2 py-1 rounded text-xs ${this.getStatusColor(item.status)}">${item.status}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="rdManager.downloadItem('${item.id}')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    <i class="fas fa-download mr-1"></i>Download
+                                </button>
+                                <button onclick="rdManager.removeItem('${item.id}')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    <i class="fas fa-trash mr-1"></i>Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = itemsHtml;
+                
+                // Bind checkbox events
+                container.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        const itemId = e.target.dataset.itemId;
+                        if (e.target.checked) {
+                            this.selectedItems.add(itemId);
+                        } else {
+                            this.selectedItems.delete(itemId);
+                        }
+                        this.updateStats();
+                    });
+                });
+            }
+
+            getItemIcon(item) {
+                const type = item.type || 'file';
+                const icons = {
+                    'torrent': 'magnet',
+                    'link': 'link',
+                    'archive': 'file-archive',
+                    'video': 'file-video',
+                    'audio': 'file-audio'
+                };
+                return icons[type] || 'file';
+            }
+
+            getStatusColor(status) {
+                const colors = {
+                    'completed': 'bg-green-600',
+                    'downloading': 'bg-blue-600',
+                    'pending': 'bg-yellow-600',
+                    'error': 'bg-red-600'
+                };
+                return colors[status] || 'bg-gray-600';
+            }
+
+            formatSize(bytes) {
+                if (!bytes) return '0 B';
+                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+            }
+
+            formatDate(dateString) {
+                return new Date(dateString).toLocaleDateString();
+            }
+
+            updateStats() {
+                document.getElementById('totalItems').textContent = this.items.length;
+                document.getElementById('selectedItems').textContent = this.selectedItems.size;
+                document.getElementById('duplicateItems').textContent = this.duplicates.length;
+                
+                const totalSize = this.items.reduce((sum, item) => sum + (item.size || 0), 0);
+                document.getElementById('totalSize').textContent = this.formatSize(totalSize);
+                
+                document.getElementById('showingCount').textContent = this.items.length;
+                document.getElementById('totalCount').textContent = this.items.length;
+            }
+
+            showAddLinksModal() {
+                document.getElementById('addLinksModal').classList.remove('hidden');
+                document.getElementById('addLinksModal').classList.add('flex');
+            }
+
+            closeAddLinksModal() {
+                document.getElementById('addLinksModal').classList.add('hidden');
+                document.getElementById('addLinksModal').classList.remove('flex');
+                document.getElementById('linksInput').value = '';
+            }
+
+            async addLinks() {
+                const linksText = document.getElementById('linksInput').value.trim();
+                if (!linksText) {
+                    this.showError('Please enter some links');
+                    return;
+                }
+
+                const links = linksText.split(/[\n\s]+/).filter(link => link.trim());
+                this.showSuccess(`Added ${links.length} links successfully!`);
+                this.closeAddLinksModal();
+                this.refreshItems();
+            }
+
+            async findDuplicates() {
+                // Mock duplicate detection
+                const duplicateIds = this.items
+                    .filter(item => item.name.includes('.part1') || item.name.includes('GROUP0'))
+                    .map(item => item.id);
+                
+                this.duplicates = duplicateIds;
+                this.renderItems();
+                this.updateStats();
+                this.showSuccess(`Found ${duplicateIds.length} potential duplicates`);
+            }
+
+            selectAll(checked) {
+                if (checked) {
+                    this.items.forEach(item => this.selectedItems.add(item.id));
+                } else {
+                    this.selectedItems.clear();
+                }
+                this.renderItems();
+                this.updateStats();
+            }
+
+            async removeSelected() {
+                if (this.selectedItems.size === 0) {
+                    this.showError('No items selected');
+                    return;
+                }
+
+                if (!confirm(`Remove ${this.selectedItems.size} selected items?`)) {
+                    return;
+                }
+
+                this.showSuccess(`${this.selectedItems.size} items removed successfully!`);
+                this.selectedItems.clear();
+                this.refreshItems();
+            }
+
+            loadMoreItems() {
+                this.currentOffset += this.itemsPerPage;
+                this.loadItems();
+            }
+
+            refreshItems() {
+                this.currentOffset = 0;
+                this.selectedItems.clear();
+                this.duplicates = [];
+                this.loadItems();
+            }
+
+            showLoading() {
+                document.getElementById('loadingIndicator').classList.remove('hidden');
+            }
+
+            hideLoading() {
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            }
+
+            showError(message) {
+                alert('Error: ' + message);
+            }
+
+            showSuccess(message) {
+                alert('Success: ' + message);
+            }
+
+            downloadItem(itemId) {
+                this.showSuccess('Download started for item: ' + itemId);
+            }
+
+            removeItem(itemId) {
+                if (confirm('Remove this item?')) {
+                    this.showSuccess('Item removed: ' + itemId);
+                    this.refreshItems();
+                }
+            }
+        }
+
+        // Initialize the RD Tab Manager
+        const rdManager = new RDTabManager();
+    </script>
+</body>
+</html>

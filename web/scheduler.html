@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Scheduler</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Downloader Scheduler</strong> <button id="save">Save</button></div>
+  <div class="card">
+    <p>Create rules to limit download speed during specific hours/days.</p>
+    <table id="tbl"><thead><tr><th>Days (0=Mon)</th><th>Start</th><th>End</th><th>Download (KB/s, 0=unlimited)</th><th></th></tr></thead><tbody></tbody></table>
+    <button id="add">Add rule</button>
+  </div>
+</div>
+<script>
+function row(r){ const tr=document.createElement('tr'); tr.innerHTML=`
+  <td><input value="${(r.days||[]).join(',')}" placeholder="eg 0,1,2,3,4"></td>
+  <td><input value="${r.start||'00:00'}" style="width:80px"></td>
+  <td><input value="${r.end||'23:59'}" style="width:80px"></td>
+  <td><input value="${r.download_kbps||0}" style="width:120px"></td>
+  <td><button class="del">✕</button></td>`; return tr; }
+async function load(){ const j=await (await fetch('/api/scheduler/get')).json(); const tb=document.querySelector('#tbl tbody'); tb.innerHTML=''; (j.rules||[]).forEach(r=>tb.appendChild(row(r))); }
+document.getElementById('add').onclick=()=>{ document.querySelector('#tbl tbody').appendChild(row({days:[0,1,2,3,4],start:'09:00',end:'18:00',download_kbps:512})); };
+document.getElementById('save').onclick=async ()=>{
+  const rows=[...document.querySelectorAll('#tbl tbody tr')].map(tr=>{ const t=tr.querySelectorAll('input'); return {days: t[0].value.split(',').map(x=>parseInt(x)).filter(n=>!isNaN(n)), start:t[1].value, end:t[2].value, download_kbps: parseInt(t[3].value||'0')}; });
+  await fetch('/api/scheduler/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rules:rows})});
+  alert('Saved.');
+};
+document.addEventListener('click', (e)=>{ const b=e.target.closest('button.del'); if(!b) return; b.closest('tr')?.remove(); });
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

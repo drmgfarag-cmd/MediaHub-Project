@@ -1,0 +1,14 @@
+{
+  "tmdb": {
+    "enabled": true,
+    "api_key": "",
+    "language": "en-US"
+  },
+  "imdb": {
+    "enabled": true
+  },
+  "kitsu": {
+    "enabled": true
+  },
+  "cache_duration_hours": 6
+}

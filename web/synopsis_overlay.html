@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synopsis Overlay - MediaHub</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Amazon Ember', 'Helvetica Neue', Arial, sans-serif;
+            background: #0F171E;
+            color: #FFFFFF;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .overlay.active { display: block; }
+        
+        .overlay-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10000;
+            transition: all 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .hero-section {
+            position: relative;
+            height: 70vh;
+            min-height: 500px;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .hero-gradient {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 300px;
+            background: linear-gradient(to top, #0F171E 0%, transparent 100%);
+        }
+        
+        .hero-content {
+            position: absolute;
+            bottom: 40px;
+            left: 60px;
+            right: 60px;
+            z-index: 2;
+        }
+        
+        .title {
+            font-size: 3.5em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+        }
+        
+        .tagline {
+            font-size: 1.3em;
+            color: #AAB7C4;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        
+        .meta-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        .rating-star {
+            color: #FFD700;
+            font-size: 1.4em;
+        }
+        
+        .meta-item {
+            color: #AAB7C4;
+            font-size: 1em;
+        }
+        
+        .certification {
+            border: 2px solid #AAB7C4;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: #00A8E1;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0099CC;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .content-section {
+            padding: 40px 60px;
+        }
+        
+        .section-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #FFFFFF;
+        }
+        
+        .overview {
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #D1D8DD;
+            margin-bottom: 40px;
+            max-width: 900px;
+        }
+        
+        .genres {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+        
+        .genre-tag {
+            padding: 8px 20px;
+            background: rgba(0, 168, 225, 0.2);
+            border: 1px solid #00A8E1;
+            border-radius: 20px;
+            color: #00A8E1;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .genre-tag:hover {
+            background: rgba(0, 168, 225, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .cast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .cast-card {
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .cast-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .cast-photo {
+            width: 100%;
+            aspect-ratio: 2/3;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #1A2332;
+            margin-bottom: 10px;
+        }
+        
+        .cast-name {
+            font-weight: 600;
+            font-size: 0.95em;
+            margin-bottom: 4px;
+        }
+        
+        .cast-character {
+            font-size: 0.85em;
+            color: #AAB7C4;
+        }
+        
+        .crew-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+        
+        .crew-item {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .crew-role {
+            font-weight: 600;
+            color: #AAB7C4;
+            min-width: 100px;
+        }
+        
+        .crew-names {
+            color: #FFFFFF;
+        }
+        
+        .crew-name {
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .crew-name:hover {
+            color: #00A8E1;
+        }
+        
+        .similar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+        
+        .similar-card {
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .similar-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .similar-poster {
+            width: 100%;
+            aspect-ratio: 2/3;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #1A2332;
+            margin-bottom: 10px;
+        }
+        
+        .similar-title {
+            font-size: 0.95em;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-content {
+                left: 20px;
+                right: 20px;
+                bottom: 20px;
+            }
+            
+            .title {
+                font-size: 2em;
+            }
+            
+            .content-section {
+                padding: 20px;
+            }
+            
+            .cast-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="synopsisOverlay">
+        <button class="close-btn" onclick="closeOverlay()">✕</button>
+        
+        <div class="overlay-content">
+            <div class="hero-section" id="heroSection">
+                <div class="hero-gradient"></div>
+                <div class="hero-content">
+                    <h1 class="title" id="title"></h1>
+                    <p class="tagline" id="tagline"></p>
+                    
+                    <div class="meta-info">
+                        <div class="rating">
+                            <span class="rating-star">★</span>
+                            <span id="rating"></span>
+                        </div>
+                        <span class="meta-item" id="year"></span>
+                        <span class="meta-item certification" id="certification"></span>
+                        <span class="meta-item" id="runtime"></span>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="playBtn" style="display:none;">
+                            ▶ Play Trailer
+                        </button>
+                        <button class="btn btn-secondary">
+                            + Add to Library
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <p class="overview" id="overview"></p>
+                
+                <div class="genres" id="genres"></div>
+                
+                <h2 class="section-title">Cast</h2>
+                <div class="cast-grid" id="castGrid"></div>
+                
+                <h2 class="section-title">Crew</h2>
+                <div class="crew-list" id="crewList"></div>
+                
+                <h2 class="section-title">Similar Titles</h2>
+                <div class="similar-grid" id="similarGrid"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentData = null;
+        
+        function openOverlay(id, type = 'movie') {
+            fetch(`/api/synopsis/${type}/${id}`, {
+                headers: { 'X-API-Key': 'your-api-key' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                currentData = data;
+                renderOverlay(data);
+                document.getElementById('synopsisOverlay').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            })
+            .catch(err => console.error('Error loading synopsis:', err));
+        }
+        
+        function closeOverlay() {
+            document.getElementById('synopsisOverlay').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function renderOverlay(data) {
+            // Hero section
+            const heroSection = document.getElementById('heroSection');
+            if (data.backdrop_path) {
+                heroSection.style.backgroundImage = `url(${data.backdrop_path})`;
+            }
+            
+            document.getElementById('title').textContent = data.title;
+            document.getElementById('tagline').textContent = data.tagline || '';
+            document.getElementById('rating').textContent = data.rating ? data.rating.toFixed(1) : 'N/A';
+            
+            // Year
+            const year = data.release_date || data.first_air_date;
+            document.getElementById('year').textContent = year ? new Date(year).getFullYear() : '';
+            
+            // Certification
+            document.getElementById('certification').textContent = data.certification || 'NR';
+            
+            // Runtime
+            let runtime = '';
+            if (data.runtime) {
+                const hours = Math.floor(data.runtime / 60);
+                const mins = data.runtime % 60;
+                runtime = `${hours}h ${mins}m`;
+            } else if (data.episode_run_time) {
+                runtime = `${data.episode_run_time}m per episode`;
+            }
+            document.getElementById('runtime').textContent = runtime;
+            
+            // Trailer button
+            const playBtn = document.getElementById('playBtn');
+            if (data.trailer) {
+                playBtn.style.display = 'flex';
+                playBtn.onclick = () => window.open(data.trailer, '_blank');
+            } else {
+                playBtn.style.display = 'none';
+            }
+            
+            // Overview
+            document.getElementById('overview').textContent = data.overview || 'No overview available.';
+            
+            // Genres
+            const genresContainer = document.getElementById('genres');
+            genresContainer.innerHTML = data.genres.map(g => 
+                `<span class="genre-tag" onclick="filterByGenre(${g.id}, '${g.name}')">${g.name}</span>`
+            ).join('');
+            
+            // Cast
+            const castGrid = document.getElementById('castGrid');
+            castGrid.innerHTML = data.cast.map(person => `
+                <div class="cast-card" onclick="openPerson(${person.id})">
+                    <img class="cast-photo" src="${person.profile_path || '/static/placeholder.png'}" alt="${person.name}">
+                    <div class="cast-name">${person.name}</div>
+                    <div class="cast-character">${person.character}</div>
+                </div>
+            `).join('');
+            
+            // Crew
+            const crewList = document.getElementById('crewList');
+            let crewHTML = '';
+            
+            if (data.directors && data.directors.length) {
+                crewHTML += `
+                    <div class="crew-item">
+                        <div class="crew-role">Director${data.directors.length > 1 ? 's' : ''}</div>
+                        <div class="crew-names">
+                            ${data.directors.map(d => 
+                                `<span class="crew-name" onclick="openPerson(${d.id})">${d.name}</span>`
+                            ).join(', ')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (data.writers && data.writers.length) {
+                crewHTML += `
+                    <div class="crew-item">
+                        <div class="crew-role">Writer${data.writers.length > 1 ? 's' : ''}</div>
+                        <div class="crew-names">
+                            ${data.writers.map(w => 
+                                `<span class="crew-name" onclick="openPerson(${w.id})">${w.name}</span>`
+                            ).join(', ')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (data.creators && data.creators.length) {
+                crewHTML += `
+                    <div class="crew-item">
+                        <div class="crew-role">Creator${data.creators.length > 1 ? 's' : ''}</div>
+                        <div class="crew-names">
+                            ${data.creators.map(c => 
+                                `<span class="crew-name" onclick="openPerson(${c.id})">${c.name}</span>`
+                            ).join(', ')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            crewList.innerHTML = crewHTML;
+            
+            // Similar titles
+            const similarGrid = document.getElementById('similarGrid');
+            similarGrid.innerHTML = data.similar.map(item => `
+                <div class="similar-card" onclick="openOverlay(${item.id}, '${data.type}')">
+                    <img class="similar-poster" src="${item.poster_path || '/static/placeholder.png'}" alt="${item.title}">
+                    <div class="similar-title">${item.title}</div>
+                </div>
+            `).join('');
+        }
+        
+        function openPerson(personId) {
+            // Navigate to person filmography page
+            console.log('Opening person:', personId);
+            // TODO: Implement person overlay
+        }
+        
+        function filterByGenre(genreId, genreName) {
+            console.log('Filtering by genre:', genreId, genreName);
+            // TODO: Implement genre filtering
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeOverlay();
+            }
+        });
+        
+        // Demo: Open with movie ID (example: The Matrix = 603)
+        // openOverlay(603, 'movie');
+    </script>
+</body>
+</html>

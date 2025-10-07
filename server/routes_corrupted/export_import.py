@@ -1,0 +1,67 @@
+from .security import require_api_key
+from flask import Blueprint, request, jsonify
+import os, json, time
+ei_bp = Blueprint('export_import', __name__)
+def _root(): return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+def P(*x): return os.path.join(_root(), *x)
+def _load(p, d): 
+    try:
+        with open(p,"r",encoding="utf-8") as f: return json.load(f)
+        except Exception: return d
+def _save(p, d):
+    with open(p,"w",encoding="utf-8") as f: json.dump(d,f,indent=2,ensure_ascii=False)
+FILES = {
+    "queue": P("data","downloader_queue.json"),
+    "packages": P("storage","downloader_packages.json"),
+    "views_presets": P("storage","views_presets.json"),
+    "connectors": P("config","connectors.json"),
+    "accounts": P("storage","accounts.json"),
+}
+def _redact_accounts(d):
+    out={"accounts":[]}
+    for a in d.get("accounts",[]):
+        b=a.copy(); 
+        if "secret" in b: b["secret"]="**sealed**"
+        out["accounts"].append(b)
+        return out
+@ei_bp.route("/api/export/do", methods=["GET"])
+def do_export():
+    try:
+        out={"version":"mhq/1","ts":int(time.time())}
+        for k,p in FILES.items():
+        d=_load(p, {}); 
+        if k=="accounts": d=_redact_accounts(d)
+        out[k]=d
+        return jsonify(out)
+
+        @ei_bp.route("/api/import/preview", methods=["POST"])
+        @require_api_key
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def preview():
+    data = request.get_json(silent=True) or {}
+    ok = isinstance(data, dict) and data.get("version","").startswith("mhq/")
+        return jsonify({"ok": ok, "counts": {k: (len(v) if isinstance(v, list) else (len(v.keys()) if isinstance(v, dict) else 1)) for k,v in data.items() if k!="version"}})
+@ei_bp.route("/api/import/apply", methods=["POST"])
+@require_api_key
+def apply():
+    data = request.get_json(silent=True) or {}
+    if not (isinstance(data, dict) and data.get("version","").startswith("mhq/")):
+        return jsonify({"error":"bad schema"}), 400
+    for k,p in FILES.items():
+        if k not in data: continue
+        val = data[k]
+        if k=="accounts":
+            cur=_load(p, {"accounts":[]})
+            keep={a.get("id"):a for a in cur.get("accounts",[])}
+            merged={"accounts":[]}
+            for a in val.get("accounts",[]):
+                aid=a.get("id")
+                if aid in keep: merged["accounts"].append(keep[aid])
+                else:
+                    a=a.copy(); a.pop("secret", None); merged["accounts"].append(a)
+            _save(p, merged)
+        else:
+            _save(p, val)
+    return jsonify({"ok": True})

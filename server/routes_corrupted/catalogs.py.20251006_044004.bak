@@ -1,0 +1,477 @@
+from flask import Blueprint, jsonify, request
+import os, json, re
+from datetime import datetime
+import requests
+
+catalogs_bp = Blueprint('catalogs', __name__)
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+STO = os.path.join(ROOT, 'storage')
+CATALOGS_CONFIG = os.path.join(STO, 'config', 'catalogs.json')
+CATALOGS_CACHE = os.path.join(STO, 'catalogs_cache')
+
+def _load_config():
+    """Load catalogs configuration"""
+    try:
+        with open(CATALOGS_CONFIG, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {
+            'tmdb': {
+                'enabled': True,
+                'api_key': '',
+                'language': 'en-US'
+            },
+            'imdb': {
+                'enabled': True
+            },
+            'kitsu': {
+                'enabled': True
+            },
+            'cache_duration_hours': 6
+        }
+
+def _save_config(data):
+    """Save catalogs configuration"""
+    os.makedirs(os.path.dirname(CATALOGS_CONFIG), exist_ok=True)
+    tmp = CATALOGS_CONFIG + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, CATALOGS_CONFIG)
+
+def _get_cached_data(cache_key):
+    """Get cached catalog data"""
+    cache_file = os.path.join(CATALOGS_CACHE, f'{cache_key}.json')
+    try:
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # Check if cache is still valid
+                cached_at = datetime.fromisoformat(data.get('cached_at', '').replace('Z', '+00:00'))
+                config = _load_config()
+                cache_duration_hours = config.get('cache_duration_hours', 6)
+                age_hours = (datetime.utcnow() - cached_at.replace(tzinfo=None)).total_seconds() / 3600
+                
+                if age_hours < cache_duration_hours:
+                    return data.get('items', [])
+    except Exception:
+        pass
+    return None
+
+def _save_cached_data(cache_key, items):
+    """Save catalog data to cache"""
+    os.makedirs(CATALOGS_CACHE, exist_ok=True)
+    cache_file = os.path.join(CATALOGS_CACHE, f'{cache_key}.json')
+    data = {
+        'cached_at': datetime.utcnow().isoformat() + 'Z',
+        'items': items
+    }
+    tmp = cache_file + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, cache_file)
+
+def _fetch_tmdb_trending(media_type='movie', time_window='week'):
+    """Fetch trending items from TMDB"""
+    config = _load_config()
+    api_key = config.get('tmdb', {}).get('api_key', '')
+    
+    if not api_key:
+        return []
+    
+    try:
+        url = f'https://api.themoviedb.org/3/trending/{media_type}/{time_window}'
+        params = {'api_key': api_key}
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            items = []
+            
+            for item in data.get('results', []):
+                items.append({
+                    'id': f"tmdb_{item.get('id')}",
+                    'title': item.get('title') or item.get('name'),
+                    'overview': item.get('overview'),
+                    'poster_url': f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}" if item.get('poster_path') else None,
+                    'backdrop_url': f"https://image.tmdb.org/t/p/w1280{item.get('backdrop_path')}" if item.get('backdrop_path') else None,
+                    'rating': item.get('vote_average'),
+                    'release_date': item.get('release_date') or item.get('first_air_date'),
+                    'media_type': media_type,
+                    'source': 'tmdb'
+                })
+            
+            return items
+    except Exception:
+        pass
+    
+    return []
+
+def _fetch_tmdb_top_rated(media_type='movie'):
+    """Fetch top rated items from TMDB"""
+    config = _load_config()
+    api_key = config.get('tmdb', {}).get('api_key', '')
+    
+    if not api_key:
+        return []
+    
+    try:
+        url = f'https://api.themoviedb.org/3/{media_type}/top_rated'
+        params = {'api_key': api_key}
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            items = []
+            
+            for item in data.get('results', []):
+                items.append({
+                    'id': f"tmdb_{item.get('id')}",
+                    'title': item.get('title') or item.get('name'),
+                    'overview': item.get('overview'),
+                    'poster_url': f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}" if item.get('poster_path') else None,
+                    'backdrop_url': f"https://image.tmdb.org/t/p/w1280{item.get('backdrop_path')}" if item.get('backdrop_path') else None,
+                    'rating': item.get('vote_average'),
+                    'release_date': item.get('release_date') or item.get('first_air_date'),
+                    'media_type': media_type,
+                    'source': 'tmdb'
+                })
+            
+            return items
+    except Exception:
+        pass
+    
+    return []
+
+def _fetch_tmdb_list(list_id):
+    """Fetch a TMDB list"""
+    config = _load_config()
+    api_key = config.get('tmdb', {}).get('api_key', '')
+    
+    if not api_key:
+        return []
+    
+    try:
+        url = f'https://api.themoviedb.org/3/list/{list_id}'
+        params = {'api_key': api_key}
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            items = []
+            
+            for item in data.get('items', []):
+                items.append({
+                    'id': f"tmdb_{item.get('id')}",
+                    'title': item.get('title') or item.get('name'),
+                    'overview': item.get('overview'),
+                    'poster_url': f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}" if item.get('poster_path') else None,
+                    'backdrop_url': f"https://image.tmdb.org/t/p/w1280{item.get('backdrop_path')}" if item.get('backdrop_path') else None,
+                    'rating': item.get('vote_average'),
+                    'release_date': item.get('release_date') or item.get('first_air_date'),
+                    'media_type': item.get('media_type', 'movie'),
+                    'source': 'tmdb'
+                })
+            
+            return items
+    except Exception:
+        pass
+    
+    return []
+
+def _fetch_kitsu_trending():
+    """Fetch trending anime from Kitsu"""
+    try:
+        url = 'https://kitsu.io/api/edge/trending/anime'
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            items = []
+            
+            for item in data.get('data', []):
+                attrs = item.get('attributes', {})
+                items.append({
+                    'id': f"kitsu_{item.get('id')}",
+                    'title': attrs.get('canonicalTitle') or attrs.get('titles', {}).get('en'),
+                    'overview': attrs.get('synopsis'),
+                    'poster_url': attrs.get('posterImage', {}).get('large'),
+                    'backdrop_url': attrs.get('coverImage', {}).get('large'),
+                    'rating': attrs.get('averageRating'),
+                    'release_date': attrs.get('startDate'),
+                    'media_type': 'anime',
+                    'source': 'kitsu'
+                })
+            
+            return items
+    except Exception:
+        pass
+    
+    return []
+
+def _fetch_kitsu_top_rated():
+    """Fetch top rated anime from Kitsu"""
+    try:
+        url = 'https://kitsu.io/api/edge/anime'
+        params = {'sort': '-averageRating', 'page[limit]': 20}
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            items = []
+            
+            for item in data.get('data', []):
+                attrs = item.get('attributes', {})
+                items.append({
+                    'id': f"kitsu_{item.get('id')}",
+                    'title': attrs.get('canonicalTitle') or attrs.get('titles', {}).get('en'),
+                    'overview': attrs.get('synopsis'),
+                    'poster_url': attrs.get('posterImage', {}).get('large'),
+                    'backdrop_url': attrs.get('coverImage', {}).get('large'),
+                    'rating': attrs.get('averageRating'),
+                    'release_date': attrs.get('startDate'),
+                    'media_type': 'anime',
+                    'source': 'kitsu'
+                })
+            
+            return items
+    except Exception:
+        pass
+    
+    return []
+
+@catalogs_bp.route('/api/catalogs/config', methods=['GET'])
+def get_config():
+    try:
+        """Get catalogs configuration"""
+        config = _load_config()
+        return jsonify({
+        'ok': True,
+        'config': config
+        })
+
+        # DUPLICATE REMOVED: @catalogs_bp.route('/api/catalogs/config', methods=['POST'])
+        # DUPLICATE REMOVED: def set_config():
+        """
+        Update catalogs configuration
+        Body: {
+        "tmdb": {
+        "enabled": true,
+        "api_key": "your_api_key"
+        }
+        }
+        """
+        req_data = request.get_json(silent=True) or {}
+
+        config = _load_config()
+        config.update(req_data)
+        _save_config(config)
+
+        return jsonify({
+        'ok': True,
+        'message': 'Configuration updated',
+        'config': config
+        })
+
+        @catalogs_bp.route('/api/catalogs/tmdb/trending/<media_type>', methods=['GET'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def tmdb_trending(media_type):
+    try:
+        """
+        Get trending items from TMDB
+        media_type: movie, tv
+        Query params: time_window (day, week)
+        """
+        time_window = request.args.get('time_window', 'week')
+        cache_key = f'tmdb_trending_{media_type}_{time_window}'
+
+        # Check cache
+        cached = _get_cached_data(cache_key)
+        if cached is not None:
+        return jsonify({
+        'ok': True,
+        'items': cached,
+        'cached': True
+        })
+
+        # Fetch fresh data
+        items = _fetch_tmdb_trending(media_type, time_window)
+        _save_cached_data(cache_key, items)
+
+        return jsonify({
+        'ok': True,
+        'items': items,
+        'cached': False
+        })
+
+        @catalogs_bp.route('/api/catalogs/tmdb/top-rated/<media_type>', methods=['GET'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def tmdb_top_rated(media_type):
+    try:
+        """
+        Get top rated items from TMDB
+        media_type: movie, tv
+        """
+        cache_key = f'tmdb_top_rated_{media_type}'
+
+        # Check cache
+        cached = _get_cached_data(cache_key)
+        if cached is not None:
+        return jsonify({
+        'ok': True,
+        'items': cached,
+        'cached': True
+        })
+
+        # Fetch fresh data
+        items = _fetch_tmdb_top_rated(media_type)
+        _save_cached_data(cache_key, items)
+
+        return jsonify({
+        'ok': True,
+        'items': items,
+        'cached': False
+        })
+
+        @catalogs_bp.route('/api/catalogs/tmdb/list/<list_id>', methods=['GET'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def tmdb_list(list_id):
+    try:
+        """Get a TMDB list"""
+        cache_key = f'tmdb_list_{list_id}'
+
+        # Check cache
+        cached = _get_cached_data(cache_key)
+        if cached is not None:
+        return jsonify({
+        'ok': True,
+        'items': cached,
+        'cached': True
+        })
+
+        # Fetch fresh data
+        items = _fetch_tmdb_list(list_id)
+        _save_cached_data(cache_key, items)
+
+        return jsonify({
+        'ok': True,
+        'items': items,
+        'cached': False
+        })
+
+        @catalogs_bp.route('/api/catalogs/kitsu/trending', methods=['GET'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def kitsu_trending():
+    try:
+        """Get trending anime from Kitsu"""
+        cache_key = 'kitsu_trending'
+
+        # Check cache
+        cached = _get_cached_data(cache_key)
+        if cached is not None:
+        return jsonify({
+        'ok': True,
+        'items': cached,
+        'cached': True
+        })
+
+        # Fetch fresh data
+        items = _fetch_kitsu_trending()
+        _save_cached_data(cache_key, items)
+
+        return jsonify({
+        'ok': True,
+        'items': items,
+        'cached': False
+        })
+
+        @catalogs_bp.route('/api/catalogs/kitsu/top-rated', methods=['GET'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def kitsu_top_rated():
+    try:
+        """Get top rated anime from Kitsu"""
+        cache_key = 'kitsu_top_rated'
+
+        # Check cache
+        cached = _get_cached_data(cache_key)
+        if cached is not None:
+        return jsonify({
+        'ok': True,
+        'items': cached,
+        'cached': True
+        })
+
+        # Fetch fresh data
+        items = _fetch_kitsu_top_rated()
+        _save_cached_data(cache_key, items)
+
+        return jsonify({
+        'ok': True,
+        'items': items,
+        'cached': False
+        })
+
+        @catalogs_bp.route('/api/catalogs/cache/clear', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def clear_cache():
+    """Clear catalog cache"""
+    try:
+        if os.path.exists(CATALOGS_CACHE):
+            for filename in os.listdir(CATALOGS_CACHE):
+                file_path = os.path.join(CATALOGS_CACHE, filename)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+        
+        return jsonify({
+            'ok': True,
+            'message': 'Cache cleared'
+        })
+    except Exception as e:
+        return jsonify({
+            'ok': False,
+            'error': str(e)
+        }), 500
+
+@catalogs_bp.route('/api/catalogs/all', methods=['GET'])
+def get_all_catalogs():
+    try:
+        """Get all available catalogs"""
+        config = _load_config()
+
+        catalogs = []
+
+        # TMDB catalogs
+        if config.get('tmdb', {}).get('enabled'):
+        catalogs.extend([
+        {'id': 'tmdb_trending_movie', 'name': 'Trending Movies', 'source': 'tmdb', 'type': 'trending'},
+        {'id': 'tmdb_trending_tv', 'name': 'Trending TV Shows', 'source': 'tmdb', 'type': 'trending'},
+        {'id': 'tmdb_top_rated_movie', 'name': 'Top Rated Movies', 'source': 'tmdb', 'type': 'top_rated'},
+        {'id': 'tmdb_top_rated_tv', 'name': 'Top Rated TV Shows', 'source': 'tmdb', 'type': 'top_rated'}
+        ])
+
+        # Kitsu catalogs
+        if config.get('kitsu', {}).get('enabled'):
+        catalogs.extend([
+        {'id': 'kitsu_trending', 'name': 'Trending Anime', 'source': 'kitsu', 'type': 'trending'},
+        {'id': 'kitsu_top_rated', 'name': 'Top Rated Anime', 'source': 'kitsu', 'type': 'top_rated'}
+        ])
+
+        return jsonify({
+        'ok': True,
+        'catalogs': catalogs,
+        'total': len(catalogs)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

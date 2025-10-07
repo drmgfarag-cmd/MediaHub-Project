@@ -1,0 +1,19 @@
+{
+  "default_policy": "UserDefined",
+  "policies": {
+    "UserDefined": {
+      "name": "User Defined",
+      "description": "Custom scene group preferences with editable priority ordering",
+      "preferred_groups": [],
+      "blocked_groups": [],
+      "auto_upgrade": true,
+      "keep_multiple_versions": false
+    }
+  },
+  "upgrade_rules": {
+    "check_interval_hours": 24,
+    "min_score_improvement": 20,
+    "preserve_watched_status": true,
+    "auto_delete_old_version": false
+  }
+}

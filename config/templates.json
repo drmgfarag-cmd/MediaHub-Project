@@ -1,0 +1,6 @@
+{
+  "Default": {
+    "rename": "{name}",
+    "dest": "Downloads"
+  }
+}

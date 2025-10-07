@@ -1,0 +1,176 @@
+{
+  "profiles": {
+    "ultra_hq": {
+      "name": "Ultra High Quality",
+      "description": "Best possible quality, no compromises",
+      "resolution_preference": [
+        "2160p",
+        "1080p",
+        "720p"
+      ],
+      "codec_preference": [
+        "x265",
+        "x264",
+        "xvid"
+      ],
+      "source_preference": [
+        "BluRay",
+        "WEB-DL",
+        "WEBRip",
+        "HDTV"
+      ],
+      "hdr_preference": [
+        "DV",
+        "HDR10+",
+        "HDR10",
+        "SDR"
+      ],
+      "audio_preference": [
+        "Atmos",
+        "DTS-X",
+        "TrueHD",
+        "DTS",
+        "AC3",
+        "AAC"
+      ],
+      "cutoff_quality": "2160p BluRay x265 DV Atmos",
+      "min_size_gb": 5.0,
+      "max_size_gb": 100.0,
+      "scoring": {
+        "resolution_weight": 100,
+        "codec_weight": 80,
+        "source_weight": 70,
+        "hdr_weight": 60,
+        "audio_weight": 50,
+        "group_weight": 40,
+        "size_weight": 30
+      }
+    },
+    "balanced": {
+      "name": "Balanced Quality",
+      "description": "Good quality with reasonable file sizes",
+      "resolution_preference": [
+        "1080p",
+        "2160p",
+        "720p"
+      ],
+      "codec_preference": [
+        "x265",
+        "x264"
+      ],
+      "source_preference": [
+        "WEB-DL",
+        "BluRay",
+        "WEBRip",
+        "HDTV"
+      ],
+      "hdr_preference": [
+        "HDR10",
+        "DV",
+        "SDR"
+      ],
+      "audio_preference": [
+        "DTS",
+        "AC3",
+        "AAC",
+        "Atmos"
+      ],
+      "cutoff_quality": "1080p WEB-DL x265 HDR10",
+      "min_size_gb": 1.0,
+      "max_size_gb": 25.0,
+      "scoring": {
+        "resolution_weight": 80,
+        "codec_weight": 70,
+        "source_weight": 60,
+        "hdr_weight": 40,
+        "audio_weight": 30,
+        "group_weight": 50,
+        "size_weight": 60
+      }
+    },
+    "space_saver": {
+      "name": "Space Saver",
+      "description": "Prioritize smaller file sizes while maintaining watchable quality",
+      "resolution_preference": [
+        "720p",
+        "1080p"
+      ],
+      "codec_preference": [
+        "x265",
+        "x264"
+      ],
+      "source_preference": [
+        "WEBRip",
+        "WEB-DL",
+        "HDTV"
+      ],
+      "hdr_preference": [
+        "SDR"
+      ],
+      "audio_preference": [
+        "AAC",
+        "AC3"
+      ],
+      "cutoff_quality": "720p WEBRip x265",
+      "min_size_gb": 0.5,
+      "max_size_gb": 5.0,
+      "scoring": {
+        "resolution_weight": 50,
+        "codec_weight": 80,
+        "source_weight": 40,
+        "hdr_weight": 10,
+        "audio_weight": 20,
+        "group_weight": 30,
+        "size_weight": 100
+      }
+    }
+  },
+  "custom_formats": {
+    "remux": {
+      "name": "Remux",
+      "patterns": [
+        "remux",
+        "untouched"
+      ],
+      "score": 100,
+      "description": "Untouched BluRay/UHD rips"
+    },
+    "web_dl": {
+      "name": "WEB-DL",
+      "patterns": [
+        "web-dl",
+        "webdl"
+      ],
+      "score": 80,
+      "description": "Direct web downloads"
+    },
+    "webrip": {
+      "name": "WEBRip",
+      "patterns": [
+        "webrip",
+        "web-rip"
+      ],
+      "score": 70,
+      "description": "Web captures"
+    },
+    "hdtv": {
+      "name": "HDTV",
+      "patterns": [
+        "hdtv"
+      ],
+      "score": 50,
+      "description": "TV broadcasts"
+    },
+    "cam": {
+      "name": "CAM/TS",
+      "patterns": [
+        "cam",
+        "ts",
+        "tc",
+        "r5"
+      ],
+      "score": -100,
+      "description": "Low quality captures"
+    }
+  }
+}

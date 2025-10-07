@@ -1,0 +1,75 @@
+from flask import Blueprint, jsonify, request
+import os, json, subprocess, time
+
+lim_bp = Blueprint('limits', __name__)
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+STO = os.path.join(ROOT, 'storage')
+PRESETS = os.path.join(STO, 'limit_presets.json')
+
+def _load(p, d):
+    try:
+        return json.load(open(p, 'r', encoding='utf-8'))
+    except:
+        return d
+
+def _save(p, o):
+    open(p + '.tmp', 'w', encoding='utf-8').write(json.dumps(o, indent=2))
+    os.replace(p + '.tmp', p)
+
+@lim_bp.route('/api/limits/presets')
+def lst():
+    try:
+        return jsonify(_load(PRESETS, {
+        "presets": [
+        {"name": "Unlimited", "native_kbps": 0, "aria2_kbps": 0, "qb_kbps": 0},
+        {"name": "Conservative", "native_kbps": 512, "aria2_kbps": 512, "qb_kbps": 512},
+        {"name": "Balanced", "native_kbps": 2048, "aria2_kbps": 2048, "qb_kbps": 2048}
+        ]
+        }))
+
+        @lim_bp.route('/api/limits/presets/save', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def save():
+    try:
+        js = request.get_json(silent=True) or {}
+        name = js.get('name')
+        d = _load(PRESETS, {"presets": []})
+        rec = {
+        "name": name,
+        "native_kbps": int(js.get('native_kbps', 0) or 0),
+        "aria2_kbps": int(js.get('aria2_kbps', 0) or 0),
+        "qb_kbps": int(js.get('qb_kbps', 0) or 0)
+        }
+        for i, p in enumerate(d['presets']):
+        if p.get('name') == name:
+        d['presets'][i] = rec
+        break
+        else:
+        d['presets'].append(rec)
+        _save(PRESETS, d)
+        return jsonify({'ok': True})
+
+        @lim_bp.route('/api/limits/presets/apply', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def apply():
+    try:
+        js = request.get_json(silent=True) or {}
+        name = js.get('name')
+        d = _load(PRESETS, {"presets": []})
+        t = None
+        for p in d['presets']:
+        if p.get('name') == name:
+        t = p
+        break
+        if not t:
+        return jsonify({'ok': False, 'error': 'Preset not found'})
+
+        # Apply limits logic here
+        return jsonify({'ok': True, 'applied': t})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

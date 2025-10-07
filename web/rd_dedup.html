@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><title>RD Manager</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Real‑Debrid Manager</strong></div>
+  <details class="card"><summary>Cloud→Local Pull Filters</summary>
+    Min (MB) <input id="min_mb" type="number" style="width:100px">
+    Max (MB) <input id="max_mb" type="number" style="width:100px">
+    <button id="save_pull">Save</button> <span id="pull_msg"></span>
+  </details>
+  <div id="list"></div>
+</div>
+<script>
+async function load(){ const j=await (await fetch('/api/rd/dedup')).json(); const root=document.getElementById('list'); root.innerHTML=''; (j.groups||[]).forEach(g=>{ const d=document.createElement('div'); d.className='card'; d.innerHTML=`<div><strong>${g.name}</strong> <span style='opacity:.7'>(${g.files.length} variants)</span></div>`; const t=document.createElement('table'); t.innerHTML=`<thead><tr><th>Name</th><th>Size (MB)</th><th>Keep</th></tr></thead><tbody></tbody>`; const tb=t.querySelector('tbody'); (g.files||[]).forEach(f=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${f.name}</td><td>${f.size_mb}</td><td><input type='radio' name='keep_${g.hash}' value='${f.id}'></td>`; tb.appendChild(tr); }); d.appendChild(t); root.appendChild(d); }); }
+document.addEventListener('DOMContentLoaded', load);
+document.getElementById('save_pull').onclick=async ()=>{ const min=parseInt(document.getElementById('min_mb').value||'0'), max=parseInt(document.getElementById('max_mb').value||'0'); await fetch('/api/rd/cloudpull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({min_mb:min,max_mb:max})}); document.getElementById('pull_msg').textContent='Saved'; };
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

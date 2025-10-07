@@ -1,0 +1,55 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Collection Timeline</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.wrap{padding:16px}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.timeline{position:relative;overflow:auto;white-space:nowrap;border:1px solid rgba(148,163,184,.2);border-radius:12px;background:#0f172a;height:360px;padding:12px}
+.axis{position:relative;height:24px;margin-bottom:8px}
+.axis .tick{position:absolute;top:0;height:24px;border-left:1px solid rgba(148,163,184,.3);padding-left:4px;color:#9fb0c8}
+.row{position:relative;height:300px}
+.item{position:absolute;top:40px;width:200px;border:1px solid rgba(148,163,184,.2);border-radius:10px;background:#101827;overflow:hidden}
+.item img{width:200px;height:112px;object-fit:cover}
+.item .t{padding:6px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style></head><body>
+<div class="wrap">
+  <a href="home.html">&larr; Home</a>
+  <div class="toolbar">
+    <label>Collection:</label>
+    <select id="sel"></select>
+  </div>
+  <div id="tl" class="timeline">
+    <div class="axis" id="axis"></div>
+    <div class="row" id="row"></div>
+  </div>
+</div>
+<script>
+function yearOf(it){ return parseInt(it.year||0)||0; }
+function lerp(a,b,t){ return a+(b-a)*t; }
+async function loadCols(){
+  const r=await fetch('/api/collections'); const s=await r.json();
+  const sel=document.getElementById('sel'); sel.innerHTML='';
+  (s.collections||[]).forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+  sel.onchange=()=> loadItems(sel.value);
+  if(sel.value) loadItems(sel.value); else if(sel.options.length) { sel.selectedIndex=0; loadItems(sel.value); }
+}
+async function loadItems(cid){
+  const r=await fetch('/api/collections/'+cid+'/items'); const s=await r.json();
+  const items = (s.items||[]).filter(it=>yearOf(it)>0).sort((a,b)=>yearOf(a)-yearOf(b));
+  const minY = Math.min(...items.map(yearOf)); const maxY = Math.max(...items.map(yearOf));
+  const axis=document.getElementById('axis'); const row=document.getElementById('row'); axis.innerHTML=''; row.innerHTML='';
+  const W = (maxY-minY+1)*120; row.style.width = W+'px'; axis.style.width = W+'px';
+  for(let y=minY;y<=maxY;y+=Math.max(1, Math.floor((maxY-minY)/10))){
+    const x=(y-minY)*120; const tick=document.createElement('div'); tick.className='tick'; tick.style.left=x+'px'; tick.textContent=y; axis.appendChild(tick);
+  }
+  items.forEach((it, idx)=>{
+    const x=(yearOf(it)-minY)*120 + (idx%3)*8;
+    const div=document.createElement('div'); div.className='item'; div.style.left=x+'px';
+    const img=it.backdrop||it.poster||it.cover||'sample/poster.jpg';
+    div.innerHTML = `<img src=""><div class='t'>${(it.title||it.name||'')}</div>`;
+    div.onclick = ()=> location.href = (it.type==='track'?'audio_player.html':'item.html')+`?id=${encodeURIComponent(it.id||it.path||'')}`;
+    row.appendChild(div);
+  });
+}
+document.addEventListener('DOMContentLoaded', loadCols);
+</script>
+</body></html>

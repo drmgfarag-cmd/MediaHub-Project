@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Missing Episodes</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.itm{margin:6px 0}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Missing Episodes</strong> <a class="btn" href="feeds.html">Feeds</a> <a class="btn" href="downloader.html">Downloader</a></div>
+  <div class="card" id="out">Scanning…</div>
+  <div class="card" style="margin-top:8px">
+    <h3>Generated Search Tasks</h3>
+    <div id="tasks">—</div>
+  </div>
+</div>
+<script>
+function pad(n){ return (n<10?'0':'')+n; }
+async function scan(){
+  const j=await (await fetch('/api/missing/scan')).json();
+  out.innerHTML = (j.series||[]).map(s=>{
+    const rows=s.missing.map(e=>`${s.series} S${pad(s.season)}E${pad(e)}`).join(', ');
+    return `<div class="itm"><strong>${s.series} — Season ${s.season}</strong><div>${rows||'None'}</div>
+      <div style="margin-top:6px"><button class="gen" data-series="${encodeURIComponent(s.series)}" data-season="${s.season}">Generate Search Tasks</button></div></div>`;
+  }).join('') || 'No gaps detected (based on filenames).';
+}
+document.addEventListener('click', async (e)=>{
+  const g=e.target.closest('button.gen'); if(!g) return;
+  const name=decodeURIComponent(g.dataset.series), s=parseInt(g.dataset.season);
+  // get the parent div content, parse the missing list
+  const div=g.parentElement.previousElementSibling; const txt=div.textContent.split(',').map(x=>x.trim()).filter(Boolean);
+  for(const q of txt){ await fetch('/api/feeds/tasks_add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q})}); }
+  renderTasks();
+  alert('Search tasks generated.');
+});
+async function renderTasks(){
+  const j=await (await fetch('/api/feeds/tasks_list')).json();
+  tasks.innerHTML = (j.tasks||[]).slice().reverse().map(t=>`<div>${t.q}</div>`).join('') || '—';
+}
+document.addEventListener('DOMContentLoaded', ()=>{ scan(); renderTasks(); });
+</script>
+</body></html>

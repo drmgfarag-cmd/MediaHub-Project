@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Book • Reader</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.wrap{height:100vh;display:flex;flex-direction:column}.bar{padding:8px;border-bottom:1px solid rgba(148,163,184,.2)}.frame{flex:1}</style>
+</head><body>
+<div class="wrap">
+  <div class="bar"><a href="home.html">← Home</a></div>
+  <iframe id="frame" class="frame" style="width:100%;height:100%;border:0"></iframe>
+</div>
+<script>
+const Q=new URLSearchParams(location.search); const ID=Q.get('id'); let ITEM=null;
+async function load(){ const r=await fetch('/api/library/item/'+encodeURIComponent(ID)); ITEM=await r.json(); document.getElementById('frame').src = ITEM.stream || ITEM.path || ''; }
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

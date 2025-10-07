@@ -1,0 +1,34 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset='utf-8'><title>Media Hub — Duplicates</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+<h2>Duplicates & Dedupe Policy</h2>
+<div style="display:flex;gap:16px;flex-wrap:wrap">
+  <div>
+    <h3>Group Priority</h3>
+    <div id="prio"></div>
+  </div>
+  <div>
+    <h3>Never Remove</h3>
+    <div id="never"></div>
+  </div>
+  <div>
+    <h3>Conditional Remove</h3>
+    <div id="cond"></div>
+    <button onclick="addCond()">Add Rule</button>
+  </div>
+</div>
+<br/><button onclick="savePolicy()">Save Policy</button>
+<hr/><div><button onclick="ep()">Show Effective Policy</button><button onclick="resolve()">Resolve Sample</button></div>
+<pre id="out"></pre>
+<script>
+let policy={}; let active='UserDefined'; let prio=[], never=new Set(), cond={};
+function mk(g){ const d=document.createElement('div'); d.textContent=g; return d; }
+function render(){ const pbox=document.getElementById('prio'); pbox.innerHTML=''; prio.forEach(g=>pbox.appendChild(mk(g))); const nbox=document.getElementById('never'); nbox.innerHTML=''; Array.from(never).forEach(g=>nbox.appendChild(mk(g))); const cbox=document.getElementById('cond'); cbox.innerHTML=''; Object.keys(cond).forEach(g=>{ const row=document.createElement('div'); row.textContent = g+' → only if present: '+(cond[g].only_if_present||[]).join(', '); cbox.appendChild(row); }); }
+function addPrio(){ const v=document.getElementById('prioAdd').value.trim().toLowerCase(); if(!v) return; if(!prio.includes(v)) prio.push(v); render(); }
+function addNever(){ const v=document.getElementById('neverAdd').value.trim().toLowerCase(); if(!v) return; never.add(v); render(); }
+function addCond(){ const g=document.getElementById('condGroup').value.trim().toLowerCase(); const iff=document.getElementById('condIf').value.trim().toLowerCase(); if(!g||!iff) return; cond[g]=cond[g]||{only_if_present:[]}; if(!cond[g].only_if_present.includes(iff)) cond[g].only_if_present.push(iff); render(); }
+async function load(){ const j=await (await fetch('/api/dedupe/policy')).json(); active=j.active_profile||'UserDefined'; const prof=(j.profiles||{})[active]||{}; const gf=prof.group_factor||{}; prio=gf.priority||['ctrlhd','cytsunee','oft']; never=new Set(gf.never_remove||['ctrlhd']); cond=gf.conditional_remove||{'cytsunee':{'only_if_present':['ctrlhd']}}; render(); }
+async function savePolicy(){ const j=await (await fetch('/api/dedupe/policy')).json(); const profiles=j.profiles||{}; const prof=profiles[active]||{}; prof.group_factor={mode:'inherit',priority:prio,never_remove:Array.from(never),conditional_remove:cond,conflict_strategy:'filters_win'}; profiles[active]=prof; const r=await fetch('/api/dedupe/policy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({"profiles":profiles,"active_profile":active})}); out.textContent=JSON.stringify(await r.json(),null,2); }
+async function ep(){ const r=await (await fetch('/api/dedupe/effective_policy')).json(); out.textContent=JSON.stringify(r,null,2); }
+async function resolve(){ const sample=[{"name":"Film (2024) 2160p mkv - CtrlHD","group":"ctrlhd","resolution":"2160p"},{"name":"Film (2024) 2160p mkv - Cytsunee","group":"cytsunee","resolution":"2160p"}]; const r=await (await fetch('/api/dedupe/movie_list_resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:sample})})).json(); out.textContent=JSON.stringify(r,null,2); }
+load();
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

@@ -1,0 +1,144 @@
+from flask import Blueprint, jsonify, request
+import os, json, time
+view_bp = Blueprint('dlview', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+QF=os.path.join(ROOT,'storage','downloader_queue.json')
+CFG=os.path.join(ROOT,'storage','config.json')
+
+def _load(path, default):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+    except Exception: return default
+
+def _save(path, obj):
+    tmp=path+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, path)
+
+@view_bp.route('/api/downloader/queue_get')
+def queue_get():
+    try:
+        return jsonify(_load(QF, {'packages':[]}))
+
+        @view_bp.route('/api/downloader/settings_get')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def settings_get():
+    try:
+        cfg=_load(CFG, {})
+        return jsonify(cfg.get('downloader_settings', {}))
+
+        @view_bp.route('/api/downloader/settings_set', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def settings_set():
+    try:
+        js=request.get_json(silent=True) or {}
+        cfg=_load(CFG, {})
+        cur=cfg.get('downloader_settings', {})
+        for k,v in js.items(): cur[k]=v
+        cfg['downloader_settings']=cur
+        _save(CFG, cfg)
+        return jsonify({'ok':True,'downloader_settings':cur})
+
+
+        @view_bp.route('/api/downloader/queue_ops', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def queue_ops():
+    try:
+        js=request.get_json(silent=True) or {}
+        op=(js.get('op') or '').lower()
+        ids=js.get('ids') or []
+        order=js.get('order') or []  # for reorder
+        q=_load(QF, {'packages':[]})
+        pkgs=q.get('packages',[])
+        idset=set(ids)
+        if op=='pause':
+        for p in pkgs:
+        if p.get('id') in idset: p['status']='Paused'
+        elif op=='resume':
+        for p in pkgs:
+        if p.get('id') in idset and p.get('status') in ('Paused','Queued'): p['status']='Running'
+        elif op=='force_start':
+        for p in pkgs:
+        if p.get('id') in idset: p['status']='Running'; p['priority']=0
+        elif op=='delete':
+        pkgs=[p for p in pkgs if p.get('id') not in idset]
+        q['packages']=pkgs
+        elif op=='move_up':
+        for i in range(1, len(pkgs)):
+        if pkgs[i].get('id') in idset:
+        pkgs[i-1], pkgs[i] = pkgs[i], pkgs[i-1]
+        elif op=='move_down':
+        for i in range(len(pkgs)-2, -1, -1):
+        if pkgs[i].get('id') in idset:
+        pkgs[i], pkgs[i+1] = pkgs[i+1], pkgs[i]
+        elif op=='reorder' and order:
+        # reorder packages according to provided id order (others keep relative)
+        order_index={pid:i for i,pid in enumerate(order)}
+        pkgs.sort(key=lambda p: order_index.get(p.get('id'), len(order)+pkgs.index(p)))
+        _save(QF, q)
+        return jsonify({'ok':True,'packages':pkgs})
+
+        @view_bp.route('/api/downloader/presets_get')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def presets_get():
+    try:
+        return jsonify(_load(os.path.join(ROOT,'storage','downloader_presets.json'), {'presets':{}}))
+
+        @view_bp.route('/api/downloader/presets_set', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def presets_set():
+    try:
+        P=os.path.join(ROOT,'storage','downloader_presets.json')
+        cur=_load(P, {'presets':{}})
+        js=request.get_json(silent=True) or {}
+        name=(js.get('name') or '').strip()
+        cols=js.get('columns') or []
+        if name and cols:
+        cur['presets'][name]=cols
+        _save(P, cur)
+        # apply immediately
+        cfg=_load(CFG, {}); cfg.setdefault('downloader_settings',{})['columns']=cols; _save(CFG, cfg)
+        return jsonify({'ok':True,'presets':cur['presets']})
+        return jsonify({'error':'name and columns required'}), 400
+
+        @view_bp.route('/api/downloader/retry_policy_get')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def retry_get():
+    try:
+        cfg=_load(CFG, {})
+        pol=cfg.get('downloader_settings',{}).get('retry_policy', {'max_retries':3,'backoff_sec':60})
+        return jsonify(pol)
+
+        @view_bp.route('/api/downloader/retry_policy_set', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def retry_set():
+    try:
+        js=request.get_json(silent=True) or {}
+        cfg=_load(CFG, {}); ds=cfg.get('downloader_settings',{})
+        ds['retry_policy']={'max_retries': int(js.get('max_retries',3)), 'backoff_sec': int(js.get('backoff_sec',60))}
+        cfg['downloader_settings']=ds; _save(CFG, cfg); return jsonify({'ok':True})
+
+        @view_bp.route('/api/system/stats')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def sys_stats():
+    try:
+        # Disk free (simulate via /tmp if actual FS unknown)
+        st=os.statvfs('/mnt/data')
+        free_kb=int(st.f_bavail*st.f_frsize/1024)
+        sess=_load(os.path.join(ROOT,'storage','session_stats.json'), {'downloaded_kb':0,'since_ts':int(time.time())})
+        return jsonify({'disk_free_kb': free_kb, 'session_downloaded_kb': sess.get('downloaded_kb',0), 'since_ts': sess.get('since_ts',0)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

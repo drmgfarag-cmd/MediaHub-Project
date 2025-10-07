@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediaHub - Home</title>
+<link rel="stylesheet" href="assets/normalize.css">
+<link rel="stylesheet" href="assets/ui.css">
+<link rel="stylesheet" href="assets/hero_banner.css">
+<link rel="stylesheet" href="assets/continue_watching.css">
+<link rel="stylesheet" href="assets/enhanced_carousel.css">
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    background: #0F1419;
+    color: #E8EBF5;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+  }
+
+  .page-container {
+    min-height: 100vh;
+  }
+
+  /* Top Navigation */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(15, 20, 25, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #1F2537;
+    padding: 12px 48px;
+  }
+
+  .nav-content {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .nav-logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: #FF6B35;
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+  }
+
+  .nav-link {
+    color: #E8EBF5;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+  }
+
+  .nav-link:hover,
+  .nav-link.active {
+    color: #FF6B35;
+  }
+
+  .nav-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .nav-search {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #1F2537;
+    background: #1A1F29;
+    color: #E8EBF5;
+    font-size: 14px;
+    width: 200px;
+  }
+
+  .nav-icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: #E8EBF5;
+    font-size: 20px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  .nav-icon-btn:hover {
+    background: #1A1F29;
+  }
+
+  /* Content Sections */
+  .content-section {
+    margin: 48px 0;
+  }
+
+  @media (max-width: 768px) {
+    .top-nav {
+      padding: 12px 24px;
+    }
+
+    .nav-search {
+      display: none;
+    }
+
+    .nav-links {
+      gap: 16px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="page-container">
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+      <div class="nav-content">
+        <a href="home_v5.5.html" class="nav-logo">MediaHub</a>
+        <div class="nav-links">
+          <a href="home_v5.5.html" class="nav-link active">Home</a>
+          <a href="mediahub_movies.html" class="nav-link">Movies</a>
+          <a href="mediahub_tv.html" class="nav-link">TV Shows</a>
+          <a href="collections.html" class="nav-link">Collections</a>
+        </div>
+        <div class="nav-actions">
+          <input type="search" class="nav-search" placeholder="Search...">
+          <button class="nav-icon-btn" title="Notifications">🔔</button>
+          <button class="nav-icon-btn" title="Profile">👤</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Banner -->
+    <div id="hero-banner" class="hero-banner"></div>
+
+    <!-- Continue Watching -->
+    <section id="continue-watching" class="continue-watching content-section"></section>
+
+    <!-- Recently Added -->
+    <section class="media-carousel content-section">
+      <div class="carousel-header">
+        <h2 class="carousel-title">Recently Added</h2>
+        <a href="/recent.html" class="carousel-link">See All →</a>
+      </div>
+      <div id="recently-added-carousel" class="carousel-container">
+        <!-- Carousel will be populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- Trending Now -->
+    <section class="media-carousel content-section">
+      <div class="carousel-header">
+        <h2 class="carousel-title">Trending Now</h2>
+        <a href="/trending.html" class="carousel-link">See All →</a>
+      </div>
+      <div id="trending-carousel" class="carousel-container">
+        <!-- Carousel will be populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- Popular Movies -->
+    <section class="media-carousel content-section">
+      <div class="carousel-header">
+        <h2 class="carousel-title">Popular Movies</h2>
+        <a href="/movies.html" class="carousel-link">See All →</a>
+      </div>
+      <div id="movies-carousel" class="carousel-container">
+        <!-- Carousel will be populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- Top TV Shows -->
+    <section class="media-carousel content-section">
+      <div class="carousel-header">
+        <h2 class="carousel-title">Top TV Shows</h2>
+        <a href="/tv.html" class="carousel-link">See All →</a>
+      </div>
+      <div id="tv-carousel" class="carousel-container">
+        <!-- Carousel will be populated by JavaScript -->
+      </div>
+    </section>
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/hero_banner.js"></script>
+  <script src="assets/continue_watching.js"></script>
+  <script>
+    // Simple carousel implementation for demo
+    function createCarousel(containerId, items) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const track = document.createElement('div');
+      track.className = 'carousel-track';
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'carousel-item';
+        card.innerHTML = `
+          <div class="carousel-poster" style="background-image: url('${item.poster}')">
+            ${item.badge ? `<div class="carousel-item-badge">${item.badge}</div>` : ''}
+            ${item.progress ? `
+              <div class="carousel-item-progress">
+                <div class="carousel-item-progress-fill" style="width: ${item.progress}%"></div>
+              </div>
+            ` : ''}
+            <div class="carousel-item-overlay">
+              <div class="carousel-item-info">
+                <h3 class="carousel-item-title">${item.title}</h3>
+                <div class="carousel-item-meta">
+                  <span>${item.year}</span>
+                  ${item.rating ? `
+                    <span class="carousel-item-rating">
+                      <span class="carousel-item-rating-star">★</span>
+                      <span>${item.rating}</span>
+                    </span>
+                  ` : ''}
+                  ${item.quality ? `<span class="carousel-item-quality">${item.quality}</span>` : ''}
+                </div>
+                <div class="carousel-item-actions">
+                  <button class="carousel-item-btn">Play</button>
+                  <button class="carousel-item-btn">Info</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        track.appendChild(card);
+      });
+
+      container.appendChild(track);
+    }
+
+    // Mock data for carousels
+    const mockItems = [
+      { id: 1, title: 'The Matrix', year: 1999, rating: 8.7, quality: '4K', poster: '/api/placeholder/280/420?text=Matrix' },
+      { id: 2, title: 'Inception', year: 2010, rating: 8.8, quality: '4K', poster: '/api/placeholder/280/420?text=Inception' },
+      { id: 3, title: 'Interstellar', year: 2014, rating: 8.6, quality: 'HD', poster: '/api/placeholder/280/420?text=Interstellar' },
+      { id: 4, title: 'The Dark Knight', year: 2008, rating: 9.0, quality: '4K', poster: '/api/placeholder/280/420?text=Dark+Knight' },
+      { id: 5, title: 'Pulp Fiction', year: 1994, rating: 8.9, quality: 'HD', poster: '/api/placeholder/280/420?text=Pulp+Fiction' },
+      { id: 6, title: 'Fight Club', year: 1999, rating: 8.8, quality: 'HD', poster: '/api/placeholder/280/420?text=Fight+Club' }
+    ];
+
+    // Initialize carousels
+    document.addEventListener('DOMContentLoaded', () => {
+      createCarousel('recently-added-carousel', mockItems.map(item => ({ ...item, badge: 'NEW' })));
+      createCarousel('trending-carousel', mockItems);
+      createCarousel('movies-carousel', mockItems);
+      createCarousel('tv-carousel', mockItems);
+    });
+  </script>
+</body>
+</html>

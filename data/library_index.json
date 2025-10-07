@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "id": "m1",
+      "title": "Sample Movie 2022",
+      "year": "2022",
+      "pillar": "Movies"
+    },
+    {
+      "id": "s1",
+      "title": "Sample Show S01E01",
+      "year": "2021",
+      "pillar": "TV"
+    },
+    {
+      "id": "b1",
+      "title": "Sample Book Vol.1",
+      "year": "2019",
+      "pillar": "Books"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Player</title>
+<style>body{background:#0b1220;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;padding:10px}</style>
+</head>
+<body>
+<h3 id="title">Player</h3>
+<video id="videoPlayer" controls style="width:100%;max-width:1200px;height:auto;background:#111827;border:1px solid #1f2937"></video>
+<script>
+const q=new URLSearchParams(location.search);
+const src=q.get('src')||''; const t=q.get('title')||'Media';
+document.getElementById('title').textContent=t;
+const v=document.getElementById('videoPlayer'); if (src) v.src=src;
+</script>
+</body></html>

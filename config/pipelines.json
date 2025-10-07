@@ -1,0 +1,11 @@
+{
+  "pipelines": {
+    "Default": [
+      "parse",
+      "pack",
+      "rename",
+      "queue",
+      "postprocess"
+    ]
+  }
+}

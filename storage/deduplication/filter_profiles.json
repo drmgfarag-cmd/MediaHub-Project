@@ -1,0 +1,97 @@
+{
+  "profiles": {
+    "strict": {
+      "name": "Strict Filtering",
+      "description": "Only allow high-quality releases",
+      "min_score": 80,
+      "required_formats": [
+        "remux",
+        "web_dl"
+      ],
+      "blocked_formats": [
+        "cam",
+        "ts",
+        "r5"
+      ],
+      "min_seeders": 5,
+      "max_age_days": 30,
+      "language_filters": [
+        "english",
+        "multi"
+      ],
+      "subtitle_required": false,
+      "proper_preferred": true,
+      "repack_preferred": true
+    },
+    "permissive": {
+      "name": "Permissive Filtering",
+      "description": "Allow most releases with basic quality checks",
+      "min_score": 30,
+      "required_formats": [],
+      "blocked_formats": [
+        "cam"
+      ],
+      "min_seeders": 1,
+      "max_age_days": 365,
+      "language_filters": [
+        "english",
+        "multi",
+        "unknown"
+      ],
+      "subtitle_required": false,
+      "proper_preferred": true,
+      "repack_preferred": true
+    },
+    "arabic_preferred": {
+      "name": "Arabic Preferred",
+      "description": "Prefer releases with Arabic subtitles",
+      "min_score": 50,
+      "required_formats": [
+        "web_dl",
+        "webrip",
+        "hdtv"
+      ],
+      "blocked_formats": [
+        "cam",
+        "ts"
+      ],
+      "min_seeders": 2,
+      "max_age_days": 90,
+      "language_filters": [
+        "arabic",
+        "english",
+        "multi"
+      ],
+      "subtitle_required": true,
+      "subtitle_languages": [
+        "arabic",
+        "ar"
+      ],
+      "proper_preferred": true,
+      "repack_preferred": true,
+      "arabic_bonus": 20
+    }
+  },
+  "rss_automation": {
+    "enabled": true,
+    "check_interval_minutes": 15,
+    "auto_download": true,
+    "quality_profile": "balanced",
+    "filter_profile": "permissive",
+    "episode_detection": {
+      "patterns": [
+        "S(\\d{2})E(\\d{2})",
+        "(\\d{1,2})x(\\d{2})",
+        "Season\\s*(\\d+).*Episode\\s*(\\d+)"
+      ],
+      "anime_patterns": [
+        "(\\d{2,3})\\s*(?:v\\d+)?(?:\\s*\\[.*?\\])?$"
+      ]
+    },
+    "cutoff_management": {
+      "enabled": true,
+      "stop_on_cutoff": true,
+      "upgrade_until_cutoff": true
+    }
+  }
+}

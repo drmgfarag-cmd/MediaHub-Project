@@ -1,0 +1,1 @@
+Monaco will be auto-installed here into vs/ by Tools → Editor (Get/Update Monaco).

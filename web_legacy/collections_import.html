@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Collections Import</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/auth.js"></script>
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}</style>
+</head><body>
+<div class="wrap">
+  <a href="home.html">&larr; Home</a>
+  <h1>Collections Import</h1>
+  <div class="card">
+    <h3>Add a list</h3>
+    <input id="name" placeholder="Friendly name">
+    <select id="provider"><option value="imdb">IMDb</option><option value="tmdb">TMDb</option><option value="trakt">Trakt</option></select>
+    <input id="url" placeholder="List URL or ID">
+    <input id="int" placeholder="Refresh every (minutes)" value="1440">
+    <button onclick="add()">Add</button> <span id="msg"></span>
+  </div>
+  <div class="card">
+    <h3>Current imports</h3>
+    <table id="tbl" data-enhance="table"><thead><tr><th>Name</th><th>Provider</th><th>URL/ID</th><th>Interval</th><th>Last run</th><th>Actions</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+<script src="assets/table_prefs.js"></script>
+<script>
+async function load(){
+  const f=await (await fetch('/api/flags')).json(); if(!f.enable_collections_import){ document.body.innerHTML='<div class="wrap"><h2>Collections Import is disabled in Settings</h2></div>'; return; }
+  const j=await (await fetch('/api/collections/imports')).json();
+  const tb=document.querySelector('#tbl tbody'); tb.innerHTML='';
+  (j.imports||[]).forEach(it=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${it.name||''}</td><td>${it.provider}</td><td>${it.url}</td><td>${it.interval_min} min</td><td>${it.last_run||0}</td><td><button data-url="${it.url}">Refresh now</button></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('button').forEach(b=>b.addEventListener('click', async()=>{
+    await fetch('/api/collections/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:b.dataset.url})}); load();
+  }));
+}
+async function add(){
+  const body={name:document.getElementById('name').value, provider:document.getElementById('provider').value, url:document.getElementById('url').value, interval_min:document.getElementById('int').value};
+  const r=await fetch('/api/collections/imports',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  document.getElementById('msg').textContent = r.ok?'Saved':'Error'; load();
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch History - MediaHub</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #fff; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header h1 { font-size: 32px; font-weight: 700; }
+        .filters { display: flex; gap: 15px; margin-bottom: 25px; }
+        .filter-btn { padding: 10px 20px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #fff; cursor: pointer; transition: all 0.2s; }
+        .filter-btn:hover, .filter-btn.active { background: #e50914; border-color: #e50914; }
+        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .history-item { background: #1a1a1a; border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.2s; position: relative; }
+        .history-item:hover { transform: scale(1.05); }
+        .poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #333; }
+        .info { padding: 12px; }
+        .title { font-size: 14px; font-weight: 600; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .meta { font-size: 12px; color: #999; margin-bottom: 8px; }
+        .progress-bar { width: 100%; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #e50914; transition: width 0.3s; }
+        .completed-badge { position: absolute; top: 10px; right: 10px; background: #46d369; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+        .empty-state svg { width: 80px; height: 80px; margin-bottom: 20px; opacity: 0.3; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📺 Watch History</h1>
+            <button onclick="clearHistory()" style="padding: 10px 20px; background: #333; border: none; border-radius: 8px; color: #fff; cursor: pointer;">Clear History</button>
+        </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterHistory('all')">All</button>
+            <button class="filter-btn" onclick="filterHistory('movies')">Movies</button>
+            <button class="filter-btn" onclick="filterHistory('tv')">TV Shows</button>
+            <button class="filter-btn" onclick="filterHistory('completed')">Completed</button>
+            <button class="filter-btn" onclick="filterHistory('in-progress')">In Progress</button>
+        </div>
+        
+        <div id="history-container" class="history-grid">
+            <div class="loading">Loading watch history...</div>
+        </div>
+        
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            <h2>No Watch History</h2>
+            <p>Start watching something to see it here!</p>
+        </div>
+    </div>
+    
+    <script>
+        let allHistory = [];
+        let currentFilter = 'all';
+        
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/watch-history');
+                const data = await response.json();
+                allHistory = data.history || [];
+                renderHistory();
+            } catch (error) {
+                console.error('Error loading history:', error);
+                document.getElementById('history-container').innerHTML = '<div class="loading">Error loading history</div>';
+            }
+        }
+        
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            const emptyState = document.getElementById('empty-state');
+            
+            let filtered = allHistory;
+            
+            if (currentFilter === 'movies') {
+                filtered = allHistory.filter(item => item.media_type === 'movie');
+            } else if (currentFilter === 'tv') {
+                filtered = allHistory.filter(item => item.media_type === 'tv');
+            } else if (currentFilter === 'completed') {
+                filtered = allHistory.filter(item => item.completed);
+            } else if (currentFilter === 'in-progress') {
+                filtered = allHistory.filter(item => !item.completed && item.progress > 0);
+            }
+            
+            if (filtered.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            container.style.display = 'grid';
+            emptyState.style.display = 'none';
+            
+            container.innerHTML = filtered.map(item => {
+                const progressPercent = item.duration > 0 ? (item.progress / item.duration) * 100 : 0;
+                const timeAgo = getTimeAgo(item.last_watched);
+                
+                return `
+                    <div class="history-item" onclick="playMedia('${item.media_id}')">
+                        ${item.completed ? '<div class="completed-badge">✓ Completed</div>' : ''}
+                        <img class="poster" src="${item.poster_url || '/static/img/placeholder.jpg'}" alt="${item.title}">
+                        <div class="info">
+                            <div class="title">${item.title}</div>
+                            <div class="meta">${timeAgo}</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function filterHistory(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderHistory();
+        }
+        
+        async function clearHistory() {
+            if (!confirm('Are you sure you want to clear your watch history?')) return;
+            
+            try {
+                await fetch('/api/watch-history', { method: 'DELETE' });
+                allHistory = [];
+                renderHistory();
+            } catch (error) {
+                console.error('Error clearing history:', error);
+                alert('Failed to clear history');
+            }
+        }
+        
+        function playMedia(mediaId) {
+            window.location.href = `/player?id=${mediaId}`;
+        }
+        
+        function getTimeAgo(timestamp) {
+            const now = new Date();
+            const then = new Date(timestamp);
+            const seconds = Math.floor((now - then) / 1000);
+            
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+            return then.toLocaleDateString();
+        }
+        
+        // Load on page load
+        loadHistory();
+    </script>
+</body>
+</html>

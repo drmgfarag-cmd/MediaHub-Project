@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Top 50 Lists</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Top 50 Lists</strong></div>
+  <div id="out"></div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/toplists/dir')).json();
+  const out=document.getElementById('out'); out.innerHTML='';
+  const src=(j.sources||[]);
+  const card=document.createElement('div'); card.className='card'; 
+  card.innerHTML = `<p>Select a provider source, we will show cached top items (up to 50).</p>`;
+  const sel=document.createElement('select'); sel.id='sel'; src.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; sel.appendChild(o); }); card.appendChild(sel);
+  const btn=document.createElement('button'); btn.textContent='Show'; btn.onclick=()=>show(sel.value); card.appendChild(btn);
+  out.appendChild(card);
+}
+async function show(id){
+  const j=await (await fetch('/api/toplists/dir')).json();
+  const cache=(j.cache||{})[id]||[];
+  const list=document.createElement('div'); list.className='card';
+  list.innerHTML = `<strong>${id}</strong>`;
+  cache.slice(0,50).forEach(it=>{ const d=document.createElement('div'); d.textContent = (it.title||'') + (it.year? ' ('+it.year+')':''); list.appendChild(d); });
+  document.getElementById('out').appendChild(list);
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

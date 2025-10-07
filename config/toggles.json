@@ -1,0 +1,16 @@
+{
+  "clipboard_monitor": false,
+  "auto_parse_links": true,
+  "auto_apply_rules": true,
+  "auto_add_to_queue": false,
+  "auto_extract_archives": false,
+  "move_finished_to_library": true,
+  "editor_autosave": true,
+  "editor_trim_ws": false,
+  "editor_convert_eol": false,
+  "editor_tabs_to_spaces": false,
+  "editor_show_invisibles": false,
+  "editor_word_wrap": true,
+  "headless_mode": false,
+  "safe_mode": false
+}

@@ -1,0 +1,276 @@
+<!doctype html><html><head><meta charset="utf-8"><title>MediaHub - Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.dashboard-container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.dashboard-header h1 { margin: 0; font-size: 32px; color: #eee; }
+.dashboard-header .settings-link { padding: 10px 20px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 8px; text-decoration: none; font-size: 14px; transition: all 0.2s; }
+.dashboard-header .settings-link:hover { background: #6a8fff; }
+
+.pinned-cards { display: grid; gap: 20px; margin-bottom: 40px; }
+.pinned-cards.size-small { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.pinned-cards.size-medium { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.pinned-cards.size-large { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+
+.pinned-card { background: linear-gradient(135deg, #1b2130 0%, #252d3f 100%); border: 1px solid #2e3547; border-radius: 16px; padding: 24px; transition: all 0.3s; cursor: pointer; position: relative; overflow: hidden; }
+.pinned-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--card-color, #4f7cff); }
+.pinned-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); border-color: var(--card-color, #4f7cff); }
+
+.card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.card-icon { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; font-size: 24px; background: var(--card-color, #4f7cff); }
+.card-title { font-size: 20px; font-weight: 600; color: #eee; }
+
+.card-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+.stat-item { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px; }
+.stat-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.stat-value { font-size: 18px; font-weight: 600; color: #eee; }
+
+.card-quick-links { display: flex; flex-direction: column; gap: 8px; }
+.quick-link { display: block; padding: 10px 14px; background: rgba(255,255,255,0.05); border-radius: 8px; color: #aaa; text-decoration: none; font-size: 13px; transition: all 0.2s; }
+.quick-link:hover { background: rgba(255,255,255,0.1); color: #eee; }
+
+.content-rails { margin-top: 40px; }
+.rail { margin-bottom: 40px; }
+.rail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.rail-title { font-size: 22px; font-weight: 600; color: #eee; }
+.rail-more { color: #4f7cff; text-decoration: none; font-size: 14px; }
+.rail-more:hover { text-decoration: underline; }
+
+.rail-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.rail-item { background: #1b2130; border: 1px solid #2e3547; border-radius: 10px; padding: 12px; transition: all 0.2s; cursor: pointer; }
+.rail-item:hover { border-color: #4f7cff; transform: translateY(-2px); }
+.rail-item .item-title { font-size: 14px; font-weight: 500; color: #eee; margin-bottom: 6px; }
+.rail-item .item-meta { font-size: 12px; color: #aaa; }
+
+.hero-section { background: linear-gradient(135deg, #1b2130 0%, #2a3447 100%); border: 1px solid #2e3547; border-radius: 20px; padding: 40px; margin-bottom: 40px; position: relative; overflow: hidden; }
+.hero-section::before { content: ''; position: absolute; top: -50%; right: -20%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(79,124,255,0.15) 0%, transparent 70%); }
+.hero-content { position: relative; z-index: 1; }
+.hero-title { font-size: 36px; font-weight: 700; color: #eee; margin-bottom: 12px; }
+.hero-subtitle { font-size: 16px; color: #aaa; margin-bottom: 24px; }
+.hero-actions { display: flex; gap: 12px; }
+.hero-btn { padding: 12px 24px; border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+.hero-btn.primary { background: #4f7cff; color: #fff; border: 1px solid #4f7cff; }
+.hero-btn.primary:hover { background: #6a8fff; }
+.hero-btn.secondary { background: transparent; color: #eee; border: 1px solid #2e3547; }
+.hero-btn.secondary:hover { background: rgba(255,255,255,0.05); }
+
+@media (max-width: 768px) {
+  .pinned-cards { grid-template-columns: 1fr !important; }
+  .rail-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .hero-section { padding: 24px; }
+  .hero-title { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Unified Top Nav -->
+<style>
+#topnav{position:sticky;top:0;z-index:1200;background:linear-gradient(180deg, rgba(8,12,20,.86), rgba(8,12,20,.38) 60%, rgba(8,12,20,0) 100%);backdrop-filter:saturate(140%) blur(8px);padding:8px 12px;display:flex;gap:12px;align-items:center}
+#topnav a{color:#e8ebf5;text-decoration:none;padding:6px 10px;border-radius:8px}
+#topnav a.cur{background:rgba(255,255,255,.06)}
+#navtoggle{position:fixed;left:12px;top:12px;z-index:1300;background:#0b1220;border:1px solid#1f2537;border-radius:10px;padding:6px 8px;cursor:pointer}
+</style>
+<div id="navtoggle">☰</div>
+<div id="topnav">
+  <a href="home_enhanced.html" id="nav_home" class="cur">MediaHub</a>
+  <a href="discovery.html" id="nav_disc">Discovery</a>
+  <a href="downloader.html" id="nav_dl">Downloader</a>
+  <a href="rd_manager.html" id="nav_rd">RD Manager</a>
+  <a href="editor_pro.html" id="nav_ed">Editor</a>
+  <span style="flex:1"></span>
+  <a href="tools.html">Tools</a>
+</div>
+
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Welcome back!</h1>
+    <a href="dashboard_settings.html" class="settings-link">⚙️ Customize Dashboard</a>
+  </div>
+
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <div class="hero-title">Your Media, Your Way</div>
+      <div class="hero-subtitle">Explore your collection, discover new content, and manage everything in one place</div>
+      <div class="hero-actions">
+        <a href="discovery.html" class="hero-btn primary">Discover Content</a>
+        <a href="downloader.html" class="hero-btn secondary">Start Download</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pinned Cards -->
+  <div class="pinned-cards" id="pinned_cards"></div>
+
+  <!-- Content Rails -->
+  <div class="content-rails">
+    <div class="rail">
+      <div class="rail-header">
+        <div class="rail-title">Recently Added</div>
+        <a href="#" class="rail-more">View all →</a>
+      </div>
+      <div class="rail-items" id="rail_recent"></div>
+    </div>
+
+    <div class="rail">
+      <div class="rail-header">
+        <div class="rail-title">Continue Watching</div>
+        <a href="#" class="rail-more">View all →</a>
+      </div>
+      <div class="rail-items" id="rail_watching"></div>
+    </div>
+
+    <div class="rail">
+      <div class="rail-header">
+        <div class="rail-title">Top Rated</div>
+        <a href="#" class="rail-more">View all →</a>
+      </div>
+      <div class="rail-items" id="rail_top"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Load dashboard configuration
+async function loadDashboard() {
+  try {
+    const response = await fetch('/api/dashboard/config');
+    const data = await response.json();
+    
+    if (data.ok) {
+      const config = data.config;
+      renderPinnedCards(config.pinned_cards, config.layout_preferences);
+      loadContentRails();
+    }
+  } catch (e) {
+    console.error('Error loading dashboard:', e);
+    // Show default cards
+    renderDefaultCards();
+  }
+}
+
+function renderPinnedCards(cards, layout) {
+  const container = document.getElementById('pinned_cards');
+  
+  // Apply layout preferences
+  const size = layout?.card_size || 'medium';
+  container.className = `pinned-cards size-${size}`;
+  
+  // Filter enabled cards and sort by position
+  const enabledCards = cards.filter(c => c.enabled !== false).sort((a, b) => a.position - b.position);
+  
+  container.innerHTML = enabledCards.map(card => {
+    const showStats = layout?.show_stats !== false;
+    const showQuickLinks = layout?.show_quick_links !== false;
+    
+    return `
+      <div class="pinned-card" style="--card-color: ${card.color};">
+        <div class="card-header">
+          <div class="card-icon" style="background: ${card.color};">
+            ${getIcon(card.icon)}
+          </div>
+          <div class="card-title">${card.title}</div>
+        </div>
+        
+        ${showStats ? `
+          <div class="card-stats">
+            <div class="stat-item">
+              <div class="stat-label">Total</div>
+              <div class="stat-value">${Math.floor(Math.random() * 500) + 100}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Recent</div>
+              <div class="stat-value">${Math.floor(Math.random() * 50) + 10}</div>
+            </div>
+          </div>
+        ` : ''}
+        
+        ${showQuickLinks && card.quick_links ? `
+          <div class="card-quick-links">
+            ${card.quick_links.map(link => `
+              <a href="${link.path}" class="quick-link">${link.label}</a>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function getIcon(iconName) {
+  const icons = {
+    'film': '🎬',
+    'tv': '📺',
+    'book': '📚',
+    'music': '🎵'
+  };
+  return icons[iconName] || '📁';
+}
+
+function renderDefaultCards() {
+  const defaultCards = [
+    { id: 'movies', title: 'Movies', icon: 'film', color: '#e50914', enabled: true, position: 0, quick_links: [] },
+    { id: 'tv', title: 'TV Shows', icon: 'tv', color: '#0080ff', enabled: true, position: 1, quick_links: [] },
+    { id: 'books', title: 'Books', icon: 'book', color: '#ff9500', enabled: true, position: 2, quick_links: [] },
+    { id: 'audio', title: 'Audio', icon: 'music', color: '#1db954', enabled: true, position: 3, quick_links: [] }
+  ];
+  
+  renderPinnedCards(defaultCards, { card_size: 'medium', show_stats: true, show_quick_links: true });
+}
+
+function loadContentRails() {
+  // Sample data for rails
+  const recentItems = [
+    { title: 'The Matrix', type: 'Movie', year: '1999' },
+    { title: 'Breaking Bad', type: 'TV Show', year: '2008' },
+    { title: 'Dune', type: 'Book', year: '1965' },
+    { title: 'Inception', type: 'Movie', year: '2010' },
+    { title: 'Game of Thrones', type: 'TV Show', year: '2011' },
+    { title: '1984', type: 'Book', year: '1949' }
+  ];
+  
+  const watchingItems = [
+    { title: 'Stranger Things', type: 'TV Show', progress: '65%' },
+    { title: 'The Witcher', type: 'TV Show', progress: '42%' },
+    { title: 'Foundation', type: 'TV Show', progress: '88%' }
+  ];
+  
+  const topItems = [
+    { title: 'The Shawshank Redemption', type: 'Movie', rating: '9.3' },
+    { title: 'The Godfather', type: 'Movie', rating: '9.2' },
+    { title: 'The Dark Knight', type: 'Movie', rating: '9.0' },
+    { title: 'Breaking Bad', type: 'TV Show', rating: '9.5' },
+    { title: 'The Wire', type: 'TV Show', rating: '9.3' }
+  ];
+  
+  document.getElementById('rail_recent').innerHTML = recentItems.map(item => `
+    <div class="rail-item">
+      <div class="item-title">${item.title}</div>
+      <div class="item-meta">${item.type} · ${item.year}</div>
+    </div>
+  `).join('');
+  
+  document.getElementById('rail_watching').innerHTML = watchingItems.map(item => `
+    <div class="rail-item">
+      <div class="item-title">${item.title}</div>
+      <div class="item-meta">${item.type} · ${item.progress}</div>
+    </div>
+  `).join('');
+  
+  document.getElementById('rail_top').innerHTML = topItems.map(item => `
+    <div class="rail-item">
+      <div class="item-title">${item.title}</div>
+      <div class="item-meta">${item.type} · ⭐ ${item.rating}</div>
+    </div>
+  `).join('');
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+</body></html>

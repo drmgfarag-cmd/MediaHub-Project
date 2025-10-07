@@ -1,0 +1,22 @@
+
+version: "3.9"
+services:
+  mediahub:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./storage:/app/storage
+      - ./downloads:/app/downloads
+      - ./bin:/app/bin
+    environment:
+      - FLASK_RUN_PORT=5000
+  aria2:
+    image: p3terx/aria2-pro
+    restart: unless-stopped
+    ports:
+      - "6800:6800"
+    environment:
+      - RPC_SECRET=changeme
+    volumes:
+      - ./downloads:/downloads

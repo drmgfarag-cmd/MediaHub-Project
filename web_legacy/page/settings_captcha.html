@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Captcha</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0f1115;color:#e7ecf1}
+.card{background:#10141d;border:1px solid #222632;border-radius:12px;padding:12px;margin:12px}
+button,input{padding:6px 10px;border:1px solid #2a3040;border-radius:8px;background:#12151d;color:#e7ecf1}
+button:hover{background:#1b2330}
+.badge{padding:2px 6px;border-radius:999px;border:1px solid #2a3040;background:#171a21;font-size:12px;margin-left:6px}
+</style></head><body>
+<div class="card">
+  <h2 style="margin:0 0 8px 0">Captcha Solver Priority</h2>
+  <div><label><input type="checkbox" id="enabled"> Enable</label> <label><input type="checkbox" id="sound"> Sound</label></div>
+  <div id="list" style="margin-top:8px"></div>
+  <div style="margin-top:8px"><button onclick="save()">Save</button></div>
+</div>
+<script>
+let ORDER=[];
+async function refresh(){
+  const r=await fetch('/api/captcha/prefs/get'); const j=await r.json();
+  document.getElementById('enabled').checked=!!j.enabled; document.getElementById('sound').checked=!!j.sound;
+  ORDER=[...(j.order||[])]; render();
+}
+function render(){
+  const box=document.getElementById('list'); box.innerHTML='';
+  ORDER.forEach((id,i)=>{
+    const row=document.createElement('div'); row.style.margin='6px 0';
+    row.innerHTML = `${i+1}. <b>${id}</b> <button onclick="up(${i})">▲</button> <button onclick="down(${i})">▼</button>`;
+    box.appendChild(row);
+  });
+}
+function up(i){ if(i<=0) return; const t=ORDER[i-1]; ORDER[i-1]=ORDER[i]; ORDER[i]=t; render(); }
+function down(i){ if(i>=ORDER.length-1) return; const t=ORDER[i+1]; ORDER[i+1]=ORDER[i]; ORDER[i]=t; render(); }
+async function save(){
+  const enabled=document.getElementById('enabled').checked; const sound=document.getElementById('sound').checked;
+  await fetch('/api/captcha/prefs/set',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({enabled, sound, order: ORDER})});
+  alert('Saved.');
+}
+document.addEventListener('DOMContentLoaded', refresh);
+</script>
+</body></html>

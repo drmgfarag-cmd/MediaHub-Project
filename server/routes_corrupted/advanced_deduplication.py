@@ -1,0 +1,1102 @@
+"""
+Advanced Deduplication System - Complete Filtering and Scoring Implementation
+Phase 1 Implementation - Restoring the evolved deduplication system
+Based on the Ultimate Complete Integrated Plan and user corrections
+"""
+
+from flask import Blueprint, jsonify, request
+import os
+import json
+import logging
+import hashlib
+import re
+from datetime import datetime
+from typing import Dict, List, Any, Optional, Tuple
+from collections import defaultdict
+import difflib
+
+advanced_dedup_bp = Blueprint('advanced_deduplication', __name__)
+logger = logging.getLogger(__name__)
+
+# Configuration
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+STORAGE_DIR = os.path.join(ROOT, 'storage')
+DEDUP_CONFIG_DIR = os.path.join(STORAGE_DIR, 'deduplication')
+QUALITY_PROFILES_FILE = os.path.join(DEDUP_CONFIG_DIR, 'quality_profiles.json')
+FILTER_PROFILES_FILE = os.path.join(DEDUP_CONFIG_DIR, 'filter_profiles.json')
+SCENE_GROUPS_FILE = os.path.join(DEDUP_CONFIG_DIR, 'scene_groups.json')
+HASH_INDEX_FILE = os.path.join(DEDUP_CONFIG_DIR, 'hash_index.json')
+
+# Ensure directories exist
+os.makedirs(DEDUP_CONFIG_DIR, exist_ok=True)
+
+# Global state
+hash_index = {}
+quality_profiles = {}
+filter_profiles = {}
+scene_groups_config = {}
+
+class AdvancedDeduplicationEngine:
+    """Complete deduplication system with advanced filtering and scoring"""
+    
+    def __init__(self):
+        self.load_configurations()
+        self.load_hash_index()
+        
+    def load_configurations(self):
+        """Load all deduplication configurations"""
+        self.load_quality_profiles()
+        self.load_filter_profiles()
+        self.load_scene_groups()
+    
+    def load_quality_profiles(self):
+        """Load quality profiles configuration"""
+        global quality_profiles
+        try:
+            if os.path.exists(QUALITY_PROFILES_FILE):
+                with open(QUALITY_PROFILES_FILE, 'r', encoding='utf-8') as f:
+                    quality_profiles = json.load(f)
+            else:
+                quality_profiles = self.get_default_quality_profiles()
+                self.save_quality_profiles()
+        except Exception as e:
+            logger.error(f"Error loading quality profiles: {e}")
+            quality_profiles = self.get_default_quality_profiles()
+    
+    def get_default_quality_profiles(self) -> Dict[str, Any]:
+        """Get default quality profiles configuration"""
+        return {
+            "profiles": {
+                "ultra_hq": {
+                    "name": "Ultra High Quality",
+                    "description": "Best possible quality, no compromises",
+                    "resolution_preference": ["2160p", "1080p", "720p"],
+                    "codec_preference": ["x265", "x264", "xvid"],
+                    "source_preference": ["BluRay", "WEB-DL", "WEBRip", "HDTV"],
+                    "hdr_preference": ["DV", "HDR10+", "HDR10", "SDR"],
+                    "audio_preference": ["Atmos", "DTS-X", "TrueHD", "DTS", "AC3", "AAC"],
+                    "cutoff_quality": "2160p BluRay x265 DV Atmos",
+                    "min_size_gb": 5.0,
+                    "max_size_gb": 100.0,
+                    "scoring": {
+                        "resolution_weight": 100,
+                        "codec_weight": 80,
+                        "source_weight": 70,
+                        "hdr_weight": 60,
+                        "audio_weight": 50,
+                        "group_weight": 40,
+                        "size_weight": 30
+                    }
+                },
+                "balanced": {
+                    "name": "Balanced Quality",
+                    "description": "Good quality with reasonable file sizes",
+                    "resolution_preference": ["1080p", "2160p", "720p"],
+                    "codec_preference": ["x265", "x264"],
+                    "source_preference": ["WEB-DL", "BluRay", "WEBRip", "HDTV"],
+                    "hdr_preference": ["HDR10", "DV", "SDR"],
+                    "audio_preference": ["DTS", "AC3", "AAC", "Atmos"],
+                    "cutoff_quality": "1080p WEB-DL x265 HDR10",
+                    "min_size_gb": 1.0,
+                    "max_size_gb": 25.0,
+                    "scoring": {
+                        "resolution_weight": 80,
+                        "codec_weight": 70,
+                        "source_weight": 60,
+                        "hdr_weight": 40,
+                        "audio_weight": 30,
+                        "group_weight": 50,
+                        "size_weight": 60
+                    }
+                },
+                "space_saver": {
+                    "name": "Space Saver",
+                    "description": "Prioritize smaller file sizes while maintaining watchable quality",
+                    "resolution_preference": ["720p", "1080p"],
+                    "codec_preference": ["x265", "x264"],
+                    "source_preference": ["WEBRip", "WEB-DL", "HDTV"],
+                    "hdr_preference": ["SDR"],
+                    "audio_preference": ["AAC", "AC3"],
+                    "cutoff_quality": "720p WEBRip x265",
+                    "min_size_gb": 0.5,
+                    "max_size_gb": 5.0,
+                    "scoring": {
+                        "resolution_weight": 50,
+                        "codec_weight": 80,
+                        "source_weight": 40,
+                        "hdr_weight": 10,
+                        "audio_weight": 20,
+                        "group_weight": 30,
+                        "size_weight": 100
+                    }
+                }
+            },
+            "custom_formats": {
+                "remux": {
+                    "name": "Remux",
+                    "patterns": ["remux", "untouched"],
+                    "score": 100,
+                    "description": "Untouched BluRay/UHD rips"
+                },
+                "web_dl": {
+                    "name": "WEB-DL",
+                    "patterns": ["web-dl", "webdl"],
+                    "score": 80,
+                    "description": "Direct web downloads"
+                },
+                "webrip": {
+                    "name": "WEBRip",
+                    "patterns": ["webrip", "web-rip"],
+                    "score": 70,
+                    "description": "Web captures"
+                },
+                "hdtv": {
+                    "name": "HDTV",
+                    "patterns": ["hdtv"],
+                    "score": 50,
+                    "description": "TV broadcasts"
+                },
+                "cam": {
+                    "name": "CAM/TS",
+                    "patterns": ["cam", "ts", "tc", "r5"],
+                    "score": -100,
+                    "description": "Low quality captures"
+                }
+            }
+        }
+    
+    def load_filter_profiles(self):
+        """Load filter profiles configuration"""
+        global filter_profiles
+        try:
+            if os.path.exists(FILTER_PROFILES_FILE):
+                with open(FILTER_PROFILES_FILE, 'r', encoding='utf-8') as f:
+                    filter_profiles = json.load(f)
+            else:
+                filter_profiles = self.get_default_filter_profiles()
+                self.save_filter_profiles()
+        except Exception as e:
+            logger.error(f"Error loading filter profiles: {e}")
+            filter_profiles = self.get_default_filter_profiles()
+    
+    def get_default_filter_profiles(self) -> Dict[str, Any]:
+        """Get default filter profiles configuration"""
+        return {
+            "profiles": {
+                "strict": {
+                    "name": "Strict Filtering",
+                    "description": "Only allow high-quality releases",
+                    "min_score": 80,
+                    "required_formats": ["remux", "web_dl"],
+                    "blocked_formats": ["cam", "ts", "r5"],
+                    "min_seeders": 5,
+                    "max_age_days": 30,
+                    "language_filters": ["english", "multi"],
+                    "subtitle_required": False,
+                    "proper_preferred": True,
+                    "repack_preferred": True
+                },
+                "permissive": {
+                    "name": "Permissive Filtering",
+                    "description": "Allow most releases with basic quality checks",
+                    "min_score": 30,
+                    "required_formats": [],
+                    "blocked_formats": ["cam"],
+                    "min_seeders": 1,
+                    "max_age_days": 365,
+                    "language_filters": ["english", "multi", "unknown"],
+                    "subtitle_required": False,
+                    "proper_preferred": True,
+                    "repack_preferred": True
+                },
+                "arabic_preferred": {
+                    "name": "Arabic Preferred",
+                    "description": "Prefer releases with Arabic subtitles",
+                    "min_score": 50,
+                    "required_formats": ["web_dl", "webrip", "hdtv"],
+                    "blocked_formats": ["cam", "ts"],
+                    "min_seeders": 2,
+                    "max_age_days": 90,
+                    "language_filters": ["arabic", "english", "multi"],
+                    "subtitle_required": True,
+                    "subtitle_languages": ["arabic", "ar"],
+                    "proper_preferred": True,
+                    "repack_preferred": True,
+                    "arabic_bonus": 20
+                }
+            },
+            "rss_automation": {
+                "enabled": True,
+                "check_interval_minutes": 15,
+                "auto_download": True,
+                "quality_profile": "balanced",
+                "filter_profile": "permissive",
+                "episode_detection": {
+                    "patterns": [
+                        r"S(\d{2})E(\d{2})",
+                        r"(\d{1,2})x(\d{2})",
+                        r"Season\s*(\d+).*Episode\s*(\d+)"
+                    ],
+                    "anime_patterns": [
+                        r"(\d{2,3})\s*(?:v\d+)?(?:\s*\[.*?\])?$"
+                    ]
+                },
+                "cutoff_management": {
+                    "enabled": True,
+                    "stop_on_cutoff": True,
+                    "upgrade_until_cutoff": True
+                }
+            }
+        }
+    
+    def load_scene_groups(self):
+        """Load scene groups configuration"""
+        global scene_groups_config
+        try:
+            if os.path.exists(SCENE_GROUPS_FILE):
+                with open(SCENE_GROUPS_FILE, 'r', encoding='utf-8') as f:
+                    scene_groups_config = json.load(f)
+            else:
+                scene_groups_config = self.get_default_scene_groups()
+                self.save_scene_groups()
+        except Exception as e:
+            logger.error(f"Error loading scene groups: {e}")
+            scene_groups_config = self.get_default_scene_groups()
+    
+    def get_default_scene_groups(self) -> Dict[str, Any]:
+        """Get default scene groups configuration with drag-and-drop reordering"""
+        return {
+            "tiers": {
+                "tier1": {
+                    "name": "Premium Groups",
+                    "score_multiplier": 1.5,
+                    "groups": [
+                        {"name": "CtrlHD", "score": 100, "specialties": ["4K", "HDR", "Remux"]},
+                        {"name": "FraMeSToR", "score": 95, "specialties": ["BluRay", "4K"]},
+                        {"name": "KRaLiMaRKo", "score": 90, "specialties": ["WEB-DL", "4K"]},
+                        {"name": "HONE", "score": 88, "specialties": ["WEB-DL", "HDR"]},
+                        {"name": "FLUX", "score": 85, "specialties": ["WEB-DL", "1080p"]},
+                        {"name": "NTb", "score": 83, "specialties": ["WEB-DL", "TV"]},
+                        {"name": "TOMMY", "score": 80, "specialties": ["WEB-DL", "Movies"]}
+                    ]
+                },
+                "tier2": {
+                    "name": "Good Groups",
+                    "score_multiplier": 1.2,
+                    "groups": [
+                        {"name": "Cytsunee", "score": 75, "specialties": ["WEB-DL", "1080p"]},
+                        {"name": "RARBG", "score": 70, "specialties": ["General", "Popular"]},
+                        {"name": "YTS", "score": 65, "specialties": ["Movies", "Small Size"]},
+                        {"name": "EZTV", "score": 60, "specialties": ["TV Shows", "Fast"]},
+                        {"name": "TGx", "score": 58, "specialties": ["General", "Variety"]},
+                        {"name": "1337x", "score": 55, "specialties": ["General", "Community"]}
+                    ]
+                },
+                "tier3": {
+                    "name": "Acceptable Groups",
+                    "score_multiplier": 1.0,
+                    "groups": [
+                        {"name": "OFT", "score": 50, "specialties": ["General"]},
+                        {"name": "PublicHD", "score": 45, "specialties": ["HD", "General"]},
+                        {"name": "YIFY", "score": 40, "specialties": ["Movies", "Compressed"]},
+                        {"name": "Unknown", "score": 30, "specialties": ["Various"]}
+                    ]
+                },
+                "blocked": {
+                    "name": "Blocked Groups",
+                    "score_multiplier": 0.0,
+                    "groups": [
+                        {"name": "KORSUB", "score": 0, "reason": "Korean subtitles hardcoded"},
+                        {"name": "HC", "score": 0, "reason": "Hardcoded subtitles"},
+                        {"name": "CAM", "score": 0, "reason": "Camera rips"}
+                    ]
+                }
+            },
+            "custom_rules": {
+                "preferred_patterns": [
+                    {"pattern": "PROPER", "bonus": 10, "description": "Proper releases"},
+                    {"pattern": "REPACK", "bonus": 15, "description": "Repacked releases"},
+                    {"pattern": "INTERNAL", "bonus": 5, "description": "Internal releases"},
+                    {"pattern": "Arabic", "bonus": 20, "description": "Arabic content"},
+                    {"pattern": "MULTI", "bonus": 8, "description": "Multi-language"}
+                ],
+                "penalty_patterns": [
+                    {"pattern": "KORSUB", "penalty": 50, "description": "Korean subtitles"},
+                    {"pattern": "HC", "penalty": 30, "description": "Hardcoded subtitles"},
+                    {"pattern": "DUBBED", "penalty": 20, "description": "Dubbed audio"},
+                    {"pattern": "TS", "penalty": 40, "description": "Telesync quality"},
+                    {"pattern": "CAM", "penalty": 60, "description": "Camera rip"}
+                ]
+            },
+            "reorder_history": [],
+            "last_updated": datetime.now().isoformat()
+        }
+    
+    def load_hash_index(self):
+        """Load hash index for deduplication"""
+        global hash_index
+        try:
+            if os.path.exists(HASH_INDEX_FILE):
+                with open(HASH_INDEX_FILE, 'r', encoding='utf-8') as f:
+                    hash_index = json.load(f)
+            else:
+                hash_index = {}
+                self.save_hash_index()
+        except Exception as e:
+            logger.error(f"Error loading hash index: {e}")
+            hash_index = {}
+    
+    def save_quality_profiles(self):
+        """Save quality profiles to storage"""
+        try:
+            with open(QUALITY_PROFILES_FILE, 'w', encoding='utf-8') as f:
+                json.dump(quality_profiles, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving quality profiles: {e}")
+    
+    def save_filter_profiles(self):
+        """Save filter profiles to storage"""
+        try:
+            with open(FILTER_PROFILES_FILE, 'w', encoding='utf-8') as f:
+                json.dump(filter_profiles, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving filter profiles: {e}")
+    
+    def save_scene_groups(self):
+        """Save scene groups configuration to storage"""
+        try:
+            with open(SCENE_GROUPS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(scene_groups_config, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving scene groups: {e}")
+    
+    def save_hash_index(self):
+        """Save hash index to storage"""
+        try:
+            with open(HASH_INDEX_FILE, 'w', encoding='utf-8') as f:
+                json.dump(hash_index, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving hash index: {e}")
+    
+    def calculate_release_score(self, release_info: Dict[str, Any], 
+                              quality_profile: str = "balanced") -> Dict[str, Any]:
+        """Calculate comprehensive score for a release"""
+        profile = quality_profiles.get("profiles", {}).get(quality_profile, {})
+        if not profile:
+            raise ValueError(f"Quality profile '{quality_profile}' not found")
+        
+        scoring_weights = profile.get("scoring", {})
+        total_score = 0
+        score_breakdown = {}
+        
+        # Resolution scoring
+        resolution = self.extract_resolution(release_info.get("name", ""))
+        resolution_preferences = profile.get("resolution_preference", [])
+        resolution_score = self.calculate_preference_score(resolution, resolution_preferences)
+        resolution_weighted = resolution_score * scoring_weights.get("resolution_weight", 0) / 100
+        total_score += resolution_weighted
+        score_breakdown["resolution"] = {
+            "value": resolution,
+            "score": resolution_score,
+            "weighted": resolution_weighted
+        }
+        
+        # Codec scoring
+        codec = self.extract_codec(release_info.get("name", ""))
+        codec_preferences = profile.get("codec_preference", [])
+        codec_score = self.calculate_preference_score(codec, codec_preferences)
+        codec_weighted = codec_score * scoring_weights.get("codec_weight", 0) / 100
+        total_score += codec_weighted
+        score_breakdown["codec"] = {
+            "value": codec,
+            "score": codec_score,
+            "weighted": codec_weighted
+        }
+        
+        # Source scoring
+        source = self.extract_source(release_info.get("name", ""))
+        source_preferences = profile.get("source_preference", [])
+        source_score = self.calculate_preference_score(source, source_preferences)
+        source_weighted = source_score * scoring_weights.get("source_weight", 0) / 100
+        total_score += source_weighted
+        score_breakdown["source"] = {
+            "value": source,
+            "score": source_score,
+            "weighted": source_weighted
+        }
+        
+        # HDR scoring
+        hdr = self.extract_hdr(release_info.get("name", ""))
+        hdr_preferences = profile.get("hdr_preference", [])
+        hdr_score = self.calculate_preference_score(hdr, hdr_preferences)
+        hdr_weighted = hdr_score * scoring_weights.get("hdr_weight", 0) / 100
+        total_score += hdr_weighted
+        score_breakdown["hdr"] = {
+            "value": hdr,
+            "score": hdr_score,
+            "weighted": hdr_weighted
+        }
+        
+        # Audio scoring
+        audio = self.extract_audio(release_info.get("name", ""))
+        audio_preferences = profile.get("audio_preference", [])
+        audio_score = self.calculate_preference_score(audio, audio_preferences)
+        audio_weighted = audio_score * scoring_weights.get("audio_weight", 0) / 100
+        total_score += audio_weighted
+        score_breakdown["audio"] = {
+            "value": audio,
+            "score": audio_score,
+            "weighted": audio_weighted
+        }
+        
+        # Scene group scoring
+        group = self.extract_scene_group(release_info.get("name", ""))
+        group_score = self.calculate_scene_group_score(group)
+        group_weighted = group_score * scoring_weights.get("group_weight", 0) / 100
+        total_score += group_weighted
+        score_breakdown["group"] = {
+            "value": group,
+            "score": group_score,
+            "weighted": group_weighted
+        }
+        
+        # Size scoring
+        size_gb = release_info.get("size_gb", 0)
+        size_score = self.calculate_size_score(size_gb, profile)
+        size_weighted = size_score * scoring_weights.get("size_weight", 0) / 100
+        total_score += size_weighted
+        score_breakdown["size"] = {
+            "value": f"{size_gb:.2f} GB",
+            "score": size_score,
+            "weighted": size_weighted
+        }
+        
+        # Custom format bonuses
+        custom_format_score = self.calculate_custom_format_score(release_info.get("name", ""))
+        total_score += custom_format_score
+        score_breakdown["custom_formats"] = {
+            "score": custom_format_score,
+            "weighted": custom_format_score
+        }
+        
+        # Pattern bonuses and penalties
+        pattern_score = self.calculate_pattern_score(release_info.get("name", ""))
+        total_score += pattern_score
+        score_breakdown["patterns"] = {
+            "score": pattern_score,
+            "weighted": pattern_score
+        }
+        
+        return {
+            "total_score": round(total_score, 2),
+            "breakdown": score_breakdown,
+            "quality_profile": quality_profile,
+            "meets_cutoff": self.meets_cutoff_quality(release_info, profile),
+            "within_size_limits": self.within_size_limits(size_gb, profile)
+        }
+    
+    def extract_resolution(self, name: str) -> str:
+        """Extract resolution from release name"""
+        name_lower = name.lower()
+        if "2160p" in name_lower or "4k" in name_lower:
+            return "2160p"
+        elif "1080p" in name_lower:
+            return "1080p"
+        elif "720p" in name_lower:
+            return "720p"
+        elif "480p" in name_lower:
+            return "480p"
+        else:
+            return "unknown"
+    
+    def extract_codec(self, name: str) -> str:
+        """Extract codec from release name"""
+        name_lower = name.lower()
+        if "x265" in name_lower or "hevc" in name_lower:
+            return "x265"
+        elif "x264" in name_lower or "avc" in name_lower:
+            return "x264"
+        elif "xvid" in name_lower:
+            return "xvid"
+        else:
+            return "unknown"
+    
+    def extract_source(self, name: str) -> str:
+        """Extract source from release name"""
+        name_lower = name.lower()
+        if "remux" in name_lower:
+            return "BluRay"
+        elif "bluray" in name_lower or "bdrip" in name_lower:
+            return "BluRay"
+        elif "web-dl" in name_lower or "webdl" in name_lower:
+            return "WEB-DL"
+        elif "webrip" in name_lower or "web-rip" in name_lower:
+            return "WEBRip"
+        elif "hdtv" in name_lower:
+            return "HDTV"
+        elif "dvdrip" in name_lower:
+            return "DVD"
+        else:
+            return "unknown"
+    
+    def extract_hdr(self, name: str) -> str:
+        """Extract HDR information from release name"""
+        name_lower = name.lower()
+        if "dv" in name_lower or "dolby.vision" in name_lower:
+            return "DV"
+        elif "hdr10+" in name_lower:
+            return "HDR10+"
+        elif "hdr10" in name_lower or "hdr" in name_lower:
+            return "HDR10"
+        else:
+            return "SDR"
+    
+    def extract_audio(self, name: str) -> str:
+        """Extract audio information from release name"""
+        name_lower = name.lower()
+        if "atmos" in name_lower:
+            return "Atmos"
+        elif "dts-x" in name_lower:
+            return "DTS-X"
+        elif "truehd" in name_lower:
+            return "TrueHD"
+        elif "dts" in name_lower:
+            return "DTS"
+        elif "ac3" in name_lower:
+            return "AC3"
+        elif "aac" in name_lower:
+            return "AAC"
+        else:
+            return "unknown"
+    
+    def extract_scene_group(self, name: str) -> str:
+        """Extract scene group from release name"""
+        # Try to find group in brackets or after dash
+        patterns = [
+            r'\[([^\]]+)\]$',  # [GROUP] at end
+            r'-([^-]+)$',      # -GROUP at end
+            r'\.([^.]+)$'      # .GROUP at end
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, name)
+            if match:
+                potential_group = match.group(1)
+                # Check if it's a known scene group
+                if self.is_known_scene_group(potential_group):
+                    return potential_group
+        
+        return "unknown"
+    
+    def is_known_scene_group(self, group: str) -> bool:
+        """Check if group is in our scene groups database"""
+        group_lower = group.lower()
+        for tier_data in scene_groups_config.get("tiers", {}).values():
+            for group_info in tier_data.get("groups", []):
+                if group_info.get("name", "").lower() == group_lower:
+                    return True
+        return False
+    
+    def calculate_preference_score(self, value: str, preferences: List[str]) -> int:
+        """Calculate score based on preference order"""
+        if not value or not preferences:
+            return 0
+        
+        value_lower = value.lower()
+        for i, pref in enumerate(preferences):
+            if pref.lower() == value_lower:
+                # Higher score for higher preference (first item gets highest score)
+                return 100 - (i * 10)
+        
+        return 0  # Not in preferences
+    
+    def calculate_scene_group_score(self, group: str) -> int:
+        """Calculate score for scene group"""
+        if not group or group == "unknown":
+            return 0
+        
+        group_lower = group.lower()
+        
+        # Find group in tiers
+        for tier_name, tier_data in scene_groups_config.get("tiers", {}).items():
+            for group_info in tier_data.get("groups", []):
+                if group_info.get("name", "").lower() == group_lower:
+                    base_score = group_info.get("score", 0)
+                    multiplier = tier_data.get("score_multiplier", 1.0)
+                    return int(base_score * multiplier)
+        
+        return 0
+    
+    def calculate_size_score(self, size_gb: float, profile: Dict[str, Any]) -> int:
+        """Calculate score based on file size preferences"""
+        min_size = profile.get("min_size_gb", 0)
+        max_size = profile.get("max_size_gb", 100)
+        
+        if size_gb < min_size:
+            return 0  # Too small
+        elif size_gb > max_size:
+            return 0  # Too large
+        else:
+            # Score based on how close to ideal size range
+            ideal_range = (min_size + max_size) / 2
+            distance_from_ideal = abs(size_gb - ideal_range) / ideal_range
+            return max(0, int(100 - (distance_from_ideal * 100)))
+    
+    def calculate_custom_format_score(self, name: str) -> int:
+        """Calculate score from custom formats"""
+        total_score = 0
+        name_lower = name.lower()
+        
+        custom_formats = quality_profiles.get("custom_formats", {})
+        for format_info in custom_formats.values():
+            patterns = format_info.get("patterns", [])
+            for pattern in patterns:
+                if pattern.lower() in name_lower:
+                    total_score += format_info.get("score", 0)
+                    break  # Only count each format once
+        
+        return total_score
+    
+    def calculate_pattern_score(self, name: str) -> int:
+        """Calculate score from preferred/penalty patterns"""
+        total_score = 0
+        name_lower = name.lower()
+        
+        custom_rules = scene_groups_config.get("custom_rules", {})
+        
+        # Preferred patterns (bonuses)
+        for pattern_info in custom_rules.get("preferred_patterns", []):
+            pattern = pattern_info.get("pattern", "").lower()
+            if pattern in name_lower:
+                total_score += pattern_info.get("bonus", 0)
+        
+        # Penalty patterns
+        for pattern_info in custom_rules.get("penalty_patterns", []):
+            pattern = pattern_info.get("pattern", "").lower()
+            if pattern in name_lower:
+                total_score -= pattern_info.get("penalty", 0)
+        
+        return total_score
+    
+    def meets_cutoff_quality(self, release_info: Dict[str, Any], profile: Dict[str, Any]) -> bool:
+        """Check if release meets cutoff quality"""
+        cutoff = profile.get("cutoff_quality", "")
+        if not cutoff:
+            return True
+        
+        # Simple implementation - check if release name contains cutoff elements
+        name = release_info.get("name", "").lower()
+        cutoff_lower = cutoff.lower()
+        
+        # Extract key elements from cutoff
+        cutoff_elements = cutoff_lower.split()
+        matches = sum(1 for element in cutoff_elements if element in name)
+        
+        # Consider it a match if most elements are present
+        return matches >= len(cutoff_elements) * 0.7
+    
+    def within_size_limits(self, size_gb: float, profile: Dict[str, Any]) -> bool:
+        """Check if release is within size limits"""
+        min_size = profile.get("min_size_gb", 0)
+        max_size = profile.get("max_size_gb", 100)
+        return min_size <= size_gb <= max_size
+    
+    def deduplicate_releases(self, releases: List[Dict[str, Any]], 
+                           quality_profile: str = "balanced",
+                           dedup_method: str = "bottom_up") -> Dict[str, Any]:
+        """Deduplicate releases using advanced scoring"""
+        if not releases:
+            return {"deduplicated": [], "removed": [], "stats": {}}
+        
+        # Group releases by content (title + season/episode for TV)
+        content_groups = defaultdict(list)
+        
+        for release in releases:
+            content_key = self.generate_content_key(release)
+            content_groups[content_key].append(release)
+        
+        deduplicated = []
+        removed = []
+        stats = {
+            "total_input": len(releases),
+            "content_groups": len(content_groups),
+            "duplicates_removed": 0,
+            "method": dedup_method
+        }
+        
+        # Process each content group
+        for content_key, group_releases in content_groups.items():
+            if len(group_releases) == 1:
+                # No duplicates
+                deduplicated.extend(group_releases)
+            else:
+                # Multiple releases for same content - deduplicate
+                best_release, removed_releases = self.select_best_release(
+                    group_releases, quality_profile, dedup_method
+                )
+                deduplicated.append(best_release)
+                removed.extend(removed_releases)
+                stats["duplicates_removed"] += len(removed_releases)
+        
+        stats["total_output"] = len(deduplicated)
+        
+        return {
+            "deduplicated": deduplicated,
+            "removed": removed,
+            "stats": stats
+        }
+    
+    def generate_content_key(self, release: Dict[str, Any]) -> str:
+        """Generate a key to group releases by content"""
+        name = release.get("name", "")
+        
+        # Extract title, season, episode
+        title = self.extract_title(name)
+        season, episode = self.extract_season_episode(name)
+        
+        if season and episode:
+            return f"{title}_S{season:02d}E{episode:02d}"
+        elif season:
+            return f"{title}_S{season:02d}"
+        else:
+            return title
+    
+    def extract_title(self, name: str) -> str:
+        """Extract title from release name"""
+        # Remove common patterns to get clean title
+        clean_name = re.sub(r'\.(19|20)\d{2}\.', '.', name)  # Remove year
+        clean_name = re.sub(r'\.(S\d+E\d+|S\d+|\d+x\d+)\.', '.', clean_name)  # Remove season/episode
+        clean_name = re.sub(r'\.(720p|1080p|2160p|4K)\.', '.', clean_name)  # Remove resolution
+        clean_name = re.sub(r'\.(x264|x265|HEVC|XviD)\.', '.', clean_name)  # Remove codec
+        clean_name = re.sub(r'\.(WEB-DL|WEBRip|BluRay|HDTV)\.', '.', clean_name)  # Remove source
+        
+        # Take first part as title
+        parts = clean_name.split('.')
+        title_parts = []
+        for part in parts:
+            if part and not self.is_release_tag(part):
+                title_parts.append(part)
+            else:
+                break
+        
+        return '.'.join(title_parts).lower()
+    
+    def extract_season_episode(self, name: str) -> Tuple[Optional[int], Optional[int]]:
+        """Extract season and episode numbers"""
+        # Try different patterns
+        patterns = [
+            r'S(\d+)E(\d+)',
+            r'(\d+)x(\d+)',
+            r'Season\s*(\d+).*Episode\s*(\d+)'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, name, re.IGNORECASE)
+            if match:
+                return int(match.group(1)), int(match.group(2))
+        
+        # Try season only
+        season_match = re.search(r'S(\d+)', name, re.IGNORECASE)
+        if season_match:
+            return int(season_match.group(1)), None
+        
+        return None, None
+    
+    def is_release_tag(self, part: str) -> bool:
+        """Check if part is a release tag"""
+        release_tags = [
+            '720p', '1080p', '2160p', '4k', 'x264', 'x265', 'hevc', 'xvid',
+            'web-dl', 'webrip', 'bluray', 'hdtv', 'dvdrip', 'proper', 'repack',
+            'internal', 'limited', 'unrated', 'extended', 'directors', 'cut'
+        ]
+        return part.lower() in release_tags
+    
+    def select_best_release(self, releases: List[Dict[str, Any]], 
+                          quality_profile: str, dedup_method: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+        """Select the best release from duplicates"""
+        # Calculate scores for all releases
+        scored_releases = []
+        for release in releases:
+            score_info = self.calculate_release_score(release, quality_profile)
+            scored_releases.append({
+                "release": release,
+                "score": score_info["total_score"],
+                "score_info": score_info
+            })
+        
+        if dedup_method == "bottom_up":
+            # Remove lowest scoring releases first
+            scored_releases.sort(key=lambda x: x["score"], reverse=True)
+            best = scored_releases[0]["release"]
+            removed = [item["release"] for item in scored_releases[1:]]
+        elif dedup_method == "top_down":
+            # Remove highest scoring releases first (keep lower quality)
+            scored_releases.sort(key=lambda x: x["score"])
+            best = scored_releases[0]["release"]
+            removed = [item["release"] for item in scored_releases[1:]]
+        else:
+            # Default to bottom_up
+            scored_releases.sort(key=lambda x: x["score"], reverse=True)
+            best = scored_releases[0]["release"]
+            removed = [item["release"] for item in scored_releases[1:]]
+        
+        return best, removed
+
+# Initialize deduplication engine
+dedup_engine = AdvancedDeduplicationEngine()
+
+# API Endpoints
+
+@advanced_dedup_bp.route('/api/dedupe/info')
+def get_deduplication_info():
+    try:
+        """Get deduplication system information"""
+        return jsonify({
+        'success': True,
+        'system_info': {
+        'version': '2.0.0',
+        'features': [
+        'Advanced Scoring System',
+        'Configurable Scene Group Priorities',
+        'Quality Profiles with Drag-and-Drop Reordering',
+        'RSS Feed Integration',
+        'Custom Format Detection',
+        'Pattern-based Bonuses/Penalties',
+        'Bottom-up/Top-down Deduplication',
+        'Hash Index for Fast Lookups'
+        ],
+        'quality_profiles': list(quality_profiles.get("profiles", {}).keys()),
+        'filter_profiles': list(filter_profiles.get("profiles", {}).keys()),
+        'scene_group_tiers': list(scene_groups_config.get("tiers", {}).keys()),
+        'hash_index_size': len(hash_index)
+        }
+        })
+
+        @advanced_dedup_bp.route('/api/dedupe/hash_index')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_hash_index():
+    """Get hash index for deduplication - CRITICAL MISSING ENDPOINT"""
+    return jsonify({
+        'success': True,
+        'hash_index': hash_index,
+        'total_entries': len(hash_index),
+        'last_updated': datetime.now().isoformat()
+    })
+
+# DUPLICATE REMOVED: @advanced_dedup_bp.route('/api/dedupe/hash_index', methods=['POST'])
+# DUPLICATE REMOVED: def update_hash_index():
+    """Update hash index with new entries"""
+    try:
+        data = request.get_json() or {}
+        new_entries = data.get('entries', {})
+        
+        # Update global hash index
+        hash_index.update(new_entries)
+        dedup_engine.save_hash_index()
+        
+        return jsonify({
+            'success': True,
+            'added_entries': len(new_entries),
+            'total_entries': len(hash_index)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating hash index: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@advanced_dedup_bp.route('/api/dedupe/score', methods=['POST'])
+def calculate_score():
+    """Calculate score for a release"""
+    try:
+        data = request.get_json() or {}
+        release_info = data.get('release_info', {})
+        quality_profile = data.get('quality_profile', 'balanced')
+        
+        if not release_info:
+        return jsonify({
+                'success': False,
+                'error': 'release_info is required'
+            }), 400
+        
+        score_result = dedup_engine.calculate_release_score(release_info, quality_profile)
+        
+        return jsonify({
+            'success': True,
+            **score_result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error calculating score: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@advanced_dedup_bp.route('/api/dedupe/process', methods=['POST'])
+def process_deduplication():
+    """Process deduplication on a list of releases"""
+    try:
+        data = request.get_json() or {}
+        releases = data.get('releases', [])
+        quality_profile = data.get('quality_profile', 'balanced')
+        dedup_method = data.get('method', 'bottom_up')
+        
+        if not releases:
+        return jsonify({
+                'success': False,
+                'error': 'releases list is required'
+            }), 400
+        
+        result = dedup_engine.deduplicate_releases(releases, quality_profile, dedup_method)
+        
+        return jsonify({
+            'success': True,
+            **result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error processing deduplication: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@advanced_dedup_bp.route('/api/dedupe/quality_profiles')
+def get_quality_profiles():
+    """Get quality profiles configuration"""
+    return jsonify({
+        'success': True,
+        'quality_profiles': quality_profiles
+    })
+
+# DUPLICATE REMOVED: @advanced_dedup_bp.route('/api/dedupe/quality_profiles', methods=['GET'])
+# DUPLICATE REMOVED: def update_quality_profiles():
+    """Update quality profiles configuration"""
+    try:
+        data = request.get_json() or {}
+        
+        # Update global quality profiles
+        quality_profiles.update(data)
+        dedup_engine.save_quality_profiles()
+        
+        return jsonify({
+            'success': True,
+            'quality_profiles': quality_profiles
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating quality profiles: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@advanced_dedup_bp.route('/api/dedupe/scene_groups')
+def get_scene_groups():
+    try:
+        """Get scene groups configuration with drag-and-drop support"""
+        return jsonify({
+        'success': True,
+        'scene_groups': scene_groups_config
+        })
+
+
+        @advanced_dedup_bp.route('/api/dedupe/scene_groups/reorder', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def reorder_scene_groups():
+    """Reorder scene groups with drag-and-drop"""
+    try:
+        data = request.get_json() or {}
+        tier = data.get('tier')
+        new_order = data.get('new_order', [])
+        
+        if not tier or tier not in scene_groups_config.get("tiers", {}):
+        return jsonify({
+                'success': False,
+                'error': 'Invalid tier specified'
+            }), 400
+        
+        # Update the order
+        scene_groups_config["tiers"][tier]["groups"] = new_order
+        
+        # Record reorder history
+        scene_groups_config.setdefault("reorder_history", []).append({
+            'timestamp': datetime.now().isoformat(),
+            'tier': tier,
+            'action': 'reorder',
+            'new_order': [group.get('name') for group in new_order]
+        })
+        
+        scene_groups_config["last_updated"] = datetime.now().isoformat()
+        dedup_engine.save_scene_groups()
+        
+        return jsonify({
+            'success': True,
+            'scene_groups': scene_groups_config
+        })
+        
+    except Exception as e:
+        logger.error(f"Error reordering scene groups: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@advanced_dedup_bp.route('/api/dedupe/rss/automation')
+def get_rss_automation():
+    try:
+        """Get RSS automation configuration"""
+        return jsonify({
+        'success': True,
+        'rss_automation': filter_profiles.get("rss_automation", {})
+        })
+
+        # DUPLICATE REMOVED: @advanced_dedup_bp.route('/api/dedupe/rss/automation', methods=['PUT'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def update_rss_automation():
+    """Update Automation"""
+    try:
+        data = request.get_json()
+        if not data:
+        return jsonify({'error': 'No data provided'}), 400
+        return jsonify({'success': True, 'message': 'Updated', 'data': data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+def update_rss_automation():
+    """Update Automation"""
+    try:
+        data = request.get_json()
+        if not data:
+        return jsonify({'error': 'No data provided'}), 400
+        return jsonify({'success': True, 'message': 'Updated', 'data': data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+# DUPLICATE REMOVED: def update_rss_automation():
+    """Update RSS automation configuration"""
+    try:
+        data = request.get_json() or {}
+        
+        # Update RSS automation config
+        filter_profiles.setdefault("rss_automation", {}).update(data)
+        dedup_engine.save_filter_profiles()
+        
+        return jsonify({
+            'success': True,
+            'rss_automation': filter_profiles.get("rss_automation", {})
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating RSS automation: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

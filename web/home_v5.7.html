@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediaHub v5.7 - Home</title>
+
+<!-- Core Styles -->
+<link rel="stylesheet" href="assets/normalize.css">
+<link rel="stylesheet" href="assets/ui.css">
+
+<!-- v5.5 Styles -->
+<link rel="stylesheet" href="assets/hero_banner.css">
+<link rel="stylesheet" href="assets/continue_watching.css">
+<link rel="stylesheet" href="assets/enhanced_carousel.css">
+
+<!-- v5.6 Styles -->
+<link rel="stylesheet" href="assets/badges.css">
+<link rel="stylesheet" href="assets/animations.css">
+
+<!-- v5.7 Styles -->
+<link rel="stylesheet" href="assets/micro_interactions.css">
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    background: #0F1419;
+    color: #E8EBF5;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  .page-container {
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* Top Navigation with v5.7 enhancements */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(15, 20, 25, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #1F2537;
+    padding: 12px 48px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .top-nav.scrolled {
+    padding: 8px 48px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .nav-content {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .nav-logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: #FF6B35;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+  }
+
+  .nav-logo:hover {
+    transform: scale(1.05);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+  }
+
+  .nav-link {
+    color: #E8EBF5;
+    text-decoration: none;
+    font-weight: 500;
+    position: relative;
+    transition: color 0.3s ease;
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: #FF6B35;
+    transition: width 0.3s ease;
+  }
+
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    width: 100%;
+  }
+
+  .nav-link:hover,
+  .nav-link.active {
+    color: #FF6B35;
+  }
+
+  .nav-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .nav-search {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #1F2537;
+    background: #1A1F29;
+    color: #E8EBF5;
+    font-size: 14px;
+    width: 200px;
+    transition: all 0.3s ease;
+  }
+
+  .nav-search:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    width: 250px;
+  }
+
+  .nav-icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: #E8EBF5;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .nav-icon-btn:hover {
+    background: #1A1F29;
+    transform: scale(1.1);
+  }
+
+  .nav-icon-btn.has-notification::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: #FF6B35;
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+
+  /* Content Sections with reveal animations */
+  .content-section {
+    margin: 48px 0;
+    opacity: 0;
+  }
+
+  .content-section.revealed {
+    opacity: 1;
+  }
+
+  /* Loading State */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #0F1419;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    transition: opacity 0.5s ease;
+  }
+
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255, 107, 53, 0.2);
+    border-top-color: #FF6B35;
+    border-radius: 50%;
+    animation: spinner-rotate 0.8s linear infinite;
+  }
+
+  @keyframes spinner-rotate {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Parallax Background */
+  .parallax-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    background: linear-gradient(180deg, #0F1419 0%, #1A1F29 100%);
+    z-index: -1;
+  }
+
+  /* Enhanced Carousel Cards */
+  .carousel-item {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .carousel-item:hover {
+    transform: translateY(-12px) scale(1.05);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .top-nav {
+      padding: 12px 24px;
+    }
+
+    .top-nav.scrolled {
+      padding: 8px 24px;
+    }
+
+    .nav-search {
+      display: none;
+    }
+
+    .nav-links {
+      gap: 16px;
+    }
+
+    .content-section {
+      margin: 32px 0;
+    }
+  }
+
+  /* Scroll to Top Button */
+  .scroll-to-top {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #FF6B35;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    z-index: 999;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+  }
+
+  .scroll-to-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .scroll-to-top:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(255, 107, 53, 0.5);
+  }
+
+  /* Version Badge */
+  .version-badge {
+    position: fixed;
+    bottom: 32px;
+    left: 32px;
+    padding: 8px 16px;
+    background: rgba(26, 31, 41, 0.9);
+    border: 1px solid #1F2537;
+    border-radius: 20px;
+    font-size: 12px;
+    color: #FF6B35;
+    font-weight: 600;
+    z-index: 999;
+    backdrop-filter: blur(10px);
+  }
+</style>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Parallax Background -->
+  <div class="parallax-bg"></div>
+
+  <!-- Scroll Progress Indicator -->
+  <div data-scroll-progress></div>
+
+  <div class="page-container">
+    <!-- Top Navigation -->
+    <nav class="top-nav" id="top-nav">
+      <div class="nav-content">
+        <a href="home_v5.7.html" class="nav-logo">MediaHub</a>
+        <div class="nav-links">
+          <a href="home_v5.7.html" class="nav-link active">Home</a>
+          <a href="mediahub_movies.html" class="nav-link">Movies</a>
+          <a href="mediahub_tv.html" class="nav-link">TV Shows</a>
+          <a href="collections.html" class="nav-link">Collections</a>
+        </div>
+        <div class="nav-actions">
+          <input type="search" class="nav-search input-micro" placeholder="Search...">
+          <button class="nav-icon-btn icon-micro has-notification" title="Notifications">🔔</button>
+          <button class="nav-icon-btn icon-micro" title="Profile">👤</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Banner -->
+    <div id="hero-banner" class="hero-banner" data-reveal data-reveal-origin="scale"></div>
+
+    <!-- Continue Watching -->
+    <section id="continue-watching" class="continue-watching content-section" data-reveal></section>
+
+    <!-- Recently Added -->
+    <section class="media-carousel content-section" data-reveal data-reveal-delay="100">
+      <div class="carousel-header">
+        <h2 class="carousel-title">Recently Added</h2>
+        <a href="/recent.html" class="carousel-link">See All →</a>
+      </div>
+      <div id="recently-added-carousel" class="carousel-container">
+        <!-- Carousel will be populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- Trending Now -->
+    <section class="media-carousel content-section" data-reveal data-reveal-delay="200">
+      <div class="carousel-header">
+        <h2 class="carousel-title">Trending Now</h2>
+        <a href="/trending.html" class="carousel-link">See All →</a>
+      </div>
+      <div id="trending-carousel" class="carousel-container">
+        <!-- Carousel will be populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- Popular Movies -->
+    <section class="media-carousel content-section" data-reveal data-reveal-delay="300">
+      <div class="carousel-header">
+        <h2 class="carousel-title">Popular Movies</h2>
+        <a href="/movies.html" class="carousel-link">See All →</a>
+      </div>
+      <div id="movies-carousel" class="carousel-container">
+        <!-- Carousel will be populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- Top TV Shows -->
+    <section class="media-carousel content-section" data-reveal data-reveal-delay="400">
+      <div class="carousel-header">
+        <h2 class="carousel-title">Top TV Shows</h2>
+        <a href="/tv.html" class="carousel-link">See All →</a>
+      </div>
+      <div id="tv-carousel" class="carousel-container">
+        <!-- Carousel will be populated by JavaScript -->
+      </div>
+    </section>
+  </div>
+
+  <!-- Scroll to Top Button -->
+  <button class="scroll-to-top btn-micro" id="scroll-to-top" aria-label="Scroll to top">↑</button>
+
+  <!-- Version Badge -->
+  <div class="version-badge">v5.7</div>
+
+  <!-- Scripts -->
+  <!-- v5.7 Core Performance -->
+  <script src="assets/performance.js"></script>
+  <script src="assets/scroll_reveal.js"></script>
+  <script src="assets/page_transitions.js"></script>
+  <script src="assets/parallax.js"></script>
+  
+  <!-- v5.6 Features -->
+  <script src="assets/touch_gestures.js"></script>
+  
+  <!-- v5.5 Components -->
+  <script src="assets/hero_banner.js"></script>
+  <script src="assets/continue_watching.js"></script>
+
+  <script>
+    // Initialize v5.7 features
+    document.addEventListener('DOMContentLoaded', () => {
+      // Hide loading overlay
+      setTimeout(() => {
+        document.getElementById('loading-overlay').classList.add('hidden');
+      }, 1000);
+
+      // Sticky nav scroll effect
+      const topNav = document.getElementById('top-nav');
+      let lastScroll = 0;
+
+      window.addEventListener('scroll', throttle(() => {
+        const currentScroll = window.pageYOffset;
+        
+        if (currentScroll > 100) {
+          topNav.classList.add('scrolled');
+        } else {
+          topNav.classList.remove('scrolled');
+        }
+
+        lastScroll = currentScroll;
+      }, 100), { passive: true });
+
+      // Scroll to top button
+      const scrollToTopBtn = document.getElementById('scroll-to-top');
+      
+      window.addEventListener('scroll', throttle(() => {
+        if (window.pageYOffset > 500) {
+          scrollToTopBtn.classList.add('visible');
+        } else {
+          scrollToTopBtn.classList.remove('visible');
+        }
+      }, 100), { passive: true });
+
+      scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
+
+      // Initialize carousels with enhanced features
+      createEnhancedCarousel('recently-added-carousel', mockItems.map(item => ({ 
+        ...item, 
+        badge: 'NEW' 
+      })));
+      createEnhancedCarousel('trending-carousel', mockItems.map(item => ({ 
+        ...item, 
+        badge: 'TRENDING' 
+      })));
+      createEnhancedCarousel('movies-carousel', mockItems);
+      createEnhancedCarousel('tv-carousel', mockItems);
+
+      // Preload critical images
+      if (window.resourcePreloader) {
+        const posterUrls = mockItems.map(item => item.poster);
+        window.resourcePreloader.preloadImages(posterUrls);
+      }
+    });
+
+    // Enhanced carousel with v5.7 features
+    function createEnhancedCarousel(containerId, items) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const track = document.createElement('div');
+      track.className = 'carousel-track';
+
+      items.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'carousel-item card-micro';
+        card.setAttribute('data-reveal', '');
+        card.setAttribute('data-reveal-delay', index * 50);
+        
+        card.innerHTML = `
+          <div class="carousel-poster" style="background-image: url('${item.poster}')">
+            ${item.badge ? `<div class="carousel-item-badge badge-pulse">${item.badge}</div>` : ''}
+            ${item.progress ? `
+              <div class="carousel-item-progress">
+                <div class="carousel-item-progress-fill" style="width: ${item.progress}%"></div>
+              </div>
+            ` : ''}
+            <div class="carousel-item-overlay">
+              <div class="carousel-item-info">
+                <h3 class="carousel-item-title">${item.title}</h3>
+                <div class="carousel-item-meta">
+                  <span>${item.year}</span>
+                  ${item.rating ? `
+                    <span class="carousel-item-rating">
+                      <span class="carousel-item-rating-star">★</span>
+                      <span>${item.rating}</span>
+                    </span>
+                  ` : ''}
+                  ${item.quality ? `<span class="carousel-item-quality">${item.quality}</span>` : ''}
+                </div>
+                <div class="carousel-item-actions">
+                  <button class="carousel-item-btn btn-micro ripple-micro">Play</button>
+                  <button class="carousel-item-btn btn-micro ripple-micro">Info</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        track.appendChild(card);
+      });
+
+      container.appendChild(track);
+
+      // Refresh scroll reveal for new elements
+      if (window.scrollReveal) {
+        window.scrollReveal.refresh();
+      }
+    }
+
+    // Mock data for carousels
+    const mockItems = [
+      { id: 1, title: 'The Matrix', year: 1999, rating: 8.7, quality: '4K', poster: '/api/placeholder/280/420?text=Matrix' },
+      { id: 2, title: 'Inception', year: 2010, rating: 8.8, quality: '4K', poster: '/api/placeholder/280/420?text=Inception' },
+      { id: 3, title: 'Interstellar', year: 2014, rating: 8.6, quality: 'HD', poster: '/api/placeholder/280/420?text=Interstellar' },
+      { id: 4, title: 'The Dark Knight', year: 2008, rating: 9.0, quality: '4K', poster: '/api/placeholder/280/420?text=Dark+Knight' },
+      { id: 5, title: 'Pulp Fiction', year: 1994, rating: 8.9, quality: 'HD', poster: '/api/placeholder/280/420?text=Pulp+Fiction' },
+      { id: 6, title: 'Fight Club', year: 1999, rating: 8.8, quality: 'HD', poster: '/api/placeholder/280/420?text=Fight+Club' },
+      { id: 7, title: 'Forrest Gump', year: 1994, rating: 8.8, quality: '4K', poster: '/api/placeholder/280/420?text=Forrest+Gump' },
+      { id: 8, title: 'The Shawshank Redemption', year: 1994, rating: 9.3, quality: '4K', poster: '/api/placeholder/280/420?text=Shawshank' }
+    ];
+  </script>
+</body>
+</html>

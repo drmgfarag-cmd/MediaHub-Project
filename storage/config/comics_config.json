@@ -1,0 +1,8 @@
+{
+  "reading_mode": "single_page",
+  "reading_direction": "ltr",
+  "fit_mode": "fit_width",
+  "background_color": "#1a1a1a",
+  "manga_mode": false,
+  "auto_detect_manga": true
+}

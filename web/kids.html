@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Kids — Home</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.rail{margin:10px 0}.rail h3{display:flex;justify-content:space-between;align-items:center}.age{margin-left:8px}</style>
+</head><body>
+<div class="wrap">
+  <div class="toolbar"><div class="subbar"><a class="tab cur" href="kids.html">Kids Home</a></div><a href="home.html">← Home</a> · <strong>Kids — Home</strong></div>
+  <div class="card">
+    <h3>Filters <span class="age">Age: <select id="age"><option value="">All</option><option>3–6</option><option>7–9</option><option>10–12</option></select></span></h3>
+    <div>Animated · Educational · Movies · TV · eBooks · Comics · Manga · Music</div>
+  </div>
+  <div class="rail card"><h3>Animated</h3><div id="r_anim">—</div></div>
+  <div class="rail card"><h3>Educational</h3><div id="r_edu">—</div></div>
+  <div class="rail card"><h3>Movies</h3><div id="r_mov">—</div></div>
+  <div class="rail card"><h3>TV</h3><div id="r_tv">—</div></div>
+  <div class="rail card"><h3>eBooks</h3><div id="r_eb">—</div></div>
+  <div class="rail card"><h3>Comics</h3><div id="r_cx">—</div></div>
+  <div class="rail card"><h3>Manga</h3><div id="r_mg">—</div></div>
+  <div class="rail card"><h3>Music & Audiobooks</h3><div id="r_ms">—</div></div>
+</div>
+<script>
+async function qKids(tag){
+  const j=await (await fetch('/api/ui/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:'kids', limit:300})})).json();
+  const arr=(j.items||[]).filter(x=> (x.title||x.path||'').toLowerCase().includes(tag));
+  return arr.slice(0,30).map(x=>`<div class="row">${x.title||x.path}</div>`).join('') || 'None';
+}
+async function load(){
+  r_anim.innerHTML=await qKids('animation'); r_edu.innerHTML=await qKids('educat'); r_mov.innerHTML=await qKids('movie'); 
+  r_tv.innerHTML=await qKids('s01'); r_eb.innerHTML=await qKids('epub'); r_cx.innerHTML=await qKids('cbz'); r_mg.innerHTML=await qKids('manga'); r_ms.innerHTML=await qKids('audio');
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

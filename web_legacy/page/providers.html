@@ -1,0 +1,20 @@
+<html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Providers</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+
+<h2>Providers — Per-category Chains</h2>
+<button onclick="loadCat()">Load Catalog</button>
+<button onclick="saveProfile()">Save as Profile</button>
+<button onclick="applyProfile()">Apply Profile</button>
+<pre id="out"></pre>
+<script>
+let prof={"Default":{}};
+async function loadCat(){ const j=await (await fetch('/api/providers/catalog')).json(); document.getElementById('out').textContent=JSON.stringify(j,null,2); }
+async function saveProfile(){
+  const name=prompt('Profile name','Default'); if(!name) return;
+  const cfg={"movies":["tmdb","omdb","tvdb"],"tv":["tvdb","tmdb","anilist"],"anime_movies":["anilist","tmdb","omdb"],"books":["googlebooks","manual_isbn"],"audio":["discogs","acoustid","musicbrainz"]};
+  const all = await (await fetch('/api/providers/profiles')).json(); all[name]=cfg;
+  await fetch('/api/providers/profiles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(all)}); alert('Saved '+name);
+}
+async function applyProfile(){ const name=prompt('Apply profile','Default'); await fetch('/api/providers/apply_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})}); alert('Applied '+name); }
+</script>
+
+<script defer src="../assets/ui_enhance.js'></script></body></html>

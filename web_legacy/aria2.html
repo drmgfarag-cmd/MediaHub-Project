@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"><title>aria2</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:720px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}</style>
+</head><body><div class="wrap">
+  <a href="downloads.html">&larr; Downloads</a>
+  <h1>aria2</h1>
+  <div class="card">
+    <label>RPC URL <input id="url" style="width:100%" placeholder="http://127.0.0.1:6800/jsonrpc"></label><br>
+    <label>RPC Secret <input id="sec" style="width:100%" placeholder="your_secret"></label><br>
+    <button onclick="save()">Save</button> <button onclick="test()">Test</button> <span id="msg"></span>
+  </div>
+  <div class="card"><h3>Active</h3><pre id="out"></pre></div>
+</div>
+<script>
+async function load(){ const c=await (await fetch('/api/aria2/config')).json(); url.value=c.url||''; sec.value=c.secret||''; }
+async function save(){ await fetch('/api/aria2/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url.value,secret:sec.value})}); msg.textContent='Saved'; }
+async function test(){ const j=await (await fetch('/api/aria2/list')).json(); out.textContent=JSON.stringify(j,null,2); }
+document.addEventListener('DOMContentLoaded', load);
+</script></body></html>

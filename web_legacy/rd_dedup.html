@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><title>RD Dedup Browser</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}
+.list{max-height:70vh;overflow:auto}
+.group{border:1px solid #334155;border-radius:12px;margin:8px 0;padding:8px}
+.item{display:flex;gap:8px;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+code{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:2px 4px}
+</style>
+</head><body><div class="wrap">
+  <a href="downloads.html">&larr; Downloads</a>
+  <h1>Real-Debrid — Dedup Browser</h1>
+  <div class="card">
+    <input id="q" placeholder="Filter…" style="width:60%">
+    <button onclick="load()">Refresh</button>
+  </div>
+  <div class="card list" id="out"></div>
+</div>
+<script>
+async function load(){
+  const q=(document.getElementById('q').value||'').toLowerCase();
+  const j=await (await fetch('/api/rd/dedup')).json();
+  const out=document.getElementById('out'); out.innerHTML='';
+  (j.dupes||[]).forEach(g=>{
+    if(q && !g.key.includes(q)) return;
+    const box=document.createElement('div'); box.className='group';
+    const head=document.createElement('div'); head.textContent = g.key + ' — ' + g.count; head.style='font-weight:600';
+    box.appendChild(head);
+    g.items.forEach(it=>{
+      const row=document.createElement('div'); row.className='item';
+      row.innerHTML = `<span>${it.status||''}</span> <code title="${it.name}">${it.name}</code>`;
+      const L=(it.links||[])[0]||it.magnet||'';
+      if(L){
+        const a=document.createElement('a'); a.href=L; a.textContent='open'; a.target='_blank'; row.appendChild(a);
+      }
+      box.appendChild(row);
+    });
+    out.appendChild(box);
+  });
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

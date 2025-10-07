@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<movie>
+    <title>The Comedy Special</title>
+    <year>2023</year>
+    <rating>7.2</rating>
+    <plot>Hilarious comedy from 2023</plot>
+    <genre>Comedy</genre>
+    <director>Comedy Director</director>
+    <runtime>94 min</runtime>
+    <mpaa>R</mpaa>
+</movie>

@@ -1,0 +1,145 @@
+<html><head><link rel='icon' href='assets/favicon.svg'><link rel='stylesheet' href='assets/ui.css'><link rel='stylesheet' href='assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Text Editor</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+<div id="editor_tools_bar" style="position:sticky;top:40px;display:flex;gap:6px;align-items:center;padding:6px;background:#0e1624;border-bottom:1px solid #223041;z-index:950">
+  <button onclick="toolsSort()">Sort</button>
+  <button onclick="toolsUnique()">Unique</button>
+  <button onclick="toolsToggleInvis()">Toggle Invisibles</button>
+  <button onclick="toolsTabsToSpaces()">Tabs→Spaces</button>
+  <button onclick="toolsSpacesToTabs()">Spaces→Tabs</button>
+  <button onclick="toolsEOL('LF')">EOL:LF</button>
+  <button onclick="toolsEOL('CRLF')">EOL:CRLF</button>
+  <button onclick="toggleColumnMode()">Column Mode</button>
+  <button onclick="toggleMultiCursor()">Multi‑Cursor</button>
+  <button onclick="bookmarkSelection()">Bookmark</button>
+  <button onclick="exportBookmarks()">Export</button>
+  <span id="tools_status" style="margin-left:auto;opacity:.75"></span>
+</div>
+<textarea id='ed' style='width:100%;height:90vh'></textarea>
+<div id="find_popup" style="position:fixed;top:10%;left:50%;transform:translateX(-50%);width:720px;background:#0f1520;border:1px solid #2b3a4a;border-radius:10px;display:none;z-index:3000">
+  <div style="display:flex;gap:6px;padding:8px;border-bottom:1px solid #223041">
+    <button class="tab active" data-t="find" onclick="switchFindTab('find')">Find</button>
+    <button class="tab" data-t="replace" onclick="switchFindTab('replace')">Replace</button>
+    <button class="tab" data-t="mark" onclick="switchFindTab('mark')">Mark</button>
+    <button class="tab" data-t="files" onclick="switchFindTab('files')">Find in Files</button>
+    <button class="tab" data-t="incr" onclick="switchFindTab('incr')">Incremental</button>
+    <button style="margin-left:auto" onclick="hideFind()">Close</button>
+  </div>
+  <div id="find_body" style="padding:8px"></div>
+</div>
+<div id="compare_pane" style="position:fixed;right:0;top:64px;bottom:64px;width:520px;border-left:1px solid #223041;background:#0c111b;display:none;z-index:2000">
+  <div style="display:flex;gap:6px;padding:6px"><button onclick="runCompare()">Compare</button><button onclick="toggleCompare()">Close</button></div>
+  <textarea id="cmp_left" style="width:49%;height:80%"></textarea><textarea id="cmp_right" style="width:49%;height:80%"></textarea>
+  <div id="cmp_out" style="height:20%;overflow:auto;border-top:1px solid #223041"></div>
+</div>
+<script>
+document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){ e.preventDefault(); showFind(); } });
+function showFind(){ document.getElementById('find_popup').style.display='block'; renderFind('find'); }
+function hideFind(){ document.getElementById('find_popup').style.display='none'; }
+function switchFindTab(t){ document.querySelectorAll('#find_popup .tab').forEach(b=>b.classList.toggle('active', b.getAttribute('data-t')===t)); renderFind(t); }
+function renderFind(t){
+  const body=document.getElementById('find_body');
+  if(t==='files'){
+}
+function getText(){ const ta=document.getElementById('ed'); return ta?ta.value:''; }
+function setText(v){ const ta=document.getElementById('ed'); if(ta) ta.value=v; }
+function doFind(){ /* minimal: highlight not implemented */ UI.toast('Find executed'); }
+function doReplace(){
+  let text=getText(), f=document.getElementById('f1').value, r=document.getElementById('r1').value;
+  const isRx=document.getElementById('regex').checked; const cs=document.getElementById('case').checked;
+  if(!f) return;
+  if(isRx){ const re=new RegExp(f, cs?'g':'gi'); setText(text.replace(re,r)); }
+  else { const re=new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), cs?'g':'gi'); setText(text.replace(re,r)); }
+  UI.toast('Replace done');
+}
+function toggleCompare(){ const p=document.getElementById('compare_pane'); p.style.display = (p.style.display==='none'||!p.style.display)?'block':'none'; }
+function runCompare(){
+  const L=document.getElementById('cmp_left').value.split('\n'); const R=document.getElementById('cmp_right').value.split('\n');
+  const uniqL=L.filter(x=>!R.includes(x)); const uniqR=R.filter(x=>!L.includes(x)); const inter=L.filter(x=>R.includes(x));
+  document.getElementById('cmp_out').innerHTML = '<div>Only Left: '+uniqL.length+'</div><div>Only Right: '+uniqR.length+'</div><div>Both: '+inter.length+'</div>';
+}
+
+function highlightAll(q){
+  const ta=document.getElementById('ed'); if(!ta||!q) return;
+  const re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+  const m = ta.value.match(re); UI.toast((m?m.length:0)+' match(es)');
+}
+
+async function findInFiles(){
+  const q=document.getElementById('q').value, root=document.getElementById('dir').value;
+  const rx=document.getElementById('rx').checked, cs=document.getElementById('cs').checked;
+  const j = await (await fetch('/api/editor/find_in_files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q, root, regex:rx, case:cs, exts:[".txt",".srt",".nfo",".md",".json",".js",".py"]})})).json();
+  const out = j.matches.slice(0,200).map(m=>m.file+':'+m.line+'  '+m.text).join('\n');
+  document.getElementById('ff_out').textContent = out || '(no matches)';
+}
+</script>
+
+<div id="global_menu" style="position:sticky;top:0;display:flex;gap:8px;align-items:center;padding:8px;background:#0b111a;border-bottom:1px solid #223041;z-index:1200">
+  <div class="menu">File</div><div class="menu">Edit</div><div class="menu">View</div><div class="menu">Tools</div><div class="menu">Help</div>
+</div>
+<div id="quick_dock" style="position:fixed; right:16px; bottom:16px; z-index:1400">
+  <button onclick="toggleQuickActions()" title="Quick Actions (Shift+Q)">⚡</button>
+  <div id="quick_panel" style="display:none; position:absolute; right:0; bottom:40px; background:#0f1520;border:1px solid #223041;border-radius:8px;padding:8px;max-height:60vh;overflow:auto;width:360px"></div>
+</div>
+<script>
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey) && e.key==='/'){ e.preventDefault(); document.getElementById('global_search').focus(); } if(e.shiftKey && (e.key==='Q'||e.key==='q')){ toggleQuickActions(); }});
+async function doGlobalSearch(q){ UI.toast('Global search: '+q); }
+async function toggleQuickActions(){
+  const p=document.getElementById('quick_panel');
+  if(p.style.display==='none'||!p.style.display){ const j = await (await fetch('/api/quick/list')).json(); p.innerHTML = j.items.map(i=>'<div><button onclick="runQuick(\''+i.cmd+'\')">'+i.label+'</button></div>').join(''); p.style.display='block'; } else { p.style.display='none'; }
+}
+async function runQuick(cmd){ await fetch('/api/quick/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd})}); UI.toast('Ran: '+cmd); }
+</script>
+
+
+<div id="a11y_bar" style="position:fixed;left:12px;bottom:12px;display:flex;gap:8px;z-index:1500;background:#0b111a;border:1px solid #223041;padding:6px;border-radius:8px;opacity:.9">
+  <button onclick="toggleContrast()">Contrast</button>
+  <button onclick="scaleDown()">−</button><span id="scale_lbl">100%</span><button onclick="scaleUp()">+</button>
+</div>
+<script>
+let SCALE=100, CONTRAST=false;
+function applyScale(){ document.documentElement.style.fontSize = (SCALE/100*16)+'px'; document.getElementById('scale_lbl').textContent=SCALE+'%'; }
+function scaleUp(){ SCALE=Math.min(130, SCALE+10); applyScale(); }
+function scaleDown(){ SCALE=Math.max(90, SCALE-10); applyScale(); }
+function toggleContrast(){ CONTRAST=!CONTRAST; document.body.classList.toggle('contrast', CONTRAST); }
+</script>
+<style>
+body.contrast { filter: contrast(1.2) saturate(1.1); }
+</style>
+
+<div id="compare_drawer" style="position:fixed;right:0;top:60px;width:30%;height:70%;background:#111;color:#fff;border-left:1px solid #333">Compare</div><script defer src='assets/ui_enhance.js'></script></body></html>
+<script>
+let COLUMN_MODE=false, MULTI_CURSOR=false, INVIS=false;
+let BOOKMARKS=[];
+
+function getTA(){ return document.getElementById('ed'); }
+function setStatus(s){ document.getElementById('tools_status').textContent=s; }
+function getSel(){ const ta=getTA(); return ta.value.substring(ta.selectionStart, ta.selectionEnd) || ta.value; }
+function repSel(fn){
+  const ta=getTA(); const full=ta.value; const a=ta.selectionStart, b=ta.selectionEnd;
+  const sel = full.substring(a,b);
+  const out = fn(sel || full);
+  if(sel){ ta.setRangeText(out, a, b, 'end'); } else { ta.value = out; }
+}
+
+function toolsSort(){ repSel(t=> t.split(/\r?\n/).sort((x,y)=>x.localeCompare(y)).join('\n')); setStatus('Sorted'); }
+function toolsUnique(){ repSel(t=> Array.from(new Set(t.split(/\r?\n/))).join('\n')); setStatus('Unique'); }
+function toolsToggleInvis(){ INVIS=!INVIS; getTA().style.whiteSpace = INVIS?'pre-wrap':'pre'; setStatus('Invisibles '+(INVIS?'ON':'OFF')); }
+function toolsTabsToSpaces(){ repSel(t=> t.replace(/\t/g,'    ')); setStatus('Tabs→Spaces'); }
+function toolsSpacesToTabs(){ repSel(t=> t.replace(/ {4}/g,'\t')); setStatus('Spaces→Tabs'); }
+function toolsEOL(kind){ repSel(t=> kind==='LF'? t.replace(/\r\n/g,'\n'): t.replace(/(?<!\r)\n/g,'\r\n')); setStatus('EOL '+kind); }
+function toggleColumnMode(){ COLUMN_MODE=!COLUMN_MODE; setStatus('Column '+(COLUMN_MODE?'ON':'OFF')); }
+function toggleMultiCursor(){ MULTI_CURSOR=!MULTI_CURSOR; setStatus('Multi‑Cursor '+(MULTI_CURSOR?'ON':'OFF')); }
+function bookmarkSelection(){
+  const ta=getTA(); const txt=getSel(); const all=ta.value.split(/\r?\n/);
+  let pos = ta.selectionStart; let line = ta.value.substring(0,pos).split(/\r?\n/).length;
+  BOOKMARKS.push({line, text: txt.slice(0,200)}); setStatus('Bookmarked line '+line+' ('+BOOKMARKS.length+')');
+}
+async function exportBookmarks(){
+  const j = await (await fetch('/api/editor/export_bookmarks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:BOOKMARKS})})).json();
+  setStatus('Exported '+(BOOKMARKS.length||0)+' → '+(j.path||''));
+}
+
+async function regexTest(pattern, text, flags){
+  const j = await (await fetch('/api/regex/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pattern, text, flags})})).json();
+  UI.toast('Groups: '+JSON.stringify(j.groups));
+}
+</script>

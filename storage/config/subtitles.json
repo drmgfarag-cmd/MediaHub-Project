@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "default_language": "ar",
+  "global_priority": ["ar", "en"],
+  "stop_on_first": true,
+  "category_overrides": {},
+  "providers": {
+    "opensubtitles": {
+      "enabled": true,
+      "priority": 1
+    },
+    "subscene": {
+      "enabled": true,
+      "priority": 2
+    },
+    "addic7ed": {
+      "enabled": false,
+      "priority": 3
+    }
+  },
+  "auto_sync": true,
+  "hearing_impaired": false
+}

@@ -1,0 +1,21 @@
+{
+  "library_pinned_tiles": true,
+  "library_hierarchy_dock": true,
+  "library_card_context": true,
+  "library_rebuild_index": true,
+  "library_integrity_scan": true,
+  "rd_filters_ui": true,
+  "dedupe_policy_ui": true,
+  "downloader_jd_layout": true,
+  "link_grabber_queue": true,
+  "per_host_limits": true,
+  "per_host_throughput": true,
+  "dlc_import": true,
+  "jd_helper": true,
+  "keys_backup_restore": true,
+  "smart_collections": true,
+  "hls_profiles": true,
+  "webos_cast": true,
+  "dlna_cast": true,
+  "text_editor_multi_tab": true
+}

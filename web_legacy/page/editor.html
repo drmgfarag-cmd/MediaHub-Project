@@ -1,0 +1,65 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Editor Utilities</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0f1115;color:#e7ecf1}
+.card{background:#10141d;border:1px solid #222632;border-radius:12px;padding:12px;margin:12px}
+button,select{padding:6px 10px;border:1px solid #2a3040;border-radius:8px;background:#12151d;color:#e7ecf1}
+button:hover{background:#1b2330}
+textarea{width:100%;height:420px;background:#0b0e14;color:#e7ecf1;border:1px solid #222632;border-radius:8px;padding:10px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.status{display:flex;gap:16px;justify-content:flex-end;color:#9aa4b2;margin-top:6px;font-size:13px}
+.kbd{color:#9aa4b2}
+mark{background:#3a4b6a;color:#fff}
+</style></head><body>
+<div class="card">
+  <h2 style="margin:0 0 8px 0">Editor Utilities</h2>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <label>Encoding <select id="enc"><option>UTF-8</option><option>UTF-16</option><option>Windows-1256</option></select></label>
+    <label>Language <select id="lang"><option>Plain Text</option><option>Regex</option><option>JSON</option><option>INI</option><option>M3U</option></select></label>
+    <button onclick="toggleColumn()">Column Mode</button>
+    <button onclick="markAll()">Mark All</button>
+    <button onclick="nextMark()">Next Mark</button>
+    <button onclick="prevMark()">Prev Mark</button>
+    <button onclick="copyMarked()">Copy Marked</button>
+  </div>
+  <textarea id="txt" placeholder="Paste or type lists, rules, or rename scripts here..."></textarea>
+  <div class="status" id="status">Ln 1 | Col 1 | Sel 0 lines, 0 words, 0 chars | Doc 1 lines, 0 words, 0 chars</div>
+  <div class="kbd">Tips: Alt+Drag → rectangular selection; Ctrl+L select line; Column mode shows rows×cols.</div>
+  <div style="margin-top:8px"><label>Regex for Mark <input id="re" style="width:60%"></label></div>
+</div>
+<script>
+let column=false; let marks=[]; let cur=-1;
+const ta=document.getElementById('txt'), st=document.getElementById('status');
+function toggleColumn(){ column=!column; alert('Column mode '+(column?'ON':'OFF')); }
+function getStats(){
+  const t=ta.value; const start=ta.selectionStart, end=ta.selectionEnd;
+  const before=t.slice(0,start);
+  const line = (before.match(/\n/g)||[]).length+1;
+  const col  = start - (before.lastIndexOf('\n')+1);
+  const sel=t.slice(start,end);
+  const selLines=(sel.match(/\n/g)||[]).length + (sel.length?1:0);
+  const words=(s)=> (s.trim()? (s.trim().split(/\s+/).length) : 0);
+  const chars=sel.length;
+  const docLines=(t.match(/\n/g)||[]).length + (t.length?1:0);
+  const docWords=words(t);
+  const docChars=t.length;
+  st.textContent=`Ln ${line} | Col ${col} | Sel ${selLines} lines, ${words(sel)} words, ${chars} chars | Doc ${docLines} lines, ${docWords} words, ${docChars} chars`;
+}
+ta.addEventListener('keyup', getStats); ta.addEventListener('click', getStats); ta.addEventListener('mouseup', getStats); ta.addEventListener('input', getStats);
+ta.addEventListener('mousedown', (e)=>{ if(column && e.altKey){ ta.setAttribute('data-colstart', ta.selectionStart); }});
+ta.addEventListener('mouseup', (e)=>{ if(column && e.altKey){ const s=parseInt(ta.getAttribute('data-colstart')||'0',10); const epos=ta.selectionEnd; const t=ta.value; const sline = t.slice(0,s).split('\n').length-1; const eline = t.slice(0,epos).split('\n').length-1; const rows=Math.abs(eline-sline)+1; const before=t.slice(0,s); const scol = s - (before.lastIndexOf('\n')+1); const beforeE=t.slice(0,epos); const ecol = epos - (beforeE.lastIndexOf('\n')+1); const cols=Math.abs(ecol-scol); st.textContent += ` | Rect ${rows}×${cols}`; }});
+function markAll(){
+  const re = document.getElementById('re').value; if(!re){ alert('Enter a regex'); return; }
+  try{
+    const r = new RegExp(re, 'gmu'); const t=ta.value; marks = []; let m;
+    while((m=r.exec(t))){ marks.push([m.index, m.index+m[0].length]); }
+    cur = -1; alert(`Marked ${marks.length} match(es). Use Next/Prev.`);
+  }catch(e){ alert('Bad regex'); }
+}
+function nextMark(){ if(!marks.length) return; cur=(cur+1)%marks.length; ta.focus(); ta.setSelectionRange(marks[cur][0], marks[cur][1]); getStats(); }
+function prevMark(){ if(!marks.length) return; cur=(cur-1+marks.length)%marks.length; ta.focus(); ta.setSelectionRange(marks[cur][0], marks[cur][1]); getStats(); }
+function copyMarked(){
+  if(!marks.length) return;
+  const t=ta.value; const parts=marks.map(([a,b])=>t.slice(a,b)); navigator.clipboard.writeText(parts.join('\n')); alert('Copied marked text.');
+}
+document.addEventListener('DOMContentLoaded', getStats);
+</script>
+</body></html>

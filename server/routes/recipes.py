@@ -1,0 +1,58 @@
+from flask import Blueprint, jsonify, request
+import os, json, time, re, requests
+
+recipes_bp = Blueprint('recipes', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+REC=os.path.join(STO,'recipes.json')
+EVT=os.path.join(STO,'events.json')
+
+def _load(path, default):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+    except Exception: return default
+
+def _save(path, obj):
+    with open(path+'.tmp','w',encoding='utf-8') as fh: json.dump(obj, fh, indent=2)
+    os.replace(path+'.tmp', path)
+
+@recipes_bp.route('/api/recipes/list')
+def list_():
+    return jsonify(_load(REC, {'recipes':[]}))
+
+@recipes_bp.route('/api/recipes/set', methods=['POST'])
+def set_():
+    js=request.get_json(silent=True) or {'recipes':[]}
+    _save(REC, js); return jsonify({'ok':True})
+
+@recipes_bp.route('/api/recipes/emit', methods=['POST'])
+def emit():
+    # allow emitting events from UI or integrations
+    js=request.get_json(silent=True) or {}
+    ev=_load(EVT, {'queue':[]}); js['ts']=int(time.time()); ev['queue'].append(js); _save(EVT, ev)
+    return jsonify({'ok':True})
+
+def process_events():
+    rec=_load(REC, {'recipes':[]}).get('recipes',[])
+    ev=_load(EVT, {'queue':[]})
+    out=[]
+    q=ev.get('queue',[])
+    newq=[]
+    for e in q:
+        handled=False
+        for r in rec:
+            if r.get('event')==e.get('event'):
+                # basic matcher on title/path via regex if provided
+                pat=r.get('match') or ''
+                if pat and not re.search(pat, json.dumps(e), re.I): continue
+                act=r.get('action'); arg=r.get('arg','')
+                try:
+                    if act=='webhook':
+                        requests.post(arg, json=e, timeout=5)
+                        handled=True
+                    elif act=='notify':
+                        # best-effort: append to logs channel via print (server logs)
+                        print('[notify]', e)
+                        handled=True
+                except Exception: pass
+        if not handled: newq.append(e)  # keep if unhandled
+    _save(EVT, {'queue': newq})

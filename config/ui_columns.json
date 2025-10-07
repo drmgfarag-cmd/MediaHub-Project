@@ -1,0 +1,40 @@
+{
+  "downloader": [
+    "Name",
+    "Status",
+    "Host",
+    "Speed",
+    "Progress",
+    "ETA"
+  ],
+  "queue": [
+    "Name",
+    "Host",
+    "Added",
+    "Status"
+  ],
+  "finished": [
+    "Name",
+    "Size",
+    "Finished"
+  ],
+  "downloader.queue": [
+    "Name",
+    "Host",
+    "Added",
+    "Status"
+  ],
+  "downloader.downloads": [
+    "Name",
+    "Status",
+    "Host",
+    "Speed",
+    "Progress",
+    "ETA"
+  ],
+  "downloader.finished": [
+    "Name",
+    "Size",
+    "Finished"
+  ]
+}

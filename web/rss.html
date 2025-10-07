@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>RSS Auto-Search</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="downloads.html">← Downloads</a> · <strong>RSS Auto-Search</strong> <button id="save">Save</button> <button id="scan">Scan</button></div>
+  <div class="card">
+    <table id="tbl"><thead><tr><th>Name</th><th>URL</th><th>Enabled</th><th></th></tr></thead><tbody></tbody></table>
+    <button id="add">Add feed</button>
+  </div>
+  <div class="card" id="out"></div>
+</div>
+<script>
+function row(f){ const tr=document.createElement('tr'); tr.innerHTML=`
+  <td contenteditable>${f.name||''}</td>
+  <td contenteditable>${f.url||''}</td>
+  <td><input type="checkbox" ${f.enabled?'checked':''}></td>
+  <td><button class="del">✕</button></td>`; return tr; }
+async function load(){ const j=await (await fetch('/api/rss/list')).json(); const tb=document.querySelector('#tbl tbody'); tb.innerHTML=''; (j.feeds||[]).forEach(f=>tb.appendChild(row(f))); }
+document.getElementById('add').onclick=()=> document.querySelector('#tbl tbody').appendChild(row({name:'',url:'',enabled:true}));
+document.getElementById('save').onclick=async ()=>{
+  const rows=[...document.querySelectorAll('#tbl tbody tr')].map(tr=>({name: tr.children[0].innerText.trim(), url: tr.children[1].innerText.trim(), enabled: tr.children[2].querySelector('input').checked}));
+  await fetch('/api/rss/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({feeds:rows})});
+  alert('Saved feeds.');
+};
+document.getElementById('scan').onclick=async ()=>{ const j=await (await fetch('/api/rss/scan')).json(); out.innerHTML=(j.items||[]).slice(0,100).map(x=>`<div class="text-clip">${x.feed} · <a href="${x.link}" target="_blank">${x.title}</a></div>`).join('') || 'No results.'; };
+document.addEventListener('click',(e)=>{ const b=e.target.closest('button.del'); if(!b) return; b.closest('tr')?.remove(); });
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

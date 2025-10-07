@@ -1,0 +1,440 @@
+from flask import Blueprint, jsonify, request
+import os, json
+from datetime import datetime, timedelta
+from pathlib import Path
+
+tv_shows_enhanced_bp = Blueprint("tv_shows_enhanced", __name__)
+
+# Storage paths
+STORAGE_DIR = Path("storage/config")
+TV_DATA_FILE = STORAGE_DIR / "tv_shows_data.json"
+EPISODE_PROGRESS_FILE = STORAGE_DIR / "episode_progress.json"
+TV_REMINDERS_FILE = STORAGE_DIR / "tv_reminders.json"
+
+# Ensure storage directory exists
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Initialize files
+if not TV_DATA_FILE.exists():
+    TV_DATA_FILE.write_text(json.dumps({"shows": []}, indent=2))
+
+if not EPISODE_PROGRESS_FILE.exists():
+    EPISODE_PROGRESS_FILE.write_text(json.dumps({"progress": []}, indent=2))
+
+if not TV_REMINDERS_FILE.exists():
+    TV_REMINDERS_FILE.write_text(json.dumps({"reminders": []}, indent=2))
+
+# ===== SERIES MANAGEMENT =====
+
+@tv_shows_enhanced_bp.route("/api/tv/shows/<int:show_id>/seasons", methods=["GET"])
+def get_show_seasons(show_id):
+    try:
+        """Get all seasons for a TV show"""
+        seasons = [
+        {"season_number": 1, "episode_count": 10, "air_date": "2023-01-01", "poster": "/assets/seasons/s1.jpg"},
+        {"season_number": 2, "episode_count": 12, "air_date": "2024-01-01", "poster": "/assets/seasons/s2.jpg"}
+        ]
+
+        return jsonify({
+        "success": True,
+        "show_id": show_id,
+        "seasons": seasons
+        })
+
+
+        @tv_shows_enhanced_bp.route("/api/tv/shows/<int:show_id>/seasons/<int:season_number>/episodes", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_season_episodes(show_id, season_number):
+    try:
+        """Get all episodes for a season"""
+        episodes = []
+        for i in range(1, 11):
+        episodes.append({
+        "episode_number": i,
+        "name": f"Episode {i}",
+        "air_date": f"2023-{season_number:02d}-{i:02d}",
+        "runtime": 45,
+        "still_path": f"/assets/episodes/s{season_number}e{i}.jpg",
+        "overview": f"Episode {i} overview"
+        })
+
+        return jsonify({
+        "success": True,
+        "show_id": show_id,
+        "season_number": season_number,
+        "episodes": episodes
+        })
+
+        # ===== MISSING EPISODE DETECTION =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/shows/<int:show_id>/missing-episodes", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def detect_missing_episodes(show_id):
+    try:
+        """Detect missing episodes in a TV show"""
+        # Simulate missing episode detection
+        missing_episodes = [
+        {"season": 1, "episode": 5, "name": "Episode 5", "air_date": "2023-01-05"},
+        {"season": 2, "episode": 3, "name": "Episode 3", "air_date": "2024-01-03"}
+        ]
+
+        return jsonify({
+        "success": True,
+        "show_id": show_id,
+        "missing_episodes": missing_episodes,
+        "count": len(missing_episodes)
+        })
+
+        @tv_shows_enhanced_bp.route("/api/tv/missing-episodes/all", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def detect_all_missing_episodes():
+    try:
+        """Detect missing episodes across all TV shows"""
+        missing_by_show = [
+        {
+        "show_id": 1,
+        "show_name": "Show 1",
+        "missing_count": 3,
+        "missing_episodes": [
+        {"season": 1, "episode": 5},
+        {"season": 2, "episode": 3}
+        ]
+        },
+        {
+        "show_id": 2,
+        "show_name": "Show 2",
+        "missing_count": 1,
+        "missing_episodes": [
+        {"season": 3, "episode": 7}
+        ]
+        }
+        ]
+
+        return jsonify({
+        "success": True,
+        "shows_with_missing": missing_by_show,
+        "total_missing": sum(s["missing_count"] for s in missing_by_show)
+        })
+
+        # ===== EPISODE PROGRESS TRACKING =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/progress", methods=["GET", "POST"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def episode_progress():
+    try:
+        """Get or update episode progress"""
+        if request.method == "GET":
+        show_id = request.args.get("show_id")
+
+        with open(EPISODE_PROGRESS_FILE, "r") as f:
+        data = json.load(f)
+
+        progress = data.get("progress", [])
+
+        if show_id:
+        progress = [p for p in progress if p.get("show_id") == int(show_id)]
+
+        return jsonify({"success": True, "progress": progress})
+
+        else:  # POST
+        entry = request.json
+
+        with open(EPISODE_PROGRESS_FILE, "r") as f:
+        data = json.load(f)
+
+        if "progress" not in data:
+        data["progress"] = []
+
+        # Find existing progress entry
+        existing = next((p for p in data["progress"] 
+        if p.get("show_id") == entry.get("show_id") 
+        and p.get("season") == entry.get("season")
+        and p.get("episode") == entry.get("episode")), None)
+
+        if existing:
+        existing["progress"] = entry.get("progress", 0)
+        existing["completed"] = entry.get("completed", False)
+        existing["last_watched"] = datetime.now().isoformat()
+        else:
+        data["progress"].append({
+        "show_id": entry.get("show_id"),
+        "season": entry.get("season"),
+        "episode": entry.get("episode"),
+        "progress": entry.get("progress", 0),
+        "completed": entry.get("completed", False),
+        "last_watched": datetime.now().isoformat()
+        })
+
+        with open(EPISODE_PROGRESS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+        return jsonify({"success": True})
+
+
+        @tv_shows_enhanced_bp.route("/api/tv/shows/<int:show_id>/next-episode", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_next_episode(show_id):
+    try:
+        """Get the next episode to watch"""
+        with open(EPISODE_PROGRESS_FILE, "r") as f:
+        data = json.load(f)
+
+        progress = data.get("progress", [])
+        show_progress = [p for p in progress if p.get("show_id") == show_id and p.get("completed")]
+
+        if show_progress:
+        # Get last completed episode
+        last_episode = max(show_progress, key=lambda x: (x.get("season", 0), x.get("episode", 0)))
+        next_season = last_episode.get("season")
+        next_episode = last_episode.get("episode") + 1
+        else:
+        # Start from beginning
+        next_season = 1
+        next_episode = 1
+
+        return jsonify({
+        "success": True,
+        "show_id": show_id,
+        "next_episode": {
+        "season": next_season,
+        "episode": next_episode,
+        "name": f"S{next_season:02d}E{next_episode:02d}"
+        }
+        })
+
+        # ===== BINGE-WATCHING MODE =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/shows/<int:show_id>/binge-session", methods=["POST"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def start_binge_session(show_id):
+    try:
+        """Start a binge-watching session"""
+        data = request.json
+        start_season = data.get("start_season", 1)
+        start_episode = data.get("start_episode", 1)
+
+        # Generate episode queue
+        episode_queue = []
+        for i in range(5):  # Next 5 episodes
+        episode_queue.append({
+        "season": start_season,
+        "episode": start_episode + i,
+        "name": f"S{start_season:02d}E{start_episode + i:02d}"
+        })
+
+        return jsonify({
+        "success": True,
+        "show_id": show_id,
+        "session_id": f"binge_{show_id}_{datetime.now().timestamp()}",
+        "episode_queue": episode_queue,
+        "auto_play": True,
+        "skip_intro": True
+        })
+
+        # ===== EPISODE SCHEDULING & REMINDERS =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/reminders", methods=["GET", "POST"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def episode_reminders():
+    try:
+        """Manage episode reminders"""
+        if request.method == "GET":
+        with open(TV_REMINDERS_FILE, "r") as f:
+        data = json.load(f)
+        return jsonify({"success": True, "reminders": data.get("reminders", [])})
+
+        else:  # POST
+        reminder = request.json
+
+        with open(TV_REMINDERS_FILE, "r") as f:
+        data = json.load(f)
+
+        if "reminders" not in data:
+        data["reminders"] = []
+
+        data["reminders"].append({
+        "id": len(data["reminders"]) + 1,
+        "show_id": reminder.get("show_id"),
+        "show_name": reminder.get("show_name"),
+        "season": reminder.get("season"),
+        "episode": reminder.get("episode"),
+        "air_date": reminder.get("air_date"),
+        "remind_before": reminder.get("remind_before", 60),  # minutes
+        "enabled": True,
+        "created_at": datetime.now().isoformat()
+        })
+
+        with open(TV_REMINDERS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+        return jsonify({"success": True, "reminder": data["reminders"][-1]})
+
+
+        @tv_shows_enhanced_bp.route("/api/tv/reminders/<int:reminder_id>", methods=["DELETE"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def delete_reminder(reminder_id):
+    try:
+        """Delete a reminder"""
+        with open(TV_REMINDERS_FILE, "r") as f:
+        data = json.load(f)
+
+        reminders = data.get("reminders", [])
+        reminders = [r for r in reminders if r.get("id") != reminder_id]
+        data["reminders"] = reminders
+
+        with open(TV_REMINDERS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+        return jsonify({"success": True, "message": "Reminder deleted"})
+
+
+        @tv_shows_enhanced_bp.route("/api/tv/upcoming", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_upcoming_episodes():
+    try:
+        """Get upcoming episodes"""
+        days = int(request.args.get("days", 7))
+
+        # Simulate upcoming episodes
+        upcoming = []
+        for i in range(1, days + 1):
+        air_date = (datetime.now() + timedelta(days=i)).isoformat()
+        upcoming.append({
+        "show_id": i,
+        "show_name": f"Show {i}",
+        "season": 2,
+        "episode": i,
+        "name": f"Episode {i}",
+        "air_date": air_date
+        })
+
+        return jsonify({
+        "success": True,
+        "upcoming": upcoming,
+        "count": len(upcoming)
+        })
+
+        # ===== SPECIAL EPISODES & EXTRAS =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/shows/<int:show_id>/specials", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_specials(show_id):
+    try:
+        """Get special episodes and extras"""
+        specials = [
+        {"type": "special", "name": "Behind the Scenes", "air_date": "2023-12-25"},
+        {"type": "special", "name": "Cast Interviews", "air_date": "2024-01-01"}
+        ]
+
+        return jsonify({
+        "success": True,
+        "show_id": show_id,
+        "specials": specials
+        })
+
+        # ===== RELATED SERIES =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/shows/<int:show_id>/related", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_related_shows(show_id):
+    try:
+        """Get spin-offs and related series"""
+        related = [
+        {"id": 101, "name": "Spin-off Series", "type": "spinoff", "relationship": "Direct spin-off"},
+        {"id": 102, "name": "Related Show", "type": "related", "relationship": "Same universe"}
+        ]
+
+        return jsonify({
+        "success": True,
+        "show_id": show_id,
+        "related": related
+        })
+
+        # ===== EPISODE RATINGS =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/episodes/rating", methods=["GET", "POST"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def episode_rating():
+    try:
+        """Get or set episode rating"""
+        if request.method == "GET":
+        show_id = int(request.args.get("show_id"))
+        season = int(request.args.get("season"))
+        episode = int(request.args.get("episode"))
+
+        # Simulate getting rating
+        return jsonify({
+        "success": True,
+        "rating": 8.5,
+        "review": "Great episode!"
+        })
+
+        else:  # POST
+        data = request.json
+        # Save rating logic here
+        return jsonify({"success": True})
+
+        # ===== SEASON PACK MANAGEMENT =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/shows/<int:show_id>/season-packs", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_season_packs(show_id):
+    try:
+        """Get available season packs"""
+        packs = [
+        {"season": 1, "quality": "1080p", "size": "15 GB", "complete": True},
+        {"season": 2, "quality": "4K", "size": "45 GB", "complete": False}
+        ]
+
+        return jsonify({
+        "success": True,
+        "show_id": show_id,
+        "packs": packs
+        })
+
+        # ===== SERIES FINALE TRACKING =====
+
+        @tv_shows_enhanced_bp.route("/api/tv/finales", methods=["GET"])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_series_finales():
+    try:
+        """Get series finales"""
+        finales = [
+        {"show_id": 1, "show_name": "Show 1", "season": 5, "episode": 22, "air_date": "2024-05-15"},
+        {"show_id": 2, "show_name": "Show 2", "season": 3, "episode": 13, "air_date": "2024-06-20"}
+        ]
+
+        return jsonify({
+        "success": True,
+        "finales": finales
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

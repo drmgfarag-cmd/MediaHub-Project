@@ -1,0 +1,31 @@
+from flask import Blueprint, jsonify, request
+import os, json, time
+qm_bp = Blueprint('queue_meta', __name__)
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+STO  = os.path.join(ROOT, 'storage')
+FILE = os.path.join(STO, 'queue_meta.json')
+
+def _load():
+    try: return json.load(open(FILE,'r',encoding='utf-8'))
+    except: return {}
+
+def _save(d):
+    tmp=FILE+'.tmp'; open(tmp,'w',encoding='utf-8').write(json.dumps(d,indent=2)); os.replace(tmp, FILE)
+
+@qm_bp.route('/api/queue/meta/set', methods=['POST'])
+def set_():
+    try:
+        js=request.get_json(silent=True) or {}
+        # key by id if provided, else by name
+        k = js.get('id') or js.get('name')
+        if not k: return jsonify({"error":"id or name required"}), 400
+        d=_load(); d[k]={
+        "referrer": js.get('referrer',''),
+        "hoster": js.get('hoster',''),
+        "save_path": js.get('save_path',''),
+        "description": js.get('description',''),
+        "last_try_ts": int(time.time())
+        }
+        _save(d); return jsonify({"ok":True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

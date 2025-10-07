@@ -1,0 +1,21 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Scheduler</title>
+<link rel="stylesheet" href="/web/ui/common.css"><script src="/web/ui/common.js"></script></head>
+<body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header><div class="shell"><main class="content">
+<div class="card"><h3>Scheduler (time-of-day limits)</h3>
+<label><input type="checkbox" id="sch_enabled"> Enable</label>
+<table id="sch_table" class="queue-table"><thead><tr><th>Days (0=Mon)</th><th>Start</th><th>End</th><th>Speed (kbps)</th><th>Max running</th><th></th></tr></thead><tbody></tbody></table>
+<div class="inline" style="gap:6px;margin-top:8px"><button class="iconbtn" onclick="addRow()">Add</button><button class="iconbtn" onclick="save()">Save</button></div>
+</div>
+<div class="card"><h3>Speed Graph (preview)</h3><canvas id="sp_graph" width="960" height="160" style="background:#0f1520;border:1px solid #2b3a4a;border-radius:8px"></canvas></div>
+</main></div>
+<script>
+let SCH={enabled:false,rules:[]};
+function render(){ document.getElementById('sch_enabled').checked=!!SCH.enabled; const tb=document.querySelector('#sch_table tbody'); tb.innerHTML=SCH.rules.map(row).join(''); }
+function addRow(){ SCH.rules.push({days:[0,1,2,3,4,5,6],start:'00:00',end:'23:59',speed_kbps:0,max_running:0}); render(); }
+function delRow(i){ SCH.rules.splice(i,1); render(); }
+async function load(){ SCH=await (await fetch('/api/scheduler')).json(); render(); draw(); }
+async function save(){ const tb=[...document.querySelectorAll('#sch_table tbody tr')].map(tr=>{ const t=tr.querySelectorAll('input'); return {days:t[0].value.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)),start:t[1].value,end:t[2].value,speed_kbps:parseInt(t[3].value||'0'),max_running:parseInt(t[4].value||'0')}; }); await fetch('/api/scheduler',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:document.getElementById('sch_enabled').checked,rules:tb})}); UI.toast('Saved'); }
+function draw(){ const c=document.getElementById('sp_graph'); const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.beginPath(); let y=120; for(let x=0;x<c.width;x+=20){ y = 80 + Math.sin(x/40)*30 + (Math.random()*10-5); if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.strokeStyle='#6cb2ff'; ctx.lineWidth=2; ctx.stroke(); }
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

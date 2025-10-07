@@ -1,0 +1,108 @@
+from flask import Blueprint, jsonify, request
+import os, json, time
+
+pin_bp = Blueprint('pin', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+PIN=os.path.join(STO,'pinboard.json')
+COL=os.path.join(STO,'collections.json')
+RAIL=os.path.join(STO,'smart_rails_cache.json')
+LIB=os.path.join(STO,'library_index.json')
+
+def _load(path, default):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+        except Exception: return default
+
+def _save(path, obj):
+    tmp=path+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, path)
+
+def _items():
+        try: return json.load(open(LIB,'r',encoding='utf-8'))
+        except Exception: return []
+
+@pin_bp.route('/api/pin/get')
+def get():
+    try:
+        return jsonify(_load(PIN, {'pins':[]}))
+
+        @pin_bp.route('/api/pin/set', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def set_():
+    try:
+        js=request.get_json(silent=True) or {}
+        _save(PIN, js); return jsonify({'ok':True})
+
+        @pin_bp.route('/api/pin/add', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def add():
+    try:
+        js=request.get_json(silent=True) or {}
+        k=(js.get('kind') or '').strip(); n=(js.get('name') or '').strip()
+        data=_load(PIN, {'pins':[]})
+        if not any(p.get('kind')==k and p.get('name')==n for p in data['pins']):
+        data['pins'].append({'kind':k,'name':n})
+        _save(PIN, data)
+        return jsonify({'ok':True})
+
+
+        @pin_bp.route('/api/pin/remove', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def remove():
+    try:
+        js=request.get_json(silent=True) or {}
+        k=(js.get('kind') or '').strip(); n=(js.get('name') or '').strip()
+        data=_load(PIN, {'pins':[]})
+        data['pins']=[p for p in data['pins'] if not (p.get('kind')==k and p.get('name')==n)]
+        _save(PIN, data); return jsonify({'ok':True})
+
+        @pin_bp.route('/api/pin/list_sources')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def list_sources():
+    try:
+        cols=_load(COL, {'collections':[]}).get('collections',[])
+        rails=list((_load(RAIL, {'rails':{}}).get('rails') or {}).keys())
+        return jsonify({'collections': [c.get('name') for c in cols], 'rails': rails})
+
+        @pin_bp.route('/api/pin/resolve')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def resolve():
+    try:
+        # Resolve a pin to items (up to 200) for cards
+        k=(request.args.get('kind') or '').strip()
+        n=(request.args.get('name') or '').strip()
+        its=_items()
+        if k=='rail':
+        rails=_load(RAIL, {'rails':{}}).get('rails',{})
+        arr=rails.get(n, [])[:200]
+        return jsonify({'items': arr})
+        # collection: evaluate simple rules (title_re or path_re)
+        cols=_load(COL, {'collections':[]}).get('collections',[])
+        col=next((c for c in cols if c.get('name')==n), None)
+        if not col: return jsonify({'items': []})
+        out=[]
+        import re
+        rs=col.get('rules') or []
+        for it in its:
+        t=it.get('title') or os.path.basename(it.get('path') or '')
+        p=it.get('path') or ''
+        ok=False
+        for r in rs:
+        tre=r.get('title_re'); pre=r.get('path_re')
+        if tre and re.search(tre, t, re.I): ok=True
+        if pre and re.search(pre, p, re.I): ok=True
+        if ok: break
+        if ok: out.append({'title': t, 'type': it.get('type',''), 'year': it.get('year'), 'path': p})
+        if len(out)>=200: break
+        return jsonify({'items': out})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

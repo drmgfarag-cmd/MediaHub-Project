@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Backup & Restore</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Backup & Restore</strong></div>
+  <div class="card">
+    <h3>Snapshot</h3>
+    <input id="sn" placeholder="Name (optional)">
+    <button id="mk">Make Snapshot</button> <span id="msg"></span>
+  </div>
+  <div class="card">
+    <h3>Export / Import Settings</h3>
+    <button id="ex">Export</button> <span id="exout"></span>
+    <div style="margin-top:6px">Import JSON (paste):</div>
+    <textarea id="imp" style="width:100%;height:140px"></textarea><br>
+    <button id="im">Import</button> <span id="immsg"></span>
+  </div>
+</div>
+<script>
+mk.onclick=async ()=>{ const name=sn.value.trim(); const r=await (await fetch('/api/sys/snapshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})).json(); msg.textContent=r.ok? ('Snapshot '+r.snapshot): 'Failed'; };
+ex.onclick=async ()=>{ const r=await (await fetch('/api/settings/export')).json(); exout.textContent=r.file? ('Saved: '+r.file): 'Failed'; };
+im.onclick=async ()=>{ try{ const js=JSON.parse(imp.value); const r=await (await fetch('/api/settings/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(js)})).json(); immsg.textContent=r.ok? 'Imported.' : 'Failed'; }catch(e){ immsg.textContent='Invalid JSON'; } };
+</script>
+</body></html>

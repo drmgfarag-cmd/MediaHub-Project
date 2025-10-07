@@ -1,0 +1,15 @@
+{
+  "required_surfaces": [
+    "library:pinned_subcategories",
+    "library:hierarchy_dock",
+    "library:card_context_menu",
+    "library:toolbar:rebuild_index",
+    "library:toolbar:integrity_scan"
+  ],
+  "pillars": [
+    "Movies",
+    "TV",
+    "Books",
+    "Audio"
+  ]
+}

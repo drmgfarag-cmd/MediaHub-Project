@@ -1,0 +1,363 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Tools Check</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body>
+
+<!-- Unified Top Nav (hero-friendly) + Side Pillars + Context Menu -->
+<style>
+#topnav{position:sticky;top:0;z-index:1200;background:linear-gradient(180deg, rgba(8,12,20,.86), rgba(8,12,20,.38) 60%, rgba(8,12,20,0) 100%);backdrop-filter:saturate(140%) blur(8px);padding:8px 12px;display:flex;gap:12px;align-items:center}
+#topnav a{color:#e8ebf5;text-decoration:none;padding:6px 10px;border-radius:8px}
+#topnav a.cur{background:rgba(255,255,255,.06)}
+#sidenav{position:fixed;left:12px;top:60px;bottom:12px;width:190px;background:#0b1220cc;border:1px solid #1f2537;border-radius:12px;padding:8px;z-index:1100;display:none;overflow:auto}
+#sidenav .hdr{font-weight:600;margin:6px 0 8px 0;opacity:.85}
+#sidenav a{display:block;color:#e8ebf5;text-decoration:none;padding:6px 8px;border-radius:8px}
+#sidenav a:hover{background:#121a2d}
+#navtoggle{position:fixed;left:12px;top:12px;z-index:1300;background:#0b1220;border:1px solid #1f2537;border-radius:10px;padding:6px 8px;cursor:pointer}
+.context{position:fixed;background:#0b1220;border:1px solid #1f2537;border-radius:8px;display:none;z-index:2000;min-width:200px}
+.context .it{padding:8px 10px;cursor:pointer}
+.context .it:hover{background:#121a2d}
+.subbar{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap}
+.subbar .tab{padding:6px 10px;border:1px solid #1f2537;border-radius:999px;cursor:pointer;text-decoration:none;color:#e8ebf5}
+.subbar .tab.cur{background:#121a2d}
+@media (max-width: 1080px){ #sidenav{display:none!important} }
+</style>
+<div id="navtoggle">☰</div>
+<div id="topnav">
+  <a href="home.html" id="nav_home">MediaHub</a>
+  <a href="discovery.html" id="nav_disc">Discovery</a>
+  <a href="downloader.html" id="nav_dl">Downloader</a>
+  <a href="rd_manager.html" id="nav_rd">RD Manager</a>
+  <a href="editor_pro.html" id="nav_ed">Editor</a>
+  
+  <span style="flex:1"></span>
+  <a href="tools.html">Tools</a>
+</div>
+<div id="sidenav">
+  <div class="hdr">Pillars</div>
+  <a href="home.html">MediaHub</a>
+  <a href="downloader.html">Downloader</a>
+  <a href="rd_manager.html">RD Manager</a>
+  <a href="editor_pro.html">Editor</a>
+  
+  <div class="hdr">Library</div>
+  <a href="collections_import.html">Collections — Import</a>
+  <a href="timelines.html">Collections — Timelines</a>
+  <a href="publisher_pivots.html">Publishers</a>
+  <div class="hdr">System</div>
+  <a href="system_logs.html">System & Logs</a>
+  <a href="dependencies.html">Dependencies</a>
+  <a href="backup_restore.html">Backup & Restore</a>
+  <a href="accessibility.html">Accessibility</a>
+</div>
+<div id="ctx" class="context"></div>
+<script>
+(function(){
+  const cur = location.pathname.split('/').pop();
+  ({"home.html":"nav_home","discovery.html":"nav_disc","downloader.html":"nav_dl","rd_manager.html":"nav_rd","editor_pro.html":"nav_ed","kids.html":"nav_kids"})[cur] && document.getElementById({"home.html":"nav_home","discovery.html":"nav_disc","downloader.html":"nav_dl","rd_manager.html":"nav_rd","editor_pro.html":"nav_ed","kids.html":"nav_kids"}[cur]).classList.add('cur');
+  navtoggle.onclick=()=>{ const s=document.getElementById('sidenav'); s.style.display = s.style.display==='block'? 'none':'block'; };
+  // Context menu framework
+  const ctx=document.getElementById('ctx');
+  document.addEventListener('contextmenu',(e)=>{
+    const card=e.target.closest('.item,.row,li,tr');
+    if(!card){ return; }
+    e.preventDefault();
+    const kind = location.pathname.includes('downloader')? 'downloader' : (location.pathname.includes('rd_manager')? 'rd' : (location.pathname.includes('editor')? 'editor' : 'library'));
+    let html='';
+    if(kind==='library'){
+      html+=`<div class="it" data-a="pin">Pin to rail</div><div class="it" data-a="kids">Mark as Kids</div><div class="it" data-a="collection">Add to Collection</div>`;
+    }else if(kind==='downloader'){
+      html+=`<div class="it" data-a="pause">Pause</div><div class="it" data-a="resume">Resume</div><div class="it" data-a="force">Force Start</div><div class="it" data-a="dupe">Deduplicate…</div>`;
+    }else if(kind==='rd'){
+      html+=`<div class="it" data-a="pick">Pick Best</div><div class="it" data-a="dupe">Collapse Duplicates</div>`;
+    }else if(kind==='editor'){
+      html+=`<div class="it" data-a="find">Find…</div><div class="it" data-a="replace">Replace…</div>`;
+    }
+    ctx.innerHTML=html; ctx.style.left=(e.pageX+2)+'px'; ctx.style.top=(e.pageY+2)+'px'; ctx.style.display='block';
+  });
+  document.addEventListener('click', async (e)=>{
+    if(!e.target.closest('#ctx')){ ctx.style.display='none'; return; }
+    const a=e.target.dataset.a;
+    if(a==='dupe' && location.pathname.includes('downloader')){
+      const mode=prompt('Deduplicate: 1) Mark duplicates  2) Remove smaller','1'); if(!mode) return;
+      const md= mode==='2'? 'remove':'mark';
+      const r=await (await fetch('/api/dedupe/downloader',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode: md})})).json();
+      alert('Duplicates processed. Removed: '+(r.removed||0));
+      location.reload();
+    }
+    if(a==='dupe' && location.pathname.includes('rd_manager')){
+      const mode=prompt('RD Dedupe: 1) Collapse view  2) Remove smaller variants','1'); if(!mode) return;
+      const md= mode==='2'? 'remove_smaller':'collapse';
+      const r=await (await fetch('/api/dedupe/rd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode: md})})).json();
+      alert('RD dedupe removed: '+(r.removed||0));
+      location.reload();
+    }
+    if(a==='pick'){ /* RD pick best — use buttons in the UI for specifics */ }
+    if(a==='find'){ const b=document.getElementById('fr'); if(b) b.click(); }
+  });
+})();</script>
+<div class="wrap" style="margin-top:8px">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Tools / Codecs</strong></div>
+  <div class="card"><h3>FFmpeg</h3><button id="chk_f">Check</button> <span id="f_stat"></span></div>
+  <div class="card"><h3>7‑Zip</h3><button id="chk_z">Check</button> <span id="z_stat"></span></div>
+  <div class="card">
+    <h3>HLS Test</h3>
+    <input id="path" placeholder="Path to a local media file" style="width:60%">
+    <select id="lvl"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
+    <button id="go">Start</button>
+    <div id="hls_link" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <h3>Thumbnails (poster + VTT)</h3>
+    <input id="th_path" placeholder="Path to a local video file" style="width:60%">
+    Every <input id="th_every" type="number" value="10" style="width:70px"> sec
+    <button id="th_go">Create</button>
+    <div id="th_out" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <h3>Hash Check</h3>
+    <input id="h_path" placeholder="Path to a local file" style="width:60%">
+    <select id="h_algo"><option>sha1</option><option>md5</option><option>sha256</option></select>
+    <button id="h_go">Run</button>
+    <div id="h_out" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <h3>Quick Launchers</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <a class="btn" href="editor.html">Editor</a>
+      <a class="btn" href="spotlight.html">Spotlight</a>
+      <a class="btn" href="playlists.html">Playlists</a>
+      <a class="btn" href="lists_catalog.html">Lists Catalog</a>
+      <a class="btn" href="profiles.html">Profiles</a>
+      <a class="btn" href="providers.html">Metadata Providers</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Monaco Editor</h3>
+    <div>Status: <span id="m_stat">checking…</span></div>
+    <div style="margin-top:6px"><button id="m_get">Fetch/Update to latest</button></div>
+  </div>
+  <div class="card">
+    <h3>Smart Playlists</h3>
+    <a class="btn" href="smart_playlists.html">Open Builder</a>
+  </div>
+  <div class="card">
+    <h3>Discovery</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="discovery.html">Open Discovery</a>
+      <a class="btn" href="discovery_settings.html">Discovery Settings</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Accessibility & Language</h3>
+    <a class="btn" href="a11y.html">Open</a>
+  </div>
+  <div class="card">
+    <h3>Health & Reliability</h3>
+    <a class="btn" href="health.html">Open Dashboard</a>
+  </div>
+  <div class="card">
+    <h3>Power Tools</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="advanced_search.html">Advanced Search</a>
+      <a class="btn" href="find_replace.html">Find & Replace</a>
+      <a class="btn" href="batch_rename.html">Batch Rename</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Downloader Tools</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="downloads.html">Downloads</a>
+      <a class="btn" href="downloader_dedupe.html">Dedupe Review</a>
+      <a class="btn" href="rss.html">RSS Auto-Search</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Real‑Debrid Manager</h3>
+    <a class="btn" href="rd_manager.html">Open RD Manager</a>
+  </div>
+  <div class="card">
+    <h3>Lists Catalog & Imports</h3>
+    <a class="btn" href="lists_catalog.html">Open</a>
+  </div>
+  <div class="card">
+    <h3>Smart Rails (Live)</h3>
+    <a class="btn" href="smart_rails.html">Open</a>
+  </div>
+  <div class="card"><h3>Audio</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="audio_settings.html">Audio Settings</a>
+      <a class="btn" href="lyrics_manager.html">Lyrics Manager</a>
+      <a class="btn" href="music_playlists.html">Mixes & Radios</a>
+      <a class="btn" href="now_playing_audio.html">Now Playing (demo)</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Profiles & Kids</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="profiles.html">Profiles</a>
+      <a class="btn" href="kids_mode.html">Kids Controls</a>
+      <a class="btn" href="kids_library.html">Kids Library</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Health</h3>
+    <a class="btn" href="health_performance.html">Performance Dashboard</a>
+  </div>
+  <div class="card">
+    <h3>Collections & Pinboard</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="collections_browser.html">Collections Browser</a>
+      <a class="btn" href="pinboard_settings.html">Pinboard Settings</a>
+      <a class="btn" href="timeline_years.html">Timeline — By Year</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Downloader</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="downloader.html">Open Downloader</a>
+      <a class="btn" href="downloader_columns.html">Column Presets</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Feeds & Missing</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="feeds.html">Feeds & Auto‑Search</a>
+      <a class="btn" href="missing_tv.html">Missing Episodes</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Automation</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="auto_select.html">Smart Auto‑Select</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Automation — Rails</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="auto_rails_settings.html">Auto Picks — Settings</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Collections — Wanted</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="wanted.html">Wanted Tracker</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Collections — Wanted (Automation)</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="wanted_automation.html">Wanted — Automation</a>
+      <a class="btn" href="wanted_journal.html">Wanted — Journal</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Downloader — Completion Hooks</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="hooks_settings.html">Completion Hooks — Settings</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Appearance</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="ui_polish.html">UI — Polishes</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Collections — Tools</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="collections_import.html">Collections — Import Presets</a>
+      <a class="btn" href="timelines.html">Collections — Timelines</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Downloader & RD</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="rd_manager.html">Real‑Debrid — Manager</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Library & Reading</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="readers_audio_settings.html">Readers & Audio — Settings</a>
+      <a class="btn" href="publisher_pivots.html">Publishers — Pivots</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>System</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="system_logs.html">System & Logs</a>
+      <a class="btn" href="dependencies.html">Dependencies (7‑Zip & FFmpeg)</a>
+      <a class="btn" href="backup_restore.html">Backup & Restore</a>
+      <a class="btn" href="accessibility.html">Accessibility & Keyboard</a>
+      <a class="btn" href="editor_pro.html">Editor — Pro</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Features</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="features_toggles.html">Features — Toggles</a>
+      <a class="btn" href="rss_feeder.html">RSS Feeder</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>MediaHub</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="mediahub_kids.html">MediaHub — Kids</a> <a class="btn" href="mediahub_movies.html">MediaHub — Movies</a> <a class="btn" href="mediahub_tv.html">MediaHub — TV</a> <a class="btn" href="mediahub_books.html">MediaHub — Books</a> <a class="btn" href="mediahub_audio.html">MediaHub — Audio</a>
+    </div>
+  </div>
+</div>
+<script>
+async function m_status(){ try{ const j=await (await fetch('/api/editor/monaco/status')).json(); document.getElementById('m_stat').textContent = j.installed ? ('Installed '+(j.version||'')) : 'Not installed'; }catch(e){ document.getElementById('m_stat').textContent='Status error'; } }
+document.getElementById('m_get').onclick=async ()=>{ document.getElementById('m_stat').textContent='Downloading…'; const r=await fetch('/api/editor/monaco/fetch',{method:'POST'}); const j=await r.json(); if(j.ok){ document.getElementById('m_stat').textContent='Installed '+j.version; } else { document.getElementById('m_stat').textContent='Failed'; } };
+document.addEventListener('DOMContentLoaded', m_status);
+
+document.getElementById('chk_f').onclick=async ()=>{ const j=await (await fetch('/api/tools/ffmpeg/info')).json().catch(()=>({})); document.getElementById('f_stat').textContent = j.ok? (j.version+' — '+j.path) : 'Not found'; };
+document.getElementById('chk_z').onclick=async ()=>{ const j=await (await fetch('/api/tools/7zip/info')).json().catch(()=>({})); document.getElementById('z_stat').textContent = j.ok? (j.version+' — '+j.path) : 'Not found'; };
+document.getElementById('go').onclick=async ()=>{ const p=document.getElementById('path').value; const lvl=document.getElementById('lvl').value; const r=await fetch('/api/stream/hls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:p, level:lvl})}); const j=await r.json(); const link=document.getElementById('hls_link'); link.innerHTML = j.url? ('<a href="'+j.url+'">Open HLS manifest</a>') : (j.error||'err'); };
+
+document.getElementById('th_go').onclick=async ()=>{
+  const p=document.getElementById('th_path').value; const ev=parseInt(document.getElementById('th_every').value||'10');
+  const r=await fetch('/api/tools/thumbs/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:p,every_sec:ev})});
+  const j=await r.json(); const out=document.getElementById('th_out');
+  out.innerHTML = j.ok? ('Poster: <a href="'+j.poster+'">open</a> · VTT: <a href="'+j.vtt+'">open</a> · Dir: <a href="'+j.dir+'">browse</a>') : (j.error||'error');
+};
+
+document.getElementById('h_go').onclick=async ()=>{
+  const p=document.getElementById('h_path').value; const a=document.getElementById('h_algo').value;
+  const j=await (await fetch(`/api/tools/hash?path=${encodeURIComponent(p)}&algo=${a}`)).json();
+  document.getElementById('h_out').textContent = j.ok? (`${a}: ${j.hash}`) : (j.error||'error');
+};
+</script>
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+
+<!-- Audio Mini-Player -->
+<style>
+#mini{position:fixed;left:12px;right:12px;bottom:12px;background:#0b1220;border:1px solid #1f2537;border-radius:12px;padding:8px 12px;display:flex;gap:10px;align-items:center;z-index:1000}
+#mini .btn{padding:4px 8px}
+</style>
+<div id="mini" hidden>
+  <div id="minititle" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+  <button id="aprev" class="btn">⏮</button>
+  <button id="aplay" class="btn">▶</button>
+  <button id="anext" class="btn">⏭</button>
+  <button id="alike" class="btn">❤</button>
+  <select id="arepeat"><option value="off">↻ Off</option><option value="one">↻ One</option><option value="all">↻ All</option></select>
+  <label style="margin-left:6px"><input id="ashuf" type="checkbox"> Shuffle</label>
+</div>
+<script>
+(async function(){
+  async function refresh(){
+    const s=await (await fetch('/api/audio/state')).json();
+    if(s.now){ mini.hidden=false; minititle.textContent = (s.now.title||'') + (s.now.artist? ' — '+s.now.artist : ''); }
+    arepeat.value=(s.prefs&&s.prefs.repeat)||'off'; ashuf.checked=!!(s.prefs&&s.prefs.shuffle);
+  }
+  aprev.onclick=async ()=>{ /* no-op previous in simple demo */ };
+  aplay.onclick=async ()=>{ await fetch('/api/audio/play',{method:'POST'}); refresh(); };
+  anext.onclick=async ()=>{ await fetch('/api/audio/next',{method:'POST'}); refresh(); };
+  alike.onclick=async ()=>{ await fetch('/api/audio/like',{method:'POST'}); };
+  arepeat.onchange=async ()=>{ await fetch('/api/audio/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repeat: arepeat.value})}); };
+  ashuf.onchange=async ()=>{ await fetch('/api/audio/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shuffle: ashuf.checked})}); };
+  setInterval(refresh, 1500); refresh();
+})();</script>
+
+</body></html>

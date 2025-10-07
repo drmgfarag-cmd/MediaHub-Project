@@ -1,0 +1,4 @@
+v57: Downloader parity shell (tabs/grid/bottom bar/context), RD Exclusion Browser, Dedupe preview/confirm, unified profiles.
+v58: Editor tabbed Find/Replace+Compare; Library auto-fit + pinned Collections (incl. Rest); Online Lists stubs.
+v59: FileBot-compatible format translator + preview endpoint; Renamer page with live preview; right-click rename hook pending.
+v60: Batch rename test & migration helper; Self-Audit gates for renamer/editor/downloader.

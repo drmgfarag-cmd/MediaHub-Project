@@ -1,0 +1,21 @@
+{
+  "profiles": {
+    "default": {
+      "quiet": [
+        {
+          "start": "01:00",
+          "end": "07:00",
+          "limit_kbps": 200
+        }
+      ],
+      "peak_boost": [
+        {
+          "start": "23:00",
+          "end": "01:00",
+          "limit_kbps": 0
+        }
+      ]
+    }
+  },
+  "active": "default"
+}

@@ -1,0 +1,46 @@
+{
+  "include_words": [
+    "2160p",
+    "1080p",
+    "remux",
+    "hdr10"
+  ],
+  "exclude_words": [
+    "sample",
+    "trailer",
+    "extras",
+    "cam",
+    "ts",
+    "r5",
+    "screener",
+    "workprint"
+  ],
+  "allow_ext": [
+    "mkv",
+    "mp4",
+    "flac",
+    "m4b",
+    "epub",
+    "pdf",
+    "mp3",
+    "aac"
+  ],
+  "deny_ext": [
+    "exe",
+    "bat",
+    "scr",
+    "com",
+    "apk",
+    "dmg",
+    "msi"
+  ],
+  "profiles": {
+    "UserDefined": {
+      "include_words": [],
+      "exclude_words": [],
+      "allow_ext": [],
+      "deny_ext": []
+    }
+  },
+  "active_profile": "UserDefined"
+}

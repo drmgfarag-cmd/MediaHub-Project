@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Kids Library</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.itm{margin:6px 0}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="kids_mode.html">← Kids</a> · <strong>Kids Library (Filtered)</strong></div>
+  <div class="card" id="out">—</div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/library/filtered')).json();
+  out.innerHTML = (j.items||[]).slice(0,400).map(x=>`<div class="itm"><strong>${x.title||''}</strong> <span class="badge">${x.type||''}</span> <span class="badge">${x.year||''}</span><div class="text-clip">${x.path||''}</div></div>`).join('') || 'No items allowed by current rules.';
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

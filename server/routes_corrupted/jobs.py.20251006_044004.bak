@@ -1,0 +1,160 @@
+from flask import Blueprint, jsonify, request
+import os, json, time, threading, queue, uuid, shutil
+
+jobs_bp = Blueprint('jobs', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+CFG=os.path.join(STO,'config.json')
+HIST=os.path.join(STO,'jobs_history.json')
+
+_q = queue.Queue()
+_lock = threading.Lock()
+_running = {}
+_history = []    # append-only (truncate to last N)
+
+_started=False
+_workers=[]
+
+def _cfg():
+    try: return json.load(open(CFG,'r',encoding='utf-8'))
+    except Exception: return {}
+
+def _persist():
+    try:
+        tmp=HIST+'.tmp'
+        json.dump(_history[-500:], open(tmp,'w',encoding='utf-8'), indent=2)
+        os.replace(tmp, HIST)
+    except Exception:
+        pass
+
+def _load_history():
+    try:
+        _history.extend(json.load(open(HIST,'r',encoding='utf-8'))[-500:])
+    except Exception:
+        pass
+
+def _run_job(job):
+    typ=job.get('type')
+    args=job.get('args') or {}
+    # Simulated handlers (non-destructive). Real implementations can be plugged later.
+    t0=time.time()
+    if typ in ('scan_library','refresh_rails','backup','reindex_sqlite','smart_rails_refresh','audio_replaygain_scan'):
+        time.sleep(0.5)  # simulate small work
+        if typ=='backup':
+            pass
+        if typ=='smart_rails_refresh':
+            try:
+                from .smart_rails import _compute
+                _compute()
+            except Exception:
+                pass
+        if typ=='audio_replaygain_scan':
+            try:
+                from .audio_replaygain import scan as _rgscan
+                class Req: 
+                    def get_json(self, *a, **k): return {}
+                # call route function directly
+                _rgscan.__globals__['request']=Req()
+                _rgscan()
+            except Exception:
+                pass
+        if typ=='backup':
+            try:
+                from .smart_rails import _compute
+                _compute()
+            except Exception:
+                pass
+        if typ=='backup':
+            # write a small marker backup file
+            try:
+                os.makedirs(os.path.join(STO, 'backups'), exist_ok=True)
+                open(os.path.join(STO,'backups', f'backup_{int(time.time())}.txt'),'w',encoding='utf-8').write('ok')
+            except Exception: pass
+        return {'ok': True, 'took_ms': int((time.time()-t0)*1000)}
+    # Unknown job -> no-op
+    time.sleep(0.2)
+    return {'ok': True, 'note': 'noop'}
+
+def _worker():
+    while True:
+        job=_q.get()
+        jid=job['id']
+        with _lock:
+            job['status']='running'; job['started']=time.time(); _running[jid]=job
+        try:
+            res=_run_job(job)
+            with _lock:
+                job['status']='done'; job['ended']=time.time(); job['result']=res
+                _history.append({k:v for k,v in job.items() if k!='_fn'})
+                _running.pop(jid, None)
+                _persist()
+        except Exception as e:
+            with _lock:
+                job['status']='error'; job['ended']=time.time(); job['error']=str(e)
+                _history.append({k:v for k,v in job.items() if k!='_fn'})
+                _running.pop(jid, None)
+                _persist()
+        finally:
+            _q.task_done()
+
+def _ensure_started():
+    global _started, _workers
+    if _started: return
+    _started=True
+    _load_history()
+    cfg=_cfg()
+    n=max(1, int(cfg.get('jobs',{}).get('max_workers',2)))
+    for i in range(n):
+        t=threading.Thread(target=_worker, daemon=True)
+        t.start(); _workers.append(t)
+
+@jobs_bp.route('/api/jobs/submit', methods=['POST'])
+def submit():
+    try:
+        _ensure_started()
+        js=request.get_json(silent=True) or {}
+        typ=(js.get('type') or '').strip() or 'noop'
+        args=js.get('args') or {}
+        cfg=_cfg(); maxq=int(cfg.get('jobs',{}).get('max_queue',100))
+        if _q.qsize() >= maxq:
+        return jsonify({'error':'queue full','limit':maxq}), 429
+        job={'id': str(uuid.uuid4()), 'type': typ, 'args': args, 'status':'queued', 'created': time.time()}
+        _q.put(job)
+        return jsonify({'ok':True,'id':job['id']})
+
+        @jobs_bp.route('/api/jobs/status')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def status():
+    try:
+        _ensure_started()
+        jid=request.args.get('id','')
+        with _lock:
+        for j in list(_running.values()):
+        if j['id']==jid: return jsonify({k:v for k,v in j.items() if k!='_fn'})
+        for j in reversed(_history):
+        if j['id']==jid: return jsonify(j)
+        return jsonify({'error':'not found'}), 404
+
+        @jobs_bp.route('/api/jobs/list')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def list_():
+    try:
+        _ensure_started()
+        with _lock:
+        qd=_q.qsize(); rn=list(_running.values())
+        return jsonify({'queue': qd, 'running': [{k:v for k,v in j.items() if k!='_fn'} for j in rn], 'history': _history[-50:]})
+
+        @jobs_bp.route('/api/jobs/cancel', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def cancel():
+    try:
+        # naive cancel: not implemented for running jobs; would need cooperative cancellation
+        return jsonify({'error':'cancel not supported for running jobs'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

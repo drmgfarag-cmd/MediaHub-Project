@@ -1,0 +1,17 @@
+{
+    "movie_providers": [
+        {"name": "TMDB", "enabled": true, "api_key": "3aca2154c1d9223036904a86202897ba"},
+        {"name": "OMDB", "enabled": true, "api_key": "95b991d3"}
+    ],
+    "tv_providers": [
+        {"name": "TVDB", "enabled": true, "api_key": "72f8b186-1eb8-471d-94e7-85063cf7a1bf"},
+        {"name": "Anilist", "enabled": true, "client_id": "30444", "client_secret": "dc63l21fPbnvgpx7Qinlg9miT5ismqUu77oVSTj2"}
+    ],
+    "music_providers": [
+        {"name": "Discogs", "enabled": true, "api_key": "DlYcCvjWkCSKwuoxWznBrUDFitmPFTqBpIuoqizm"},
+        {"name": "AcoustID", "enabled": true, "api_key": "W48qHR6eir"}
+    ],
+    "book_providers": [
+        {"name": "Google Books", "enabled": true, "api_key": "AIzaSyA8OHWm7_imDTRCAEvC7rja2NZCInTw3d8"}
+    ]
+}

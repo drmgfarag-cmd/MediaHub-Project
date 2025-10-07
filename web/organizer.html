@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Organizer</title>
+<link rel="stylesheet" href="assets/ui.css">
+<style>.two{display:grid;grid-template-columns:300px 1fr;gap:10px}.list{max-height:60vh;overflow:auto}.row{padding:6px;border-bottom:1px solid rgba(255,255,255,.08)}</style>
+</head><body><div class="wrap">
+<div class="toolbar"><a href="tools.html">← Tools</a> · <strong>Organizer (Rename/Move)</strong></div>
+<div class="two">
+  <div class="card"><h3>Scope</h3>
+    <div class="muted">Roots (scan)</div>
+    <textarea id="roots" placeholder="One path per line, e.g. D:\Downloads
+E:\_To_Sort"></textarea>
+    <div class="muted">Filter DSL: <code>ext:mkv|mp4, contains:HDR, size>100MB, mtime<30d</code></div>
+    <input id="filter" placeholder="Filter (optional)" />
+    <label><input type="checkbox" id="keep_structure"> Preserve folder structure</label><br/>
+    <label><input type="checkbox" id="preserve_numbers" checked> Keep numbering prefix</label>
+    <div style="margin-top:6px">
+      <button id="scan">Scan</button> <button id="loadLast">Load last job</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Rules</h3>
+    <select id="pattern"></select>
+    <div class="muted">Use FileBot‑style tokens: {type} {title} {year} {season} {episode} {resolution}</div>
+    <input id="save_to" placeholder="Target root (e.g. D:\Media)" />
+    <label><input type="checkbox" id="commit"> Apply (not just preview)</label>
+    <button id="run">Run</button>
+  </div>
+  <div class="card">
+    <h3>Preview / Result</h3>
+    <div class="list" id="out"></div>
+  </div>
+</div>
+<script>
+async function loadPatterns(){
+  const r=await (await fetch('/api/organizer/patterns')).json();
+  const sel=document.getElementById('pattern');
+  (r.patterns||[]).forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.name+' — '+p.pattern; sel.appendChild(o); });
+}
+run.onclick=async ()=>{
+  const p=document.getElementById('pattern').value, sv=save_to.value||'', doIt=commit.checked;
+  const payload={pattern_id:p, save_to:sv, roots: roots.value.split(/\n+/).filter(Boolean), filter: filter.value, keep_structure: keep_structure.checked, preserve_numbers: preserve_numbers.checked};
+  const ep=doIt?'/api/organizer/apply_adv':'/api/organizer/preview_adv';
+  const r=await (await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})).json();
+  out.innerHTML=(r.items||[]).map(it=>`<div class='row'>${it.ok?'✅':'⚠️'} ${it.src} → ${it.dst}${it.reason?(' · '+it.reason):''}</div>`).join('') || 'None';
+};
+loadPatterns();
+
+scan.onclick=async ()=>{
+  const payload={roots: roots.value.split(/\n+/).filter(Boolean), filter: filter.value};
+  const r=await (await fetch('/api/organizer/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})).json();
+  alert('Scan started: '+r.count+' items collected');
+};
+loadLast.onclick=async ()=>{
+  const r=await (await fetch('/api/organizer/jobs')).json();
+  const last=(r.jobs||r.get('jobs',[])).slice(-1)[0];
+  out.innerHTML = last? ('Loaded job '+last.id+' ('+(last.items||[]).length+' items)') : 'No jobs yet';
+};
+</script>
+</div></body></html>

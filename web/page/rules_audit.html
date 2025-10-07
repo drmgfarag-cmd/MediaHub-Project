@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - Rules Audit</title>
+    <link rel="stylesheet" href="../assets/normalize.css">
+    <link rel="stylesheet" href="../assets/ui.css">
+    <style>
+        .audit-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .audit-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .audit-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .audit-button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .audit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .audit-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .audit-results {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .rule-category {
+            margin-bottom: 30px;
+        }
+        
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .category-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .category-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-pass {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .status-fail {
+            background: #f44336;
+            color: white;
+        }
+        
+        .status-warning {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .rule-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-left: 4px solid #ddd;
+            margin-bottom: 10px;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        
+        .rule-item.pass {
+            border-left-color: #4CAF50;
+        }
+        
+        .rule-item.fail {
+            border-left-color: #f44336;
+        }
+        
+        .rule-item.warning {
+            border-left-color: #FF9800;
+        }
+        
+        .rule-info {
+            flex: 1;
+        }
+        
+        .rule-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .rule-description {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .rule-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-icon {
+            font-size: 1.5rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .summary-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="audit-container">
+        <div class="audit-header">
+            <h1>🔍 Rules Audit</h1>
+            <p>Comprehensive validation of MediaHub configuration and rules</p>
+            <div class="audit-controls">
+                <button class="audit-button" id="runAuditButton" onclick="runAudit()">▶ Run Full Audit</button>
+                <button class="audit-button" onclick="runQuickAudit()">⚡ Quick Audit</button>
+                <button class="audit-button" onclick="exportReport()">📄 Export Report</button>
+            </div>
+        </div>
+        
+        <div id="summarySection" style="display: none;">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span class="summary-number" style="color: #4CAF50;" id="passedCount">0</span>
+                    <span class="summary-label">Passed</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-number" style="color: #f44336;" id="failedCount">0</span>
+                    <span class="summary-label">Failed</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-number" style="color: #FF9800;" id="warningCount">0</span>
+                    <span class="summary-label">Warnings</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-number" style="color: #667eea;" id="totalCount">0</span>
+                    <span class="summary-label">Total Rules</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="audit-results" id="auditResults">
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <h3>No Audit Results</h3>
+                <p>Click "Run Full Audit" to validate your MediaHub configuration</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function runAudit() {
+            const button = document.getElementById('runAuditButton');
+            const resultsContainer = document.getElementById('auditResults');
+            
+            button.textContent = '⏳ Running Audit...';
+            button.disabled = true;
+            
+            resultsContainer.innerHTML = '<div class="loading"><p>Running comprehensive audit...</p></div>';
+            
+            try {
+                const response = await fetch('/api/audit/rules', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayAuditResults(result.audit);
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">❌</div>
+                            <h3>Audit Failed</h3>
+                            <p>${result.error || 'Unknown error occurred'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <h3>Network Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                button.textContent = '▶ Run Full Audit';
+                button.disabled = false;
+            }
+        }
+        
+        async function runQuickAudit() {
+            alert('Quick audit will check only critical rules. This feature is coming soon!');
+        }
+        
+        function displayAuditResults(audit) {
+            // Update summary
+            document.getElementById('summarySection').style.display = 'block';
+            document.getElementById('passedCount').textContent = audit.summary.passed || 0;
+            document.getElementById('failedCount').textContent = audit.summary.failed || 0;
+            document.getElementById('warningCount').textContent = audit.summary.warnings || 0;
+            document.getElementById('totalCount').textContent = audit.summary.total || 0;
+            
+            // Display results by category
+            const resultsContainer = document.getElementById('auditResults');
+            let html = '';
+            
+            for (const [category, rules] of Object.entries(audit.categories)) {
+                const categoryPassed = rules.every(rule => rule.status === 'pass');
+                const categoryHasWarnings = rules.some(rule => rule.status === 'warning');
+                const categoryFailed = rules.some(rule => rule.status === 'fail');
+                
+                let categoryStatus = 'pass';
+                if (categoryFailed) categoryStatus = 'fail';
+                else if (categoryHasWarnings) categoryStatus = 'warning';
+                
+                html += `
+                    <div class="rule-category">
+                        <div class="category-header">
+                            <span class="category-title">${formatCategoryName(category)}</span>
+                            <span class="category-status status-${categoryStatus}">
+                                ${categoryStatus === 'pass' ? '✓ PASSED' : categoryStatus === 'fail' ? '✗ FAILED' : '⚠ WARNING'}
+                            </span>
+                        </div>
+                        ${rules.map(rule => `
+                            <div class="rule-item ${rule.status}">
+                                <div class="rule-info">
+                                    <div class="rule-name">${rule.name}</div>
+                                    <div class="rule-description">${rule.description || rule.message}</div>
+                                </div>
+                                <div class="rule-status">
+                                    <span class="status-icon">
+                                        ${rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '⚠'}
+                                    </span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            resultsContainer.innerHTML = html;
+        }
+        
+        function formatCategoryName(category) {
+            return category
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+        
+        async function exportReport() {
+            try {
+                const response = await fetch('/api/audit/export');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `mediahub-audit-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    alert('✓ Audit report exported!');
+                } else {
+                    alert('✗ Error exporting report');
+                }
+            } catch (error) {
+                alert('✗ Network error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+{
+  "default_profile": "balanced",
+  "profiles": {
+    "balanced": {
+      "name": "Balanced Quality",
+      "description": "Balanced profile for good quality without excessive file sizes",
+      "rules": [
+        {
+          "name": "Resolution Scoring",
+          "conditions": [
+            {"field": "resolution", "operator": "equals", "value": "2160p", "score": 100},
+            {"field": "resolution", "operator": "equals", "value": "1080p", "score": 80},
+            {"field": "resolution", "operator": "equals", "value": "720p", "score": 50},
+            {"field": "resolution", "operator": "equals", "value": "480p", "score": 20}
+          ]
+        },
+        {
+          "name": "HDR/DV Bonus",
+          "conditions": [
+            {"field": "hdr", "operator": "contains", "value": "DV", "score": 50},
+            {"field": "hdr", "operator": "contains", "value": "HDR10+", "score": 40},
+            {"field": "hdr", "operator": "contains", "value": "HDR10", "score": 30},
+            {"field": "hdr", "operator": "contains", "value": "HDR", "score": 20}
+          ]
+        },
+        {
+          "name": "Codec Preference",
+          "conditions": [
+            {"field": "codec", "operator": "contains", "value": "HEVC", "score": 30},
+            {"field": "codec", "operator": "contains", "value": "H265", "score": 30},
+            {"field": "codec", "operator": "contains", "value": "AVC", "score": 20},
+            {"field": "codec", "operator": "contains", "value": "H264", "score": 20},
+            {"field": "codec", "operator": "contains", "value": "x265", "score": 25},
+            {"field": "codec", "operator": "contains", "value": "x264", "score": 15}
+          ]
+        },
+        {
+          "name": "Audio Quality",
+          "conditions": [
+            {"field": "audio", "operator": "contains", "value": "Atmos", "score": 40},
+            {"field": "audio", "operator": "contains", "value": "TrueHD", "score": 35},
+            {"field": "audio", "operator": "contains", "value": "DTS-HD", "score": 30},
+            {"field": "audio", "operator": "contains", "value": "DTS", "score": 20},
+            {"field": "audio", "operator": "contains", "value": "DD+", "score": 15},
+            {"field": "audio", "operator": "contains", "value": "DD", "score": 10},
+            {"field": "audio", "operator": "contains", "value": "AAC", "score": 5}
+          ]
+        },
+        {
+          "name": "Source Quality",
+          "conditions": [
+            {"field": "source", "operator": "contains", "value": "BluRay", "score": 50},
+            {"field": "source", "operator": "contains", "value": "Remux", "score": 60},
+            {"field": "source", "operator": "contains", "value": "WEB-DL", "score": 40},
+            {"field": "source", "operator": "contains", "value": "WEBRip", "score": 35},
+            {"field": "source", "operator": "contains", "value": "HDTV", "score": 20},
+            {"field": "source", "operator": "contains", "value": "CAM", "score": -100},
+            {"field": "source", "operator": "contains", "value": "TS", "score": -100},
+            {"field": "source", "operator": "contains", "value": "HDCAM", "score": -100}
+          ]
+        },
+        {
+          "name": "Scene Group Reputation",
+          "conditions": [
+            {"field": "group", "operator": "equals", "value": "ctrlhd", "score": 50},
+            {"field": "group", "operator": "equals", "value": "SPARKS", "score": 45},
+            {"field": "group", "operator": "equals", "value": "NTb", "score": 45},
+            {"field": "group", "operator": "equals", "value": "FLUX", "score": 40},
+            {"field": "group", "operator": "equals", "value": "cytsunee", "score": 35},
+            {"field": "group", "operator": "equals", "value": "oft", "score": 30}
+          ]
+        },
+        {
+          "name": "Release Tags",
+          "conditions": [
+            {"field": "tags", "operator": "contains", "value": "PROPER", "score": 10},
+            {"field": "tags", "operator": "contains", "value": "REPACK", "score": 5},
+            {"field": "tags", "operator": "contains", "value": "INTERNAL", "score": 15}
+          ]
+        }
+      ]
+    },
+    "quality_max": {
+      "name": "Maximum Quality",
+      "description": "Prioritizes highest quality regardless of file size",
+      "rules": [
+        {
+          "name": "Resolution Scoring",
+          "conditions": [
+            {"field": "resolution", "operator": "equals", "value": "2160p", "score": 150},
+            {"field": "resolution", "operator": "equals", "value": "1080p", "score": 80},
+            {"field": "resolution", "operator": "equals", "value": "720p", "score": 30}
+          ]
+        },
+        {
+          "name": "HDR/DV Bonus",
+          "conditions": [
+            {"field": "hdr", "operator": "contains", "value": "DV", "score": 100},
+            {"field": "hdr", "operator": "contains", "value": "HDR10+", "score": 80},
+            {"field": "hdr", "operator": "contains", "value": "HDR10", "score": 60},
+            {"field": "hdr", "operator": "contains", "value": "HDR", "score": 40}
+          ]
+        },
+        {
+          "name": "Remux Priority",
+          "conditions": [
+            {"field": "source", "operator": "contains", "value": "Remux", "score": 100},
+            {"field": "source", "operator": "contains", "value": "BluRay", "score": 70}
+          ]
+        },
+        {
+          "name": "Audio Quality",
+          "conditions": [
+            {"field": "audio", "operator": "contains", "value": "Atmos", "score": 80},
+            {"field": "audio", "operator": "contains", "value": "TrueHD", "score": 70},
+            {"field": "audio", "operator": "contains", "value": "DTS-HD", "score": 60}
+          ]
+        },
+        {
+          "name": "Scene Group Reputation",
+          "conditions": [
+            {"field": "group", "operator": "equals", "value": "ctrlhd", "score": 80},
+            {"field": "group", "operator": "equals", "value": "SPARKS", "score": 75},
+            {"field": "group", "operator": "equals", "value": "NTb", "score": 75}
+          ]
+        }
+      ]
+    },
+    "space_saver": {
+      "name": "Space Saver",
+      "description": "Optimizes for smaller file sizes while maintaining acceptable quality",
+      "rules": [
+        {
+          "name": "Resolution Scoring",
+          "conditions": [
+            {"field": "resolution", "operator": "equals", "value": "1080p", "score": 100},
+            {"field": "resolution", "operator": "equals", "value": "720p", "score": 80},
+            {"field": "resolution", "operator": "equals", "value": "2160p", "score": 30}
+          ]
+        },
+        {
+          "name": "Codec Preference",
+          "conditions": [
+            {"field": "codec", "operator": "contains", "value": "HEVC", "score": 60},
+            {"field": "codec", "operator": "contains", "value": "H265", "score": 60},
+            {"field": "codec", "operator": "contains", "value": "x265", "score": 55}
+          ]
+        },
+        {
+          "name": "Source Quality",
+          "conditions": [
+            {"field": "source", "operator": "contains", "value": "WEB-DL", "score": 50},
+            {"field": "source", "operator": "contains", "value": "WEBRip", "score": 45},
+            {"field": "source", "operator": "contains", "value": "BluRay", "score": 30}
+          ]
+        },
+        {
+          "name": "Avoid Large Files",
+          "conditions": [
+            {"field": "source", "operator": "contains", "value": "Remux", "score": -50}
+          ]
+        }
+      ]
+    }
+  }
+}

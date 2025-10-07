@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<movie>
+    <title>The Matrix Resurrections</title>
+    <year>2021</year>
+    <rating>7.4</rating>
+    <plot>High-octane action thriller from 2021</plot>
+    <genre>Action / Thriller</genre>
+    <director>Sample Director</director>
+    <runtime>130 min</runtime>
+    <mpaa>PG-13</mpaa>
+</movie>

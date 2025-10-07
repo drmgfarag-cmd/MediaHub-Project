@@ -1,0 +1,66 @@
+from flask import Blueprint, jsonify, request
+import os, json, time, re, collections, datetime
+
+tl_bp = Blueprint('tl', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+LIB=os.path.join(STO,'library_index.json')
+
+def _items():
+    try: return json.load(open(LIB,'r',encoding='utf-8'))
+    except Exception: return []
+
+def _year(it):
+    y=it.get('year') or 0
+    try: y=int(y)
+    except Exception: y=0
+    return y
+
+def _added(it):
+    try: return int(it.get('added_ts') or 0)
+    except Exception: return 0
+
+def _bucket_by_year(items):
+    buckets=collections.defaultdict(list)
+    for it in items:
+        y=_year(it); buckets[y].append(it)
+    return dict(sorted(buckets.items(), key=lambda kv: kv[0], reverse=True))
+
+@tl_bp.route('/api/timeline/by_year')
+def by_year():
+    try:
+        typ=(request.args.get('type') or '').strip()  # optional filter
+        its=[it for it in _items() if (not typ or it.get('type')==typ)]
+        buckets=_bucket_by_year(its)
+        out=[{'year': y, 'count': len(arr), 'examples': [{'title': (i.get('title') or os.path.basename(i.get('path') or '')), 'path': i.get('path','') } for i in arr[:6]]} for y,arr in buckets.items() if y]
+        return jsonify({'buckets': out})
+
+        @tl_bp.route('/api/timeline/for_collection')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def for_collection():
+    name=(request.args.get('name') or '').strip()
+    STOCOL=os.path.join(ROOT,'storage','collections.json')
+    try: cols=json.load(open(STOCOL,'r',encoding='utf-8')).get('collections',[])
+    except Exception: cols=[]
+    col=next((c for c in cols if c.get('name')==name), None)
+    if not col: return jsonify({'error':'not found'}), 404
+    its=_items(); rs=col.get('rules') or []; out=[]
+    for it in its:
+        t=it.get('title') or os.path.basename(it.get('path') or '')
+        p=it.get('path') or ''
+        ok=False
+        for r in rs:
+            tre=r.get('title_re'); pre=r.get('path_re')
+            if tre and re.search(tre, t, re.I): ok=True
+            if pre and re.search(pre, p, re.I): ok=True
+            if ok: break
+        if ok: out.append(it)
+    # group by year
+    buckets={}
+    for i in out:
+        y=int(i.get('year') or 0); buckets.setdefault(y, []).append({'title': i.get('title') or os.path.basename(i.get('path') or ''), 'path': i.get('path','')})
+    buckets={k:v for k,v in buckets.items() if k}
+    items=[{'year': y, 'items': v[:20]} for y,v in sorted(buckets.items(), key=lambda kv: kv[0], reverse=True)]
+    return jsonify({'name': name, 'buckets': items})

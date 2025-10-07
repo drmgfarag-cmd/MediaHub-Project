@@ -1,0 +1,10 @@
+{
+  "plex_base": "",
+  "kodi_base": "",
+  "clipboard_monitor": true,
+  "downloader": {
+    "global_speed": 0,
+    "global_slots": 4,
+    "per_host": {}
+  }
+}

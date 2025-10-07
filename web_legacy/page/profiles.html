@@ -1,0 +1,12 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset='utf-8'><title>Media Hub — Profiles</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+<h2>Profiles</h2>
+<div><button onclick="exp()">Export</button><button onclick="imp()">Import (round-trip)</button></div>
+<h3>Backups</h3>
+<div><button onclick="backup()">Create Backup</button><div id="bk_link"></div></div>
+<pre id="out"></pre>
+<script>
+async function exp(){ const r=await (await fetch('/api/profiles/export')).json(); out.textContent=JSON.stringify(r,null,2); }
+async function imp(){ const b=await (await fetch('/api/profiles/export')).json(); const r=await (await fetch('/api/profiles/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json(); out.textContent=JSON.stringify(r,null,2); }
+async function backup(){ const r=await (await fetch('/api/backup/create')).json(); const a=document.createElement('a'); a.href=r.download; a.textContent='Download backup'; a.target='_blank'; const div=document.getElementById('bk_link'); div.innerHTML=''; div.appendChild(a); }
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

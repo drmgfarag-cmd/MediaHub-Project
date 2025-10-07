@@ -1,0 +1,14 @@
+<html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Online Lists</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+
+<h2>Online Lists — IMDb First</h2>
+<button onclick="fetchImdb()">Fetch</button>
+<pre id="out"></pre>
+<script>
+async function fetchImdb(){
+  const url=document.getElementById('imdb').value;
+  const j = await (await fetch('/api/online/imdb_list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})})).json();
+  document.getElementById('out').textContent=JSON.stringify(j,null,2);
+}
+</script>
+
+<script defer src="../assets/ui_enhance.js'></script></body></html>

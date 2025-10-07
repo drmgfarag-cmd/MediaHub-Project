@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Feeds & Auto‑Search</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Feeds & Auto‑Search</strong> <a class="btn" href="downloader.html">Open Downloader</a></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Feeds</h3>
+      <table class="tbl"><thead><tr><th>Name</th><th>Items</th><th>Last Pull</th><th></th></tr></thead><tbody id="ft"></tbody></table>
+      <div style="margin-top:8px">
+        <input id="fn" placeholder="Name"> <input id="fu" placeholder="URL (optional for record)"> <button id="fadd">Add</button>
+      </div>
+      <div class="card" style="margin-top:8px">
+        <h4>Paste RSS/XML to Import</h4>
+        <textarea id="xml" class="mono" style="width:100%;height:160px" placeholder="Paste feed XML here…"></textarea>
+        <div style="margin-top:6px"><button id="imp">Import to Selected Feed</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Feed Items</h3>
+      <div id="items">Select a feed.</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <h3>Search Templates</h3>
+    <div>Web: <input id="tpl_web" style="width:60%"></div>
+    <div style="margin-top:6px">Jackett: <input id="tpl_j" style="width:60%"></div>
+    <div style="margin-top:6px">Torrentio: <input id="tpl_t" style="width:60%"></div>
+    <div style="margin-top:6px"><button id="save_tpl">Save Templates</button></div>
+  </div>
+</div>
+<script>
+let sel=null, feeds=null;
+async function loadFeeds(){
+  const j=await (await fetch('/api/feeds/get')).json(); feeds=j.feeds||[];
+  const tb=document.getElementById('ft'); tb.innerHTML='';
+  feeds.forEach(f=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><label><input type="radio" name="sel" value="${f.id}"> ${f.name}</label></td><td>${f.items_count||0}</td><td>${f.last_pull? new Date(f.last_pull*1000).toLocaleString(): '—'}</td><td><button class="view" data-id="${f.id}">View</button></td>`; 
+    tb.appendChild(tr);
+  });
+  const t=await (await fetch('/api/search/templates_get')).json();
+  tpl_web.value=t.web||''; tpl_j.value=t.jackett||''; tpl_t.value=t.torrentio||'';
+}
+document.addEventListener('click', async (e)=>{
+  const v=e.target.closest('button.view'); if(v){ sel=v.dataset.id; renderItems(); }
+});
+async function renderItems(){
+  if(!sel){ items.textContent='Select a feed.'; return; }
+  const j=await (await fetch('/api/feeds/items?id='+encodeURIComponent(sel))).json();
+  items.innerHTML = (j.items||[]).slice(0,200).map(it=>`<div style="margin:6px 0"><strong>${it.title||''}</strong> <a class="btn" href="${it.link||'#'}" target="_blank">Open</a> <button class="qadd" data-t="${encodeURIComponent(it.title||'')}" data-l="${encodeURIComponent(it.link||'')}">Queue</button></div>`).join('') || 'No items.';
+}
+fadd.onclick=async ()=>{
+  await fetch('/api/feeds/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:fn.value.trim(), url: fu.value.trim()})});
+  loadFeeds();
+};
+imp.onclick=async ()=>{
+  if(!sel){ alert('Select a feed first'); return; }
+  const j=await (await fetch('/api/feeds/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id: sel, mode:'paste', xml: xml.value})})).json();
+  if(j.ok){ loadFeeds(); sel && renderItems(); }
+  else alert('Import failed: '+(j.error||''));
+};
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.qadd'); if(!b) return;
+  const title=decodeURIComponent(b.dataset.t), link=decodeURIComponent(b.dataset.l);
+  await fetch('/api/feeds/queue_add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title, link})});
+  alert('Queued: '+title);
+});
+save_tpl.onclick=async ()=>{
+  await fetch('/api/search/templates_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({web: tpl_web.value, jackett: tpl_j.value, torrentio: tpl_t.value})});
+  alert('Saved templates.');
+};
+document.addEventListener('DOMContentLoaded', loadFeeds);
+</script>
+</body></html>

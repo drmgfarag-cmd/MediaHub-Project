@@ -1,0 +1,13 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Metadata</title>
+<link rel="stylesheet" href="/web/ui/common.css"><script src="/web/ui/common.js"></script></head>
+<body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header><div class="shell"><main class="content">
+<div class="card"><h3>Edit Metadata</h3>
+<div>Category: <select id="cat"><option>movies</option><option>tv</option><option>books</option><option>audio</option></select>
+Index: <input id="idx" type="number" min="0" value="0"></div>
+<div style="margin-top:6px"><button onclick="save()">Save</button></div>
+<pre id="out"></pre>
+</div></main></div>
+<script>
+async function save(){ const cat=document.getElementById('cat').value; const idx=parseInt(document.getElementById('idx').value||'0'); let fields={}; try{fields=JSON.parse(document.getElementById('fields').value||'{}');}catch(e){return UI.toast('Bad JSON');}
+  const j=await (await fetch('/api/metadata/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:cat,index:idx,fields:fields})})).json(); document.getElementById('out').textContent=JSON.stringify(j,null,2); }
+</script><script defer src="../assets/ui_enhance.js'></script></body></html>

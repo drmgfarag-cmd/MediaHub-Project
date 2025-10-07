@@ -1,0 +1,40 @@
+<html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Rd Filters</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+
+<h2>RD Filters — Profiles & Checklists</h2>
+<div>
+  <button onclick="loadCat()">Load Catalog</button>
+  <button onclick="saveProfile()">Save as Profile</button>
+  <button onclick="applyProfile()">Apply Profile</button>
+</div>
+<div style="display:flex;gap:24px">
+  <div><h4>Include</h4><div id="inc"></div><button onclick="addItem('inc')">Add</button></div>
+  <div><h4>Exclude</h4><div id="exc"></div><button onclick="addItem('exc')">Add</button></div>
+  <div><h4>Allow Ext</h4><div id="aext"></div><button onclick="addItem('aext')">Add</button></div>
+  <div><h4>Deny Ext</h4><div id="dext"></div><button onclick="addItem('dext')">Add</button></div>
+  <div><h4>Groups</h4><div id="grp"></div><button onclick="addItem('grp')">Add</button></div>
+</div>
+<script>
+let lists = {include_words:[],exclude_words:[],allow_ext:[],deny_ext:[],groups:[]};
+function render(id, arr){ document.getElementById(id).innerHTML = arr.map((x,i)=>'<label><input type=checkbox checked> '+x+'</label><br>').join(''); }
+async function loadCat(){
+  const j = await (await fetch('/api/rd/filters/catalog')).json();
+  lists={include_words:j.include_examples, exclude_words:j.exclude_examples, allow_ext:j.allow_ext_examples, deny_ext:j.deny_ext_examples, groups:j.group_examples};
+  render('inc', lists.include_words); render('exc', lists.exclude_words); render('aext', lists.allow_ext); render('dext', lists.deny_ext); render('grp', lists.groups);
+}
+function addItem(kind){ const v=prompt('Add item'); if(!v) return; if(kind==='inc') lists.include_words.push(v);
+  if(kind==='exc') lists.exclude_words.push(v); if(kind==='aext') lists.allow_ext.push(v); if(kind==='dext') lists.deny_ext.push(v); if(kind==='grp') lists.groups.push(v);
+  loadCat(); }
+async function saveProfile(){
+  const name = prompt('Profile name','UserDefined'); if(!name) return;
+  await fetch('/api/rd/filters/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(lists)});
+  await fetch('/api/rd/filters/apply_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, lists})});
+  alert('Saved '+name);
+}
+async function applyProfile(){
+  const name = prompt('Profile to apply','UserDefined'); if(!name) return;
+  await fetch('/api/rd/filters/apply_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, lists})});
+  alert('Applied '+name);
+}
+</script>
+
+<script defer src="../assets/ui_enhance.js'></script></body></html>

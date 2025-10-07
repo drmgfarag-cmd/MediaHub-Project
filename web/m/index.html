@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f171e">
+    <title>MediaHub Mobile</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/m/manifest.json">
+    <link rel="apple-touch-icon" href="/m/assets/icons/icon-192.png">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/m/assets/css/mobile.css">
+    <link rel="stylesheet" href="/m/assets/css/components.css">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/m/assets/js/mobile-app.js" as="script">
+    <link rel="preload" href="/m/assets/js/streaming.js" as="script">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading MediaHub...</div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container" style="display: none;">
+        
+        <!-- Header -->
+        <header class="mobile-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="/m/assets/icons/logo.svg" alt="MediaHub" class="logo">
+                    <span class="app-title">MediaHub</span>
+                </div>
+                
+                <div class="header-actions">
+                    <button class="icon-btn search-btn" id="search-toggle">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                        </svg>
+                    </button>
+                    
+                    <button class="icon-btn cast-btn" id="cast-toggle">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm18-7H5v1.63c3.96 1.28 7.09 4.41 8.37 8.37H19V7zM1 10v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                    </button>
+                    
+                    <button class="icon-btn menu-btn" id="menu-toggle">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search Bar (Hidden by default) -->
+            <div class="search-container" id="search-container" style="display: none;">
+                <div class="search-input-wrapper">
+                    <input type="text" id="search-input" class="search-input" placeholder="Search movies, TV shows, books...">
+                    <button class="search-clear" id="search-clear">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="search-filters" id="search-filters">
+                    <button class="filter-chip active" data-type="all">All</button>
+                    <button class="filter-chip" data-type="movie">Movies</button>
+                    <button class="filter-chip" data-type="tv">TV Shows</button>
+                    <button class="filter-chip" data-type="book">Books</button>
+                    <button class="filter-chip" data-type="music">Music</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="mobile-nav" id="mobile-nav">
+            <div class="nav-items">
+                <a href="#home" class="nav-item active" data-page="home">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                    <span class="nav-label">Home</span>
+                </a>
+                
+                <a href="#library" class="nav-item" data-page="library">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
+                    </svg>
+                    <span class="nav-label">Library</span>
+                </a>
+                
+                <a href="#downloads" class="nav-item" data-page="downloads">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                    </svg>
+                    <span class="nav-label">Downloads</span>
+                </a>
+                
+                <a href="#settings" class="nav-item" data-page="settings">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                    </svg>
+                    <span class="nav-label">Settings</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            
+            <!-- Home Page -->
+            <div class="page active" id="page-home">
+                <div class="page-content">
+                    
+                    <!-- Hero Section -->
+                    <section class="hero-section" id="hero-section">
+                        <div class="hero-content">
+                            <div class="hero-info">
+                                <h1 class="hero-title">Featured Content</h1>
+                                <p class="hero-description">Discover your next favorite movie, show, or book</p>
+                                <div class="hero-actions">
+                                    <button class="btn btn-primary hero-play-btn">
+                                        <svg class="btn-icon" viewBox="0 0 24 24">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        Play
+                                    </button>
+                                    <button class="btn btn-secondary hero-info-btn">
+                                        <svg class="btn-icon" viewBox="0 0 24 24">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                        </svg>
+                                        Info
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="hero-poster">
+                                <img src="https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg" alt="Featured Content" class="hero-image">
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Smart Rails -->
+                    <section class="smart-rails" id="smart-rails">
+                        
+                        <!-- Continue Watching -->
+                        <div class="rail-section" id="continue-watching-rail">
+                            <div class="rail-header">
+                                <h2 class="rail-title">Continue Watching</h2>
+                                <button class="rail-more">See All</button>
+                            </div>
+                            <div class="rail-content">
+                                <div class="rail-items" id="continue-watching-items">
+                                    <!-- Items will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recommended -->
+                        <div class="rail-section" id="recommended-rail">
+                            <div class="rail-header">
+                                <h2 class="rail-title">Recommended for You</h2>
+                                <button class="rail-more">See All</button>
+                            </div>
+                            <div class="rail-content">
+                                <div class="rail-items" id="recommended-items">
+                                    <!-- Items will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Premium Quality -->
+                        <div class="rail-section" id="premium-rail">
+                            <div class="rail-header">
+                                <h2 class="rail-title">Premium Quality</h2>
+                                <span class="rail-subtitle">4K • HDR • Dolby Atmos</span>
+                                <button class="rail-more">See All</button>
+                            </div>
+                            <div class="rail-content">
+                                <div class="rail-items" id="premium-items">
+                                    <!-- Items will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trending -->
+                        <div class="rail-section" id="trending-rail">
+                            <div class="rail-header">
+                                <h2 class="rail-title">Trending Now</h2>
+                                <button class="rail-more">See All</button>
+                            </div>
+                            <div class="rail-content">
+                                <div class="rail-items" id="trending-items">
+                                    <!-- Items will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Collections -->
+                        <div class="rail-section" id="collections-rail">
+                            <div class="rail-header">
+                                <h2 class="rail-title">Collections</h2>
+                                <button class="rail-more">See All</button>
+                            </div>
+                            <div class="rail-content">
+                                <div class="rail-items" id="collections-items">
+                                    <!-- Items will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                    </section>
+                </div>
+            </div>
+
+            <!-- Library Page -->
+            <div class="page" id="page-library">
+                <div class="page-content">
+                    <div class="page-header">
+                        <h1 class="page-title">Library</h1>
+                        <div class="page-actions">
+                            <button class="btn btn-secondary" id="library-filter">
+                                <svg class="btn-icon" viewBox="0 0 24 24">
+                                    <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
+                                </svg>
+                                Filter
+                            </button>
+                            <button class="btn btn-secondary" id="library-sort">
+                                <svg class="btn-icon" viewBox="0 0 24 24">
+                                    <path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/>
+                                </svg>
+                                Sort
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="library-content" id="library-content">
+                        <div class="library-grid" id="library-grid">
+                            <!-- Library items will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Downloads Page -->
+            <div class="page" id="page-downloads">
+                <div class="page-content">
+                    <div class="page-header">
+                        <h1 class="page-title">Downloads</h1>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" id="add-download">
+                                <svg class="btn-icon" viewBox="0 0 24 24">
+                                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                                </svg>
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="downloads-content" id="downloads-content">
+                        <div class="downloads-list" id="downloads-list">
+                            <!-- Download items will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page" id="page-settings">
+                <div class="page-content">
+                    <div class="page-header">
+                        <h1 class="page-title">Settings</h1>
+                    </div>
+                    
+                    <div class="settings-content" id="settings-content">
+                        <div class="settings-sections">
+                            
+                            <div class="settings-section">
+                                <h3 class="section-title">Streaming</h3>
+                                <div class="setting-item">
+                                    <label class="setting-label">Default Quality</label>
+                                    <select class="setting-select" id="default-quality">
+                                        <option value="mobile_low">Low (480p)</option>
+                                        <option value="mobile_medium" selected>Medium (720p)</option>
+                                        <option value="mobile_high">High (1080p)</option>
+                                        <option value="mobile_ultra">Ultra (1080p+)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="setting-label">Auto-play Next</label>
+                                    <div class="setting-toggle">
+                                        <input type="checkbox" id="autoplay-next" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="setting-label">Cellular Data Streaming</label>
+                                    <div class="setting-toggle">
+                                        <input type="checkbox" id="cellular-streaming">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3 class="section-title">Casting</h3>
+                                <div class="setting-item">
+                                    <label class="setting-label">Auto-discover Devices</label>
+                                    <div class="setting-toggle">
+                                        <input type="checkbox" id="auto-discover" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <button class="btn btn-secondary full-width" id="discover-devices">
+                                        <svg class="btn-icon" viewBox="0 0 24 24">
+                                            <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm18-7H5v1.63c3.96 1.28 7.09 4.41 8.37 8.37H19V7zM1 10v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                        </svg>
+                                        Discover Cast Devices
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3 class="section-title">Downloads</h3>
+                                <div class="setting-item">
+                                    <label class="setting-label">Download Quality</label>
+                                    <select class="setting-select" id="download-quality">
+                                        <option value="720p">720p</option>
+                                        <option value="1080p" selected>1080p</option>
+                                        <option value="4k">4K</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="setting-label">Auto-delete Watched</label>
+                                    <div class="setting-toggle">
+                                        <input type="checkbox" id="auto-delete">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3 class="section-title">About</h3>
+                                <div class="setting-item">
+                                    <label class="setting-label">Version</label>
+                                    <span class="setting-value">1.0.0</span>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="setting-label">Server Status</label>
+                                    <span class="setting-value status-connected">Connected</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Modals and Overlays -->
+        
+        <!-- Media Player Modal -->
+        <div class="modal" id="player-modal">
+            <div class="modal-content player-content">
+                <div class="player-header">
+                    <button class="close-btn" id="close-player">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="player-container">
+                    <video id="mobile-player" class="mobile-player" controls playsinline>
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <div class="player-info">
+                    <h3 class="player-title" id="player-title">Loading...</h3>
+                    <p class="player-description" id="player-description"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cast Device Modal -->
+        <div class="modal" id="cast-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Cast to Device</h3>
+                    <button class="close-btn" id="close-cast">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="cast-devices" id="cast-devices">
+                        <div class="device-scanning">
+                            <div class="scanning-spinner"></div>
+                            <p>Scanning for devices...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results Modal -->
+        <div class="modal" id="search-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Search Results</h3>
+                    <button class="close-btn" id="close-search">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-results" id="search-results">
+                        <!-- Search results will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="/m/assets/js/mobile-app.js"></script>
+    <script src="/m/assets/js/streaming.js"></script>
+    <script src="/m/assets/js/casting.js"></script>
+    <script src="/m/assets/js/search.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/m/sw.js')
+                .then(registration => console.log('SW registered'))
+                .catch(error => console.log('SW registration failed'));
+        }
+    </script>
+</body>
+</html>

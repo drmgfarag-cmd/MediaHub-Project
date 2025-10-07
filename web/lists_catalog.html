@@ -1,0 +1,121 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Lists Catalog & Imports</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tbl{width:100%;border-collapse:collapse} .tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px}
+.badge{border:1px solid #2e3547;border-radius:6px;padding:2px 6px;font-size:11px;margin-left:6px}
+</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Lists Catalog & Imports</strong> <button id="refresh">Refresh All</button></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Popular Seeds</h3>
+      <div id="catalog">Loading…</div>
+    </div>
+    <div class="card">
+      <h3>Import a List</h3>
+      <div>Provider: 
+        <select id="prov">
+          <option value="imdb">IMDb</option>
+          <option value="tmdb">TMDb</option>
+          <option value="trakt">Trakt</option>
+          <option value="url">URL</option>
+        </select>
+      </div>
+      <div style="margin-top:6px">Name: <input id="name" style="width:60%" placeholder="e.g., IMDb Top 250"></div>
+      <div style="margin-top:6px">Type: 
+        <select id="typ">
+          <option value="movie">Movies</option>
+          <option value="series">TV</option>
+          <option value="ebook">eBooks</option>
+          <option value="comic">Comics</option>
+          <option value="manga">Manga</option>
+          <option value="audiobook">Audiobooks</option>
+          <option value="audio">Audio</option>
+        </select>
+      </div>
+      <div style="margin-top:6px">ID/URL: <input id="pid" style="width:80%" placeholder="List ID or full URL"></div>
+      <div style="margin-top:6px">Top N: <input id="topn" type="number" value="50" min="1" max="500" style="width:80px"></div>
+      <div style="margin-top:6px"><button id="doimp">Import</button></div>
+      <div id="imp_out" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>My Imports</h3>
+    <table class="tbl" id="impt"><thead><tr><th>Name</th><th>Provider</th><th>Type</th><th>Top N</th><th>Last Refresh</th><th></th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Top‑50 Templates</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button data-cat="movies">Movies</button>
+        <button data-cat="tv">TV</button>
+        <button data-cat="books">Books</button>
+        <button data-cat="audio">Audio</button>
+      </div>
+      <div id="t50_out" style="margin-top:6px">—</div>
+    </div>
+    <div class="card">
+      <h3>Auto‑Refresh</h3>
+      <div>Enabled: <label><input type="checkbox" id="auto_on"> On</label></div>
+      <div style="margin-top:6px">Interval: <input id="ival" type="number" value="720" min="5" step="5" style="width:100px"> minutes</div>
+      <div style="margin-top:6px"><button id="save_sched">Save</button></div>
+      <div style="margin-top:6px;font-size:12px;opacity:.8">The job queue can be used to trigger refreshes; this setting stores preferences (UI-managed).</div>
+    </div>
+  </div>
+</div>
+<script>
+async function loadCatalog(){
+  const j=await (await fetch('/api/lists/catalog')).json();
+  catalog.innerHTML = (j.popular||[]).map(x=>`<div><button class="seed" data-prov="${x.provider}" data-typ="${x.type}" data-id="${x.id||''}" data-url="${x.url||''}" data-name="${x.name}">${x.name}</button><span class="badge">${x.provider.toUpperCase()}</span></div>`).join('');
+}
+async function loadImports(){
+  const j=await (await fetch('/api/lists/imports')).json();
+  const tb=document.querySelector('#impt tbody'); tb.innerHTML='';
+  (j.imports||[]).forEach(r=>{
+    const tr=document.createElement('tr');
+    const dt=r.last_refresh? new Date(r.last_refresh*1000).toLocaleString() : '—';
+    tr.innerHTML=`<td>${r.name}</td><td>${r.provider}</td><td>${r.type}</td><td>${r.top_n||''}</td><td>${dt}</td><td><button class="ref" data-name="${r.name}">Refresh</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+async function loadSched(){
+  const j=await (await fetch('/api/lists/schedule_get')).json();
+  auto_on.checked = !!j.enabled;
+  ival.value = j.interval_minutes||720;
+}
+document.addEventListener('click', async (e)=>{
+  const seed=e.target.closest('button.seed');
+  if(seed){
+    prov.value=seed.dataset.prov; typ.value=seed.dataset.typ; name.value=seed.dataset.name; pid.value=seed.dataset.id||seed.dataset.url||'';
+  }
+  if(e.target.classList.contains('ref')){
+    await fetch('/api/lists/refresh',{method:'POST'}); await loadImports(); alert('Refreshed (where possible).');
+  }
+});
+doimp.onclick=async ()=>{
+  const body={provider:prov.value, type:typ.value, name:name.value.trim(), id:pid.value.trim(), url:pid.value.trim(), top_n: parseInt(topn.value)||50};
+  if(!body.name){ alert('Name required'); return; }
+  const j=await (await fetch('/api/lists/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  imp_out.textContent = j.ok? ('Imported '+body.name+' (titles: '+(j.titles||0)+')') : ('Error: '+(j.error||''));
+  loadImports();
+};
+document.querySelectorAll('[data-cat]').forEach(b=> b.onclick=async ()=>{
+  const cat=b.getAttribute('data-cat');
+  const j=await (await fetch('/api/lists/top50_templates?category='+cat)).json();
+  t50_out.innerHTML = `<div><strong>${j.name}</strong></div><div>Rules: ${j.rules.length} items</div><button id="make50">Create collection</button>`;
+  document.getElementById('make50').onclick=async ()=>{
+    await fetch('/api/lists/create_template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:j.name, rules:j.rules})});
+    alert('Created '+j.name);
+  };
+});
+save_sched.onclick=async ()=>{
+  await fetch('/api/lists/schedule_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:auto_on.checked, interval_minutes: parseInt(ival.value)||720})});
+  alert('Saved schedule prefs.');
+};
+document.getElementById('refresh').onclick=async ()=>{ await fetch('/api/lists/refresh',{method:'POST'}); await loadImports(); };
+document.addEventListener('DOMContentLoaded', ()=>{ loadCatalog(); loadImports(); loadSched(); });
+</script>
+</body></html>

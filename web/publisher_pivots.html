@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Publishers — Pivots</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Publishers — Pivots</strong> <a class="btn" href="readers_audio_settings.html">Reader Settings</a></div>
+  <div class="card">
+    <h3>Filters</h3>
+    <label><input type="checkbox" id="kids"> Kids Only</label>
+    <input id="q" placeholder="Search publisher">
+    <button id="go">Apply</button>
+  </div>
+  <div class="card"><h3>Publishers</h3><div id="list">—</div></div>
+</div>
+<script>
+const PUBS=['Marvel','DC','Image','Dark Horse','Shonen Jump','Kodansha','Shogakukan','Viz','Seven Seas','Yen Press','Manga','Webtoon'];
+function inferPublisher(p){ const s=p.toLowerCase(); for(const k of PUBS){ if(s.includes(k.toLowerCase())) return k; } return null; }
+async function load(){
+  const lib=await (await fetch('/api/ui/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:'',limit:1000})})).json();
+  const arr=(lib.items||[]).filter(it=> (it.type==='book')); // ebooks+comics+manga
+  const map={};
+  arr.forEach(it=>{
+    const pub = inferPublisher(it.path||'') || inferPublisher(it.title||'') || 'Other';
+    map[pub]=map[pub]||[]; map[pub].push(it);
+  });
+  const onlyKids=kids.checked;
+  const qv=(q.value||'').toLowerCase();
+  const pubs=Object.keys(map).filter(k=> !qv || k.toLowerCase().includes(qv)).sort();
+  list.innerHTML = pubs.map(p=>{
+    const items = map[p].filter(x=> (!onlyKids || /\b(kids|disney|pixar|nick|cartoon)\b/i.test(x.path||x.title||'')));
+    if(!items.length) return '';
+    return `<div style="margin:6px 0"><strong>${p}</strong> — ${items.length} items</div>`;
+  }).join('') || 'None';
+}
+go.onclick=load;
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

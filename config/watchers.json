@@ -1,0 +1,7 @@
+{
+  "dirs": [
+    "Downloads"
+  ],
+  "interval_sec": 300,
+  "ingest": true
+}

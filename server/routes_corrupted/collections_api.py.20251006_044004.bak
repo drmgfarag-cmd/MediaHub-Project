@@ -1,0 +1,49 @@
+from flask import Blueprint, jsonify, request
+import os, json, time, re
+
+coll_bp = Blueprint('coll', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+F=os.path.join(STO,'collections.json')
+
+def _load():
+    try: return json.load(open(F,'r',encoding='utf-8'))
+    except Exception: return {'collections':[]}
+
+def _save(obj):
+    tmp=F+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp,F)
+
+@coll_bp.route('/api/collections/list')
+def list_():
+    try:
+        return jsonify(_load())
+
+        @coll_bp.route('/api/collections/create', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def create():
+    try:
+        js=request.get_json(silent=True) or {}
+        name=(js.get('name') or '').strip()
+        rules=js.get('rules') or []
+        if not name or not isinstance(rules, list): return jsonify({'error':'name and rules required'}), 400
+        data=_load()
+        # overwrite if same name
+        data['collections']=[c for c in data['collections'] if c.get('name')!=name]
+        data['collections'].append({'name':name,'rules':rules,'ts': int(time.time())})
+        _save(data); return jsonify({'ok':True})
+
+        @coll_bp.route('/api/collections/delete', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def delete():
+    try:
+        js=request.get_json(silent=True) or {}
+        name=(js.get('name') or '').strip()
+        data=_load(); n0=len(data['collections'])
+        data['collections']=[c for c in data['collections'] if c.get('name')!=name]
+        _save(data); return jsonify({'ok':True,'removed': n0-len(data['collections'])})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

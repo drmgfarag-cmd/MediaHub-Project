@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Logs</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Logs</strong> <button id="ref">Refresh</button></div>
+  <pre id="out" style="max-height:70vh; overflow:auto; background:#0f1420; color:#cbd5e1; padding:12px; border-radius:8px"></pre>
+</div>
+<script>
+async function load(){ const j=await (await fetch('/api/logs/tail?n=500')).json(); const out=document.getElementById('out'); out.textContent=(j.lines||[]).join('\n'); out.scrollTop = out.scrollHeight; }
+document.getElementById('ref').onclick=load;
+document.addEventListener('DOMContentLoaded', ()=>{ load(); setInterval(load, 4000); });
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

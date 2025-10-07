@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>DB Tools</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>SQLite Index</strong> <button id="mig">Migrate from JSON</button></div>
+  <div class="card"><input id="q" placeholder="search"><select id="t"><option value="">(any)</option><option>movie</option><option>series</option><option>ebook</option><option>comic</option><option>manga</option><option>audiobook</option><option>audio</option></select><button id="go">Query</button></div>
+  <div id="out" class="card"></div>
+</div>
+<script>
+document.getElementById('mig').onclick=async()=>{ await fetch('/api/db/migrate',{method:'POST'}); alert('Migrated.'); };
+document.getElementById('go').onclick=async()=>{ const q=document.getElementById('q').value; const t=document.getElementById('t').value; const j=await (await fetch('/api/db/query?q='+encodeURIComponent(q)+'&type='+encodeURIComponent(t))).json(); const out=document.getElementById('out'); out.innerHTML=''; (j.items||[]).forEach(it=>{ const d=document.createElement('div'); d.textContent = `${it.type||''} · ${it.year||''} · ${it.title||''}`; out.appendChild(d); }); };
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

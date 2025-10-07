@@ -1,0 +1,336 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Editor</title>
+
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+  .pane{display:grid; grid-template-columns: 280px 1fr; gap:12px;}
+  #tree{max-height:72vh; overflow:auto; background:#0f1420; border-radius:8px; padding:8px}
+  #editor{height:72vh; border:1px solid #2e3547; border-radius:8px}
+  .status{display:flex; gap:16px; justify-content:space-between; align-items:center; margin-top:6px; font-size:12px; opacity:.85}
+  .toolbar .group{display:flex; gap:8px; align-items:center}
+  .badge{padding:2px 6px; border:1px solid #2e3547; border-radius:6px; font-size:12px}
+</style>
+</head>
+<style>
+.btn{padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.08)}
+</style>
+
+<body>
+<div id="marksPanel" style="position:fixed;right:12px;top:80px;width:220px;background:rgba(0,0,0,.6);padding:8px;border-radius:10px;display:none">
+  <div style="font-weight:600;margin-bottom:6px">Bookmarks</div>
+  <div id="marksList" style="max-height:300px;overflow:auto"></div>
+</div>
+
+<div class="wrap">
+  <div class="toolbar">
+<button class='btn' onclick="addBookmark()">Add Bookmark</button>
+<button class='btn' onclick="toggleMarks()">Toggle Bookmarks</button>
+<button class='btn' onclick="enableColumnModeHint()">Column Mode</button>
+
+    <a href="home.html">← Home</a> · <strong>Editor</strong>
+    <div class="group"><button id="monaco_dl">Get/Update Monaco</button> <span id="monaco_stat" class="badge">checking…</span>
+      <select id="enc"><option>utf-8</option><option>latin-1</option><option>utf-16</option></select>
+      <select id="lang">
+        <option value="plaintext">Text</option><option value="json">JSON</option><option value="python">Python</option>
+        <option value="javascript">JavaScript</option><option value="css">CSS</option><option value="html">HTML</option>
+        <option value="xml">XML</option><option value="yaml">YAML</option><option value="markdown">Markdown</option>
+      </select>
+      <button id="find">Find</button><button id="replace">Replace</button>
+      <button id="bookmark">Bookmark</button><button id="nextbm">Next</button><button id="prevbm">Prev</button>
+      <button id="macroRecordBtn" title="Record Macro">⏺ Record</button>
+      <button id="macroStopBtn" title="Stop Recording" disabled>⏹ Stop</button>
+      <button id="macroPlayBtn" title="Play Macro">▶ Play</button>
+      <button id="pluginsBtn" title="Plugins">🔌 Plugins</button>
+      <button id="save">Save</button>
+      <span id="macroIndicator" style="display:none; margin-left:8px; padding:4px 8px; background:#ff4444; color:white; border-radius:4px; font-size:12px;"></span>
+    </div>
+  </div>
+  <div class="pane">
+    <div id="tree"></div>
+    <div>
+      <div id="editor"></div>
+      <div class="status">
+        <div>Ln <span id="ln">1</span>, Col <span id="col">1</span> · Sel <span id="sel">0</span> · Words <span id="words">0</span> · Chars <span id="chars">0</span> · Lines <span id="lines">1</span></div>
+        <div><span class="badge">Multi‑cursor</span> Alt+Click · <span class="badge">Column mode</span> Shift+Alt+Drag</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Monaco from CDN with fallback to basic textarea -->
+<script>
+let useMonaco=true;
+</script>
+
+<script>
+const state={path:null, bookmarks:[], model:null, editor:null, basic:false};
+
+async function list(dir){
+  const j=await (await fetch('/api/editor/list?path='+(encodeURIComponent(dir||'')))).json();
+  const t=document.getElementById('tree'); t.innerHTML='';
+  if(!j.ok){ t.textContent=j.error||'Error'; return; }
+  const root=document.createElement('div');
+  const hdr=document.createElement('div'); hdr.className='card'; hdr.innerHTML='<strong>'+j.path+'</strong>'; root.appendChild(hdr);
+  (j.items||[]).forEach(it=>{
+    const d=document.createElement('div'); d.style='padding:4px 6px; cursor:pointer';
+    d.textContent = (it.is_dir?'📁 ':'📄 ')+it.name;
+    d.onclick = ()=> it.is_dir? list(it.path) : openFile(it.path);
+    root.appendChild(d);
+  });
+  t.appendChild(root);
+}
+
+async function openFile(p){
+  const enc=document.getElementById('enc').value;
+  const j=await (await fetch('/api/editor/open?path='+encodeURIComponent(p)+'&enc='+encodeURIComponent(enc))).json();
+  if(!j.ok){ alert(j.error||'Open failed'); return; }
+  state.path=p;
+  if(state.basic){
+    const ta=document.getElementById('basic'); ta.value=j.data||''; updateStatus();
+  }else{
+    if(!state.model) state.model = monaco.editor.createModel(j.data||'', 'plaintext');
+    else state.model.setValue(j.data||'');
+    monaco.editor.setModelLanguage(state.model, document.getElementById('lang').value||'plaintext');
+    state.editor.setModel(state.model);
+    state.editor.focus();
+    updateStatus();
+  }
+}
+
+async function save(){
+  const enc=document.getElementById('enc').value;
+  const data = state.basic ? document.getElementById('basic').value : state.model.getValue();
+  const r=await fetch('/api/editor/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path: state.path, enc, data})});
+  const j=await r.json(); if(!j.ok) alert(j.error||'Save failed');
+}
+
+function initMonaco(){
+  require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.49.0/min/vs' }});
+  require(['vs/editor/editor.main'], function() {
+    state.editor = monaco.editor.create(document.getElementById('editor'), { value:'', language:'plaintext', theme:'vs-dark', automaticLayout:true, wordWrap:'on', minimap:{enabled:true} });
+    state.editor.onDidChangeCursorPosition(updateStatus);
+    state.editor.onDidChangeModelContent(updateStatus);
+    list('');
+  });
+}
+
+function initBasic(){
+  state.basic=true;
+  const ed=document.getElementById('editor');
+  ed.innerHTML='<textarea id="basic" style="width:100%;height:100%;background:#0b1020;color:#e2e8f0;border:0;padding:10px;font-family:ui-monospace,monospace"></textarea>';
+  document.getElementById('lang').disabled=true;
+  list('');
+}
+
+function updateStatus(){
+  let txt = state.basic ? document.getElementById('basic').value : state.model.getValue();
+  const lines = txt.split(/\r?\n/);
+  const words = (txt.match(/\b\w+\b/g)||[]).length;
+  document.getElementById('words').textContent = words;
+  document.getElementById('chars').textContent = txt.length;
+  document.getElementById('lines').textContent = lines.length;
+  if(!state.basic){
+    const pos = state.editor.getPosition();
+    document.getElementById('ln').textContent = pos.lineNumber;
+    document.getElementById('col').textContent = pos.column;
+    const sels = state.editor.getSelections()||[];
+    document.getElementById('sel').textContent = sels.length;
+  }else{
+    const ta=document.getElementById('basic');
+    const start=ta.selectionStart;
+    const pre=ta.value.slice(0,start);
+    document.getElementById('ln').textContent = pre.split(/\n/).length;
+    const lastLine = pre.lastIndexOf('\n'); document.getElementById('col').textContent = start - (lastLine<0?0:lastLine+1);
+    document.getElementById('sel').textContent = (ta.selectionEnd - ta.selectionStart);
+  }
+}
+
+document.getElementById('save').onclick=save;
+document.getElementById('find').onclick=()=>{
+  if(state.basic){ const s=prompt('Find:'); if(!s) return; const ta=document.getElementById('basic'); const i=ta.value.indexOf(s, ta.selectionEnd); if(i>=0){ ta.focus(); ta.selectionStart=i; ta.selectionEnd=i+s.length; } return; }
+  state.editor.getAction('actions.find').run();
+};
+document.getElementById('replace').onclick=()=>{
+  if(state.basic){ const f=prompt('Find:'); if(!f) return; const r=prompt('Replace with:'); if(r===null) return; const ta=document.getElementById('basic'); ta.value=ta.value.split(f).join(r); updateStatus(); return; }
+  state.editor.getAction('editor.action.startFindReplaceAction').run();
+};
+const bm=()=>{ if(!state.basic){ const p=state.editor.getPosition(); state.bookmarks.push(p); alert('Bookmarked line '+p.lineNumber); } };
+document.getElementById('bookmark').onclick=bm;
+document.getElementById('nextbm').onclick=()=>{ if(!state.bookmarks.length) return; const p=state.bookmarks.shift(); state.bookmarks.push(p); if(!state.basic) state.editor.setPosition(p); };
+document.getElementById('prevbm').onclick=()=>{ if(!state.bookmarks.length) return; const p=state.bookmarks.pop(); state.bookmarks.unshift(p); if(!state.basic) state.editor.setPosition(p); };
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(window.useMonaco){ try{ initMonaco(); }catch(e){ initBasic(); } } else { initBasic(); }
+});
+</script>
+
+<script>
+(async function(){
+  // Try local Monaco loader first
+  let haveLocal=false;
+  try{
+    await new Promise((resolve,reject)=>{ const s=document.createElement('script'); s.src='/assets/monaco/vs/loader.js'; s.onload=resolve; s.onerror=()=>reject(); document.head.appendChild(s); });
+    haveLocal=true;
+  }catch(e){}
+  if(haveLocal){
+    document.dispatchEvent(new Event('monacoReadyOrFallback'));
+  }else{
+    // No local Monaco: we'll still init basic editor; also trigger one-time download
+    document.dispatchEvent(new Event('monacoReadyOrFallback'));
+  }
+})();
+</script>
+<script>
+async function checkMonaco(){
+  try{
+    const j=await (await fetch('/api/editor/monaco/status')).json();
+    const b=document.getElementById('monaco_stat');
+    b.textContent = j.installed ? ('Monaco '+(j.version||'')) : 'Not installed';
+    if(!j.installed){
+      try{
+        document.getElementById('monaco_stat').textContent='Downloading Monaco…';
+        const r=await fetch('/api/editor/monaco/fetch', {method:'POST'});
+        const jj=await r.json();
+        if(jj.ok){ document.getElementById('monaco_stat').textContent='Ready '+jj.version; location.reload(); }
+        else { document.getElementById('monaco_stat').textContent='Download failed'; }
+      }catch(e){ document.getElementById('monaco_stat').textContent='Download failed'; }
+    }
+  }catch(e){ document.getElementById('monaco_stat').textContent='Status error'; }
+}
+document.getElementById('monaco_dl').onclick=async ()=>{
+  document.getElementById('monaco_stat').textContent='Downloading Monaco…';
+  const r=await fetch('/api/editor/monaco/fetch', {method:'POST'}); const j=await r.json();
+  if(j.ok){ document.getElementById('monaco_stat').textContent='Ready '+j.version; location.reload(); } else { document.getElementById('monaco_stat').textContent='Download failed'; }
+};
+document.addEventListener('DOMContentLoaded', checkMonaco);
+</script>
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+
+<script>
+let marks=[];
+function toggleMarks(){ const p=document.getElementById('marksPanel'); p.style.display=p.style.display=='none'?'block':'none'; }
+function addBookmark(){ if(!window.editor) return; const pos=editor.getPosition(); marks.push({line:pos.lineNumber,col:pos.column}); renderMarks(); }
+function renderMarks(){ const L=document.getElementById('marksList'); L.innerHTML=marks.map((m,i)=>`<div><a href='#' onclick='gotoMark(${i})'>Line ${m.line}</a></div>`).join(''); }
+function gotoMark(i){ const m=marks[i]; editor.revealLineInCenter(m.line); editor.setPosition({lineNumber:m.line, column:m.col||1}); editor.focus(); }
+function markAll(term){ const model=editor.getModel(); if(!model) return; const ms=model.findMatches(term,false,false,false,null,true); marks = ms.map(m=>({line:m.range.startLineNumber,col:m.range.startColumn})); renderMarks(); }
+function enableColumnModeHint(){ alert('Column mode: hold Alt and drag with mouse (Monaco multi-cursor block selection).'); }
+</script>
+</body></html>
+
+<!-- Macro Recorder and Plugin System -->
+<script src="assets/editor/macro_recorder.js"></script>
+<script>
+// Initialize macro recorder when Monaco is ready
+let macroRecorder = null;
+
+function initMacroRecorder() {
+  if (state.editor && !macroRecorder) {
+    macroRecorder = new MacroRecorder(state.editor);
+    
+    // Setup macro buttons
+    document.getElementById('macroRecordBtn').onclick = () => {
+      const result = macroRecorder.toggleRecording();
+      if (result && result.actionCount > 0) {
+        const name = prompt('Save macro as:', 'macro_' + Date.now());
+        if (name) {
+          macroRecorder.saveMacro(name, 'User recorded macro');
+          alert(`Macro "${name}" saved with ${result.actionCount} actions`);
+        }
+      }
+    };
+    
+    document.getElementById('macroStopBtn').onclick = () => {
+      const result = macroRecorder.stopRecording();
+      if (result && result.actionCount > 0) {
+        const name = prompt('Save macro as:', 'macro_' + Date.now());
+        if (name) {
+          macroRecorder.saveMacro(name, 'User recorded macro');
+          alert(`Macro "${name}" saved with ${result.actionCount} actions`);
+        }
+      }
+    };
+    
+    document.getElementById('macroPlayBtn').onclick = async () => {
+      const macros = macroRecorder.getSavedMacros();
+      if (macros.length === 0) {
+        alert('No saved macros. Record a macro first!');
+        return;
+      }
+      
+      const macroList = macros.map((m, i) => `${i + 1}. ${m.name} (${m.actionCount} actions)`).join('\n');
+      const selection = prompt('Select macro to play:\n\n' + macroList + '\n\nEnter number:');
+      
+      if (selection) {
+        const index = parseInt(selection) - 1;
+        if (index >= 0 && index < macros.length) {
+          await macroRecorder.playSavedMacro(macros[index].name);
+        }
+      }
+    };
+  }
+}
+
+// Initialize plugins
+async function initPlugins() {
+  document.getElementById('pluginsBtn').onclick = async () => {
+    try {
+      const response = await fetch('/api/editor/plugins/list');
+      const data = await response.json();
+      
+      if (!data.success || data.plugins.length === 0) {
+        alert('No plugins available');
+        return;
+      }
+      
+      const pluginList = data.plugins.map((p, i) => 
+        `${i + 1}. ${p.name} v${p.version} - ${p.description} [${p.enabled ? 'Enabled' : 'Disabled'}]`
+      ).join('\n');
+      
+      const selection = prompt('Select plugin to execute:\n\n' + pluginList + '\n\nEnter number:');
+      
+      if (selection) {
+        const index = parseInt(selection) - 1;
+        if (index >= 0 && index < data.plugins.length) {
+          const plugin = data.plugins[index];
+          
+          // Get selected text or all text
+          const text = state.editor.getModel().getValueInRange(state.editor.getSelection()) || 
+                      state.editor.getModel().getValue();
+          
+          // Execute plugin
+          const execResponse = await fetch(`/api/editor/plugins/${plugin.id}/execute`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, options: {} })
+          });
+          
+          const execData = await execResponse.json();
+          
+          if (execData.success) {
+            // Replace selection or all text with result
+            const selection = state.editor.getSelection();
+            state.editor.executeEdits('plugin', [{
+              range: selection.isEmpty() ? state.editor.getModel().getFullModelRange() : selection,
+              text: execData.result
+            }]);
+            alert(`Plugin "${plugin.name}" executed successfully`);
+          } else {
+            alert(`Plugin error: ${execData.error}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Plugin error:', error);
+      alert('Failed to load plugins: ' + error.message);
+    }
+  };
+}
+
+// Call initialization when editor is ready
+if (typeof monaco !== 'undefined') {
+  setTimeout(() => {
+    initMacroRecorder();
+    initPlugins();
+  }, 1000);
+}
+</script>

@@ -1,0 +1,6 @@
+Keys & Tokens Management
+------------------------
+• App loads keys from ENV first, then config\keys.local.json, then (deprecated) config\keys.json.
+• Never logs raw secrets; /integrations/status shows presence (true/false) only.
+• To set your keys locally, run: scripts\set_keys.cmd (writes config\keys.local.json).
+• Keep keys.local.json private; back it up separately. Support Pack redacts values by default.

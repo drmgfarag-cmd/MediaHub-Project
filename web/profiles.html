@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Profiles</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Profiles</strong> <button id="refresh">Refresh</button></div>
+  <div class="card">
+    <table class="tbl" id="t"><thead><tr><th>Name</th><th>Kids</th><th>Active</th><th>Pin</th><th></th></tr></thead><tbody></tbody></table>
+    <div style="margin-top:8px">
+      <input id="nm" placeholder="Name"> <label><input type="checkbox" id="ik"> Kids</label>
+      <button id="add">Add Profile</button>
+    </div>
+  </div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/profiles/list')).json();
+  const aid=j.active_id, tb=document.querySelector('#t tbody'); tb.innerHTML='';
+  (j.profiles||[]).forEach(p=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${p.name}</td><td>${p.is_kids?'Yes':'No'}</td><td>${p.id===aid?'●':''}</td>
+    <td><button class="setpin" data-id="${p.id}">Set PIN</button></td>
+    <td><button class="act" data-id="${p.id}">Make Active</button> <button class="del" data-id="${p.id}">Delete</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+add.onclick=async ()=>{
+  await fetch('/api/profiles/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nm.value.trim(), is_kids: ik.checked})});
+  load();
+};
+document.addEventListener('click', async (e)=>{
+  const a=e.target.closest('button.act'); if(a){ await fetch('/api/profiles/set_active',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:a.dataset.id})}); load(); }
+  const d=e.target.closest('button.del'); if(d){ await fetch('/api/profiles/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.dataset.id})}); load(); }
+  const s=e.target.closest('button.setpin'); if(s){ const v=prompt('Enter new PIN (empty to clear)'); await fetch('/api/profiles/set_pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:s.dataset.id, pin: v||''})}); alert('PIN updated.'); }
+});
+refresh.onclick=load; document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Smart Rails (Live)</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Smart Rails (Live)</strong> <button id="sync">Refresh Now</button> <button id="queue">Queue Refresh</button></div>
+  <div class="card">
+    <div>Last run: <span id="lr">—</span></div>
+    <div id="list">Loading…</div>
+  </div>
+  <div class="card">
+    <h3>Configuration</h3>
+    <div><label><input type="checkbox" id="live_disc"> Use Live Smart Rails on Discovery page</label></div>
+    <div style="margin-top:6px"><button id="open_cfg">Open rail toggles</button></div>
+  </div>
+</div>
+<script>
+async function fmt(ts){ if(!ts) return '—'; const d=new Date(ts*1000); return d.toLocaleString(); }
+async function load(){
+  const s=await (await fetch('/api/smart_rails/state')).json();
+  lr.textContent = await fmt(s.last_run);
+  list.innerHTML = (s.rails||[]).sort((a,b)=>b.count-a.count).map(r=>`<div><a href="smart_rails_view.html?name=${encodeURIComponent(r.name)}">${r.name}</a> <span class="badge">${r.count}</span></div>`).join('') || 'No rails yet.';
+  const c=await (await fetch('/api/config/get')).json();
+  live_disc.checked = !!(c.smart_rails && c.smart_rails.live_on_discovery);
+}
+document.getElementById('sync').onclick=async ()=>{ await fetch('/api/smart_rails/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'sync'})}); load(); };
+document.getElementById('queue').onclick=async ()=>{ await fetch('/api/smart_rails/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'background'})}); alert('Queued refresh.'); };
+document.getElementById('open_cfg').onclick=()=> location.href='smart_rails_settings.html';
+live_disc.onchange = async ()=>{
+  const c=await (await fetch('/api/config/get')).json();
+  c.smart_rails=c.smart_rails||{}; c.smart_rails.live_on_discovery = live_disc.checked;
+  await fetch('/api/config/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)});
+  alert('Saved preference.');
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

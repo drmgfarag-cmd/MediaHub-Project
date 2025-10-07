@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Play Audio • MediaHub</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.wrap{max-width:920px;margin:0 auto;padding:16px}
+.card{display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:center;border:1px solid rgba(148,163,184,.15);border-radius:16px;background:#101827;padding:16px}
+.cover{width:240px;height:240px;border-radius:12px;overflow:hidden;border:1px solid rgba(148,163,184,.15)}
+.cover img{width:100%;height:100%;object-fit:cover}
+h1{margin:0 0 6px 0}
+.meta{color:var(--muted)}
+.controls{margin-top:12px}
+audio{width:100%}
+</style></head><body>
+<div class="wrap">
+  <a href="library_music.html">← Music</a>
+  <div class="card">
+    <div class="cover"><img id="img" alt=""></div>
+    <div>
+      <h1 id="t"></h1>
+      <div class="meta" id="m"></div>
+      <div class="controls"><div style="display:flex;gap:8px;margin-bottom:8px"><button onclick="enqueue()">+ Queue</button><button onclick="playnow()">Play Now</button><button onclick="addToPlaylist()">+ Playlist</button></div>
+        <audio id="aud" controls preload="metadata"></audio>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button onclick="rate(0.9)">- speed</button>
+          <button onclick="rate(1.0)">1×</button>
+          <button onclick="rate(1.1)">+ speed</button>
+          <button onclick="toggleLoop()">Loop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const Q=new URLSearchParams(location.search); const ID=Q.get('id'); let ITEM=null;
+function rate(x){ const a=document.getElementById('aud'); a.playbackRate=x; }
+function toggleLoop(){ const a=document.getElementById('aud'); a.loop=!a.loop; alert('Loop '+(a.loop?'on':'off')); }
+async function load(){
+  try{ const r=await fetch('/api/library/title/'+encodeURIComponent(ID)); ITEM=await r.json(); }catch(e){ ITEM=null; }
+  if(!ITEM || ITEM.error){ document.body.innerHTML='Track not found'; return; }
+  document.getElementById('img').src = ITEM.cover || ITEM.poster || 'sample/poster.jpg';
+  document.getElementById('t').textContent = ITEM.title || ITEM.name || 'Untitled';
+  document.getElementById('m').textContent = [ITEM.artist, (ITEM.album?('— '+ITEM.album):''), ITEM.year||''].filter(Boolean).join(' ');
+  const a=document.getElementById('aud');
+  a.src = ITEM.stream || ITEM.path || '';
+}
+
+async function enqueue(){ await fetch('/api/music/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'enqueue', id: ITEM.id||ITEM.path})}); }
+async function playnow(){ await fetch('/api/music/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'playnow', id: ITEM.id||ITEM.path})}); }
+async function addToPlaylist(){
+  const name = prompt('Playlist name:');
+  if(!name) return;
+  const r = await fetch('/api/music/playlists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'create', name})}); const j=await r.json();
+  await fetch('/api/music/playlists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'add', id:j.id, stream: ITEM.stream||'', title: ITEM.title||''})});
+  alert('Added to '+name);
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

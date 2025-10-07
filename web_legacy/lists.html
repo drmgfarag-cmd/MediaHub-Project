@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Lists Directory</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}</style>
+</head><body><div class="wrap">
+  <a href="home.html">&larr; Home</a>
+  <h1>Lists Directory</h1>
+  <div id="list"></div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/toplists/dir')).json(); const box=document.getElementById('list'); box.innerHTML='';
+  (j.sources||[]).forEach(s=>{
+    const card=document.createElement('div'); card.className='card';
+    const last=(j.last_fetch||{})[s.id]; const lastStr = last? new Date(last*1000).toLocaleString() : 'never';
+    card.innerHTML = `<div style='display:flex;gap:8px;align-items:center'><div style='font-weight:600'>${s.name}</div><span style='opacity:.8'>${s.type}</span><span style='margin-left:auto;opacity:.8'>Every ${s.interval_h}h</span><button data-id='${s.id}'>Refresh now</button><span style='opacity:.8'>Last: ${lastStr}</span></div>`;
+    card.querySelector('button').addEventListener('click', async (e)=>{
+      const id=e.target.getAttribute('data-id'); await fetch('/api/toplists/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); load();
+    });
+    box.appendChild(card);
+  });
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

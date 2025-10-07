@@ -1,0 +1,16 @@
+{
+    "default_movie_pattern": "{title} ({year}) {resolution} {source}",
+    "default_series_pattern": "{series} - S{season:02d}E{episode:02d} - {title} {resolution}",
+    "patterns": [
+        {
+            "name": "Movie - Standard",
+            "type": "movie",
+            "pattern": "{title} ({year}) {resolution} {source}"
+        },
+        {
+            "name": "Series - Standard",
+            "type": "series",
+            "pattern": "{series} - S{season:02d}E{episode:02d} - {title} {resolution}"
+        }
+    ]
+}

@@ -1,0 +1,269 @@
+<!doctype html><html><head><meta charset="utf-8"><title>MediaHub — RSS Filters</title>
+<link rel="stylesheet" href="../assets/normalize.css"><link rel="stylesheet" href="../assets/ui.css">
+<style>
+.rss-container { display: grid; grid-template-columns: 300px 1fr; gap: 20px; height: calc(100vh - 120px); }
+.feeds-panel, .filters-panel { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; overflow-y: auto; }
+.feed-item { background: rgba(255,255,255,0.08); margin: 8px 0; padding: 12px; border-radius: 6px; cursor: pointer; }
+.feed-item:hover { background: rgba(255,255,255,0.12); }
+.feed-item.active { border-left: 4px solid #667eea; background: rgba(102, 126, 234, 0.2); }
+.feed-name { font-weight: 600; color: #fff; }
+.feed-url { font-size: 12px; color: #999; margin-top: 4px; word-break: break-all; }
+.filter-section { margin-bottom: 25px; }
+.filter-input { width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: #fff; margin-bottom: 10px; }
+.filter-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.filter-tag { background: #667eea; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; cursor: pointer; }
+.filter-tag.exclude { background: #e74c3c; }
+.filter-tag:hover { opacity: 0.8; }
+.add-btn { background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.remove-btn { background: #e74c3c; color: white; border: none; padding: 2px 6px; border-radius: 2px; cursor: pointer; font-size: 10px; margin-left: 6px; }
+.automation-toggle { display: flex; align-items: center; gap: 10px; margin: 15px 0; }
+.toggle-switch { position: relative; width: 50px; height: 24px; background: #333; border-radius: 12px; cursor: pointer; }
+.toggle-switch.active { background: #667eea; }
+.toggle-slider { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.3s; }
+.toggle-switch.active .toggle-slider { transform: translateX(26px); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar"><a href="../downloader.html">← Downloader</a> · <strong>RSS Filters & Automation</strong></div>
+  
+  <div class="rss-container">
+    <div class="feeds-panel">
+      <h3>RSS Feeds</h3>
+      <button onclick="addNewFeed()" class="add-btn" style="width: 100%; margin-bottom: 15px;">+ Add RSS Feed</button>
+      
+      <div id="feedsList">
+        <div class="feed-item active" onclick="selectFeed('default')">
+          <div class="feed-name">Default Feed</div>
+          <div class="feed-url">https://example.com/rss</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="filters-panel">
+      <h3>Filters & Automation</h3>
+      
+      <div class="automation-toggle">
+        <span>Auto-download matching items:</span>
+        <div class="toggle-switch" id="autoToggle" onclick="toggleAutomation()">
+          <div class="toggle-slider"></div>
+        </div>
+      </div>
+      
+      <div class="filter-section">
+        <h4>Include Keywords</h4>
+        <input type="text" class="filter-input" id="includeInput" placeholder="Enter keywords to include (e.g., 1080p, REMUX)">
+        <button onclick="addIncludeFilter()" class="add-btn">Add Include Filter</button>
+        <div class="filter-tags" id="includeTags"></div>
+      </div>
+      
+      <div class="filter-section">
+        <h4>Exclude Keywords</h4>
+        <input type="text" class="filter-input" id="excludeInput" placeholder="Enter keywords to exclude (e.g., CAM, TS)">
+        <button onclick="addExcludeFilter()" class="add-btn">Add Exclude Filter</button>
+        <div class="filter-tags" id="excludeTags"></div>
+      </div>
+      
+      <div class="filter-section">
+        <h4>Quality Filters</h4>
+        <div class="filter-tags">
+          <span class="filter-tag" onclick="toggleQualityFilter(this, '4K')">4K</span>
+          <span class="filter-tag" onclick="toggleQualityFilter(this, '1080p')">1080p</span>
+          <span class="filter-tag" onclick="toggleQualityFilter(this, '720p')">720p</span>
+          <span class="filter-tag" onclick="toggleQualityFilter(this, 'REMUX')">REMUX</span>
+          <span class="filter-tag" onclick="toggleQualityFilter(this, 'BluRay')">BluRay</span>
+          <span class="filter-tag" onclick="toggleQualityFilter(this, 'WEB-DL')">WEB-DL</span>
+        </div>
+      </div>
+      
+      <div class="filter-section">
+        <h4>Size Limits</h4>
+        <label>Minimum Size (GB):</label>
+        <input type="number" class="filter-input" id="minSize" placeholder="0" min="0" step="0.1">
+        <label>Maximum Size (GB):</label>
+        <input type="number" class="filter-input" id="maxSize" placeholder="50" min="0" step="0.1">
+      </div>
+      
+      <div class="filter-section">
+        <h4>Advanced Options</h4>
+        <div class="automation-toggle">
+          <span>Smart episode detection:</span>
+          <div class="toggle-switch active" id="episodeToggle" onclick="toggleEpisodeDetection()">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+        <div class="automation-toggle">
+          <span>Duplicate prevention:</span>
+          <div class="toggle-switch active" id="dupeToggle" onclick="toggleDupeDetection()">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 30px;">
+        <button onclick="saveFilters()" class="add-btn" style="background: #667eea; padding: 12px 24px;">Save Filters</button>
+        <button onclick="testFilters()" class="add-btn" style="background: #f39c12; margin-left: 10px;">Test Filters</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentFeed = 'default';
+let includeFilters = [];
+let excludeFilters = [];
+let qualityFilters = [];
+let automationEnabled = false;
+
+function selectFeed(feedId) {
+  currentFeed = feedId;
+  document.querySelectorAll('.feed-item').forEach(item => item.classList.remove('active'));
+  event.target.closest('.feed-item').classList.add('active');
+  loadFiltersForFeed(feedId);
+}
+
+function addNewFeed() {
+  const url = prompt('Enter RSS feed URL:');
+  if (url) {
+    const name = prompt('Enter feed name:') || 'New Feed';
+    addFeedToList(name, url);
+  }
+}
+
+function addFeedToList(name, url) {
+  const feedsList = document.getElementById('feedsList');
+  const feedItem = document.createElement('div');
+  feedItem.className = 'feed-item';
+  feedItem.onclick = () => selectFeed(name);
+  feedItem.innerHTML = `
+    <div class="feed-name">${name}</div>
+    <div class="feed-url">${url}</div>
+  `;
+  feedsList.appendChild(feedItem);
+}
+
+function addIncludeFilter() {
+  const input = document.getElementById('includeInput');
+  const keyword = input.value.trim();
+  if (keyword && !includeFilters.includes(keyword)) {
+    includeFilters.push(keyword);
+    updateFilterTags('includeTags', includeFilters, false);
+    input.value = '';
+  }
+}
+
+function addExcludeFilter() {
+  const input = document.getElementById('excludeInput');
+  const keyword = input.value.trim();
+  if (keyword && !excludeFilters.includes(keyword)) {
+    excludeFilters.push(keyword);
+    updateFilterTags('excludeTags', excludeFilters, true);
+    input.value = '';
+  }
+}
+
+function updateFilterTags(containerId, filters, isExclude) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = filters.map(filter => `
+    <span class="filter-tag ${isExclude ? 'exclude' : ''}" onclick="removeFilter('${containerId}', '${filter}')">
+      ${filter}
+      <span class="remove-btn">×</span>
+    </span>
+  `).join('');
+}
+
+function removeFilter(containerId, filter) {
+  if (containerId === 'includeTags') {
+    includeFilters = includeFilters.filter(f => f !== filter);
+    updateFilterTags('includeTags', includeFilters, false);
+  } else if (containerId === 'excludeTags') {
+    excludeFilters = excludeFilters.filter(f => f !== filter);
+    updateFilterTags('excludeTags', excludeFilters, true);
+  }
+}
+
+function toggleQualityFilter(element, quality) {
+  if (qualityFilters.includes(quality)) {
+    qualityFilters = qualityFilters.filter(q => q !== quality);
+    element.style.opacity = '0.5';
+  } else {
+    qualityFilters.push(quality);
+    element.style.opacity = '1';
+  }
+}
+
+function toggleAutomation() {
+  automationEnabled = !automationEnabled;
+  const toggle = document.getElementById('autoToggle');
+  toggle.classList.toggle('active', automationEnabled);
+}
+
+function toggleEpisodeDetection() {
+  const toggle = document.getElementById('episodeToggle');
+  toggle.classList.toggle('active');
+}
+
+function toggleDupeDetection() {
+  const toggle = document.getElementById('dupeToggle');
+  toggle.classList.toggle('active');
+}
+
+async function saveFilters() {
+  const filters = {
+    feed: currentFeed,
+    include: includeFilters,
+    exclude: excludeFilters,
+    quality: qualityFilters,
+    minSize: parseFloat(document.getElementById('minSize').value) || 0,
+    maxSize: parseFloat(document.getElementById('maxSize').value) || 0,
+    automation: automationEnabled,
+    episodeDetection: document.getElementById('episodeToggle').classList.contains('active'),
+    dupeDetection: document.getElementById('dupeToggle').classList.contains('active')
+  };
+  
+  try {
+    const response = await fetch('/api/rss/filters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filters)
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+      alert('Filters saved successfully!');
+    } else {
+      alert('Error saving filters: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Network error: ' + error.message);
+  }
+}
+
+async function testFilters() {
+  try {
+    const response = await fetch(`/api/rss/test?feed=${currentFeed}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      const matches = result.matches || [];
+      alert(`Filter test complete!\nFound ${matches.length} matching items in the RSS feed.`);
+    } else {
+      alert('Error testing filters: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Network error: ' + error.message);
+  }
+}
+
+function loadFiltersForFeed(feedId) {
+  // Load saved filters for the selected feed
+  // This would typically fetch from the server
+  console.log('Loading filters for feed:', feedId);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadFiltersForFeed('default');
+});
+</script>
+</body></html>

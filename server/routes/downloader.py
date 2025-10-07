@@ -1,0 +1,92 @@
+from flask import Blueprint, jsonify, request
+import os, json, time, uuid
+
+dl_bp = Blueprint('dl', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+QF=os.path.join(STO,'downloader_queue.json')
+LF=os.path.join(STO,'downloader_limits.json')
+
+def _load(path, default):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+    except Exception: return default
+
+def _save(path, obj):
+    tmp=path+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, path)
+
+def _queue(): return _load(QF, {'packages':[]})
+def _limits(): return _load(LF, {'max_kbps':0})
+
+@dl_bp.route('/api/dl/queue_get')
+def queue_get():
+    return jsonify(_queue())
+
+@dl_bp.route('/api/dl/queue_add', methods=['POST'])
+def queue_add():
+    js=request.get_json(silent=True) or {}
+    q=_queue(); pkg={
+        'id': js.get('id') or str(uuid.uuid4())[:8],
+        'name': js.get('name') or 'New Package',
+        'save_to': js.get('save_to') or '',
+        'priority': js.get('priority') or 'Normal',
+        'added_ts': int(time.time()),
+        'status':'Queued','speed_kbps':0,'progress':0,'eta_sec':0,
+        'files': js.get('files') or []
+    }
+    q['packages'].append(pkg); _save(QF, q); return jsonify({'ok':True,'id':pkg['id']})
+
+@dl_bp.route('/api/dl/queue_update', methods=['POST'])
+def queue_update():
+    js=request.get_json(silent=True) or {}
+    pid=(js.get('id') or '').strip()
+    q=_queue()
+    for p in q.get('packages',[]):
+        if p.get('id')==pid:
+            for k in ('name','save_to','priority','status','speed_kbps','progress','eta_sec'):
+                if k in js: p[k]=js[k]
+            _save(QF,q); return jsonify({'ok':True})
+    return jsonify({'error':'not found'}), 404
+
+@dl_bp.route('/api/dl/queue_remove', methods=['POST'])
+def queue_remove():
+    js=request.get_json(silent=True) or {}
+    pid=(js.get('id') or '').strip()
+    q=_queue(); n0=len(q.get('packages',[]))
+    q['packages']=[p for p in q.get('packages',[]) if p.get('id')!=pid]
+    _save(QF,q); return jsonify({'ok':True,'removed': n0-len(q.get('packages',[]))})
+
+@dl_bp.route('/api/dl/file_update', methods=['POST'])
+def file_update():
+    js=request.get_json(silent=True) or {}
+    pid=(js.get('pkg_id') or '').strip(); fid=(js.get('file_id') or '').strip()
+    q=_queue()
+    for p in q.get('packages',[]):
+        if p.get('id')==pid:
+            for f in p.get('files',[]):
+                if f.get('id')==fid:
+                    for k in ('name','size','progress','speed_kbps','eta_sec','status','attempts','referrer','hoster','save_to'):
+                        if k in js: f[k]=js[k]
+                    _save(QF,q); return jsonify({'ok':True})
+    return jsonify({'error':'not found'}), 404
+
+@dl_bp.route('/api/dl/limits_get')
+def limits_get():
+    return jsonify(_limits())
+
+@dl_bp.route('/api/dl/limits_set', methods=['POST'])
+def limits_set():
+    js=request.get_json(silent=True) or {}
+    dat=_limits(); dat['max_kbps']=int(js.get('max_kbps') or 0)
+    _save(LF, dat); return jsonify({'ok':True})
+
+@dl_bp.route('/api/dl/stats')
+def stats():
+    q=_queue(); lim=_limits().get('max_kbps',0)
+    active=0; speed=0
+    for p in q.get('packages',[]):
+        if p.get('status') in ('Running','Downloading'): active+=1
+        speed+=int(p.get('speed_kbps') or 0)
+        for f in p.get('files',[]):
+            if f.get('status') in ('Running','Downloading'): active+=0  # counted by package
+    if lim>0 and speed>lim: speed=lim
+    return jsonify({'active':active,'speed_kbps': speed, 'limit_kbps': lim})

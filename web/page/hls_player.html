@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - HLS Player</title>
+    <link rel="stylesheet" href="../assets/normalize.css">
+    <link rel="stylesheet" href="../assets/ui.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        .player-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        video {
+            width: 100%;
+            max-height: 70vh;
+            background: #000;
+            border-radius: 10px;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button, select {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        select {
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <h1>🎬 HLS Streaming Player</h1>
+        <video id="video" controls></video>
+        <div class="controls">
+            <select id="qualitySelect"><option>Auto</option></select>
+            <button onclick="toggleFullscreen()">⛶ Fullscreen</button>
+            <button onclick="stopStream()">⏹ Stop</button>
+        </div>
+    </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const streamUrl = urlParams.get('url');
+        const video = document.getElementById('video');
+        
+        if (streamUrl && Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(streamUrl);
+            hls.attachMedia(video);
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = streamUrl;
+        }
+        
+        function toggleFullscreen() {
+            if (video.requestFullscreen) video.requestFullscreen();
+        }
+        
+        function stopStream() {
+            video.pause();
+            fetch('/api/streaming/hls', { method: 'DELETE' });
+        }
+    </script>
+</body>
+</html>

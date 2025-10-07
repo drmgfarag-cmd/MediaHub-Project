@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - Duplicate Detection</title>
+    <link rel="stylesheet" href="../assets/normalize.css">
+    <link rel="stylesheet" href="../assets/ui.css">
+    <style>
+        .duplicates-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .controls-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .scan-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .scan-button:hover {
+            background: #5568d3;
+        }
+        
+        .scan-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .filter-controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .duplicates-list {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .duplicate-group {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .duplicate-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .similarity-badge {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .duplicate-items {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .duplicate-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        .item-info {
+            flex: 1;
+        }
+        
+        .item-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .item-details {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+        
+        .keep-button {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .keep-button:hover {
+            background: #45a049;
+        }
+        
+        .delete-button {
+            background: #f44336;
+            color: white;
+        }
+        
+        .delete-button:hover {
+            background: #da190b;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="duplicates-container">
+        <h1>🔍 Duplicate Detection</h1>
+        <p>Scan and manage duplicate content across your media library</p>
+        
+        <div class="controls-section">
+            <button class="scan-button" id="scanButton" onclick="startScan()">🔄 Scan for Duplicates</button>
+            
+            <div class="filter-controls">
+                <label>Category:</label>
+                <select id="categoryFilter" onchange="filterDuplicates()">
+                    <option value="all">All Categories</option>
+                    <option value="movies">Movies</option>
+                    <option value="tv">TV Shows</option>
+                    <option value="books">Books</option>
+                    <option value="audio">Audio</option>
+                </select>
+                
+                <label>Similarity:</label>
+                <select id="similarityFilter" onchange="filterDuplicates()">
+                    <option value="all">All</option>
+                    <option value="high">High (90%+)</option>
+                    <option value="medium">Medium (70-89%)</option>
+                    <option value="low">Low (50-69%)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="stats-section" id="statsSection" style="display: none;">
+            <div class="stat-card">
+                <span class="stat-number" id="totalDuplicates">0</span>
+                <span class="stat-label">Duplicate Groups</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalItems">0</span>
+                <span class="stat-label">Total Items</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="potentialSavings">0 GB</span>
+                <span class="stat-label">Potential Savings</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="avgSimilarity">0%</span>
+                <span class="stat-label">Avg Similarity</span>
+            </div>
+        </div>
+        
+        <div class="duplicates-list" id="duplicatesList">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <h3>No Scan Results</h3>
+                <p>Click "Scan for Duplicates" to start detecting duplicate content</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let duplicateData = [];
+        let currentFilter = { category: 'all', similarity: 'all' };
+        
+        async function startScan() {
+            const button = document.getElementById('scanButton');
+            const listContainer = document.getElementById('duplicatesList');
+            
+            button.textContent = '⏳ Scanning...';
+            button.disabled = true;
+            
+            listContainer.innerHTML = '<div class="loading"><p>Scanning for duplicates...</p></div>';
+            
+            try {
+                const response = await fetch('/api/dedupe/scan', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    duplicateData = result.duplicates || [];
+                    updateStats(result.stats);
+                    renderDuplicates(duplicateData);
+                } else {
+                    listContainer.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">❌</div>
+                            <h3>Scan Failed</h3>
+                            <p>${result.error || 'Unknown error occurred'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <h3>Network Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                button.textContent = '🔄 Scan for Duplicates';
+                button.disabled = false;
+            }
+        }
+        
+        function updateStats(stats) {
+            document.getElementById('statsSection').style.display = 'grid';
+            document.getElementById('totalDuplicates').textContent = stats.total_groups || 0;
+            document.getElementById('totalItems').textContent = stats.total_items || 0;
+            document.getElementById('potentialSavings').textContent = (stats.potential_savings_gb || 0).toFixed(2) + ' GB';
+            document.getElementById('avgSimilarity').textContent = (stats.avg_similarity || 0).toFixed(1) + '%';
+        }
+        
+        function renderDuplicates(duplicates) {
+            const listContainer = document.getElementById('duplicatesList');
+            
+            if (duplicates.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✓</div>
+                        <h3>No Duplicates Found</h3>
+                        <p>Your library is clean!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = duplicates.map((group, groupIndex) => `
+                <div class="duplicate-group">
+                    <div class="duplicate-group-header">
+                        <h3>Group ${groupIndex + 1}</h3>
+                        <span class="similarity-badge">${group.similarity}% Similar</span>
+                    </div>
+                    <div class="duplicate-items">
+                        ${group.items.map((item, itemIndex) => `
+                            <div class="duplicate-item" id="item-${groupIndex}-${itemIndex}">
+                                <div class="item-info">
+                                    <div class="item-title">${item.title}</div>
+                                    <div class="item-details">
+                                        ${item.category} • ${item.size_mb} MB • ${item.quality || 'N/A'} • ${item.source || 'N/A'}
+                                    </div>
+                                    <div class="item-details" style="margin-top: 5px;">
+                                        <code style="font-size: 0.75rem; color: #999;">${item.path}</code>
+                                    </div>
+                                </div>
+                                <div class="item-actions">
+                                    <button class="action-button keep-button" onclick="keepItem(${groupIndex}, ${itemIndex})">✓ Keep</button>
+                                    <button class="action-button delete-button" onclick="deleteItem(${groupIndex}, ${itemIndex})">✗ Delete</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+            
+            listContainer.innerHTML = html;
+        }
+        
+        function filterDuplicates() {
+            currentFilter.category = document.getElementById('categoryFilter').value;
+            currentFilter.similarity = document.getElementById('similarityFilter').value;
+            
+            let filtered = duplicateData;
+            
+            // Filter by category
+            if (currentFilter.category !== 'all') {
+                filtered = filtered.map(group => ({
+                    ...group,
+                    items: group.items.filter(item => item.category === currentFilter.category)
+                })).filter(group => group.items.length > 1);
+            }
+            
+            // Filter by similarity
+            if (currentFilter.similarity !== 'all') {
+                filtered = filtered.filter(group => {
+                    if (currentFilter.similarity === 'high') return group.similarity >= 90;
+                    if (currentFilter.similarity === 'medium') return group.similarity >= 70 && group.similarity < 90;
+                    if (currentFilter.similarity === 'low') return group.similarity >= 50 && group.similarity < 70;
+                    return true;
+                });
+            }
+            
+            renderDuplicates(filtered);
+        }
+        
+        async function keepItem(groupIndex, itemIndex) {
+            const item = duplicateData[groupIndex].items[itemIndex];
+            
+            try {
+                const response = await fetch('/api/dedupe/keep', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_id: item.id })
+                });
+                
+                if (response.ok) {
+                    // Mark other items in the group for deletion
+                    duplicateData[groupIndex].items.forEach((otherItem, otherIndex) => {
+                        if (otherIndex !== itemIndex) {
+                            const element = document.getElementById(`item-${groupIndex}-${otherIndex}`);
+                            if (element) {
+                                element.style.opacity = '0.5';
+                                element.style.textDecoration = 'line-through';
+                            }
+                        }
+                    });
+                    
+                    alert('✓ Item marked as keeper. Others in this group can be safely deleted.');
+                }
+            } catch (error) {
+                alert('✗ Error: ' + error.message);
+            }
+        }
+        
+        async function deleteItem(groupIndex, itemIndex) {
+            if (!confirm('Are you sure you want to delete this item?')) {
+                return;
+            }
+            
+            const item = duplicateData[groupIndex].items[itemIndex];
+            
+            try {
+                const response = await fetch('/api/dedupe/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_id: item.id })
+                });
+                
+                if (response.ok) {
+                    const element = document.getElementById(`item-${groupIndex}-${itemIndex}`);
+                    if (element) {
+                        element.remove();
+                    }
+                    
+                    // Remove from data
+                    duplicateData[groupIndex].items.splice(itemIndex, 1);
+                    
+                    // Remove group if only one item left
+                    if (duplicateData[groupIndex].items.length < 2) {
+                        duplicateData.splice(groupIndex, 1);
+                        renderDuplicates(duplicateData);
+                    }
+                    
+                    alert('✓ Item deleted successfully');
+                }
+            } catch (error) {
+                alert('✗ Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

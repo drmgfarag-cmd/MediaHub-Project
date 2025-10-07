@@ -1,0 +1,34 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Pinboard Settings</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px} .itm{margin:4px 0}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Pinboard Settings</strong></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Pinned</h3>
+      <div id="pins">—</div>
+    </div>
+    <div class="card">
+      <h3>Add Source</h3>
+      <div id="srcs">—</div>
+    </div>
+  </div>
+</div>
+<script>
+async function renderPins(){
+  const j=await (await fetch('/api/pin/get')).json();
+  pins.innerHTML=(j.pins||[]).map(p=>`<div class="itm">${p.kind}: <strong>${p.name}</strong> <button class="rm" data-k="${p.kind}" data-n="${p.name}">Remove</button></div>`).join('')||'None';
+}
+async function renderSrcs(){
+  const j=await (await fetch('/api/pin/list_sources')).json();
+  srcs.innerHTML = `<h4>Collections</h4>` + (j.collections||[]).map(n=>`<div class="itm"><button class="addc" data-n="${n}">Pin</button> ${n}</div>`).join('')
+    + `<h4 style="margin-top:8px">Smart Rails</h4>` + (j.rails||[]).map(n=>`<div class="itm"><button class="addr" data-n="${n}">Pin</button> ${n}</div>`).join('');
+}
+document.addEventListener('click', async (e)=>{
+  const a=e.target.closest('button.addc'); if(a){ await fetch('/api/pin/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'collection', name:a.dataset.n})}); renderPins(); }
+  const r=e.target.closest('button.addr'); if(r){ await fetch('/api/pin/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'rail', name:r.dataset.n})}); renderPins(); }
+  const d=e.target.closest('button.rm'); if(d){ await fetch('/api/pin/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:d.dataset.k, name:d.dataset.n})}); renderPins(); }
+});
+document.addEventListener('DOMContentLoaded', ()=>{renderPins(); renderSrcs();});
+</script>
+</body></html>

@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "Top 250": {
+      "rename": "{title}.{year}.Top250",
+      "dest": "Movies/Top250"
+    }
+  }
+}

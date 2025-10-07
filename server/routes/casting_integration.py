@@ -1,0 +1,358 @@
+from flask import Blueprint, jsonify, request
+import os, json, hashlib
+from datetime import datetime
+from pathlib import Path
+
+casting_integration_bp = Blueprint("casting_integration", __name__)
+
+# Storage paths
+STORAGE_DIR = Path("storage/config")
+CASTING_DEVICES_FILE = STORAGE_DIR / "casting_devices.json"
+CASTING_SESSIONS_FILE = STORAGE_DIR / "casting_sessions.json"
+
+# Ensure storage directory exists
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Initialize files
+for file_path in [CASTING_DEVICES_FILE, CASTING_SESSIONS_FILE]:
+    if not file_path.exists():
+        file_path.write_text(json.dumps({"data": []}, indent=2))
+
+# ===== DEVICE DISCOVERY =====
+
+@casting_integration_bp.route("/api/casting/devices/discover", methods=["POST"])
+def discover_devices():
+    """Discover available casting devices on the network"""
+    device_type = request.json.get("device_type", "all")  # chromecast, airplay, dlna, all
+    
+    # Simulate device discovery
+    devices = []
+    
+    if device_type in ["chromecast", "all"]:
+        devices.extend([
+            {
+                "id": "chromecast_1",
+                "name": "Living Room TV",
+                "type": "chromecast",
+                "ip_address": "192.168.1.100",
+                "port": 8009,
+                "status": "idle",
+                "capabilities": ["video", "audio", "subtitles"]
+            },
+            {
+                "id": "chromecast_2",
+                "name": "Bedroom TV",
+                "type": "chromecast",
+                "ip_address": "192.168.1.101",
+                "port": 8009,
+                "status": "idle",
+                "capabilities": ["video", "audio", "subtitles"]
+            }
+        ])
+    
+    if device_type in ["airplay", "all"]:
+        devices.extend([
+            {
+                "id": "airplay_1",
+                "name": "Apple TV",
+                "type": "airplay",
+                "ip_address": "192.168.1.102",
+                "port": 7000,
+                "status": "idle",
+                "capabilities": ["video", "audio", "photos"]
+            }
+        ])
+    
+    if device_type in ["dlna", "all"]:
+        devices.extend([
+            {
+                "id": "dlna_1",
+                "name": "Smart TV",
+                "type": "dlna",
+                "ip_address": "192.168.1.103",
+                "port": 1900,
+                "status": "idle",
+                "capabilities": ["video", "audio", "photos"]
+            }
+        ])
+    
+    # Save discovered devices
+    with open(CASTING_DEVICES_FILE, "w") as f:
+        json.dump({"data": devices}, f, indent=2)
+    
+    return jsonify({
+        "success": True,
+        "devices": devices,
+        "count": len(devices)
+    })
+
+@casting_integration_bp.route("/api/casting/devices", methods=["GET"])
+def get_devices():
+    """Get list of known casting devices"""
+    with open(CASTING_DEVICES_FILE, "r") as f:
+        data = json.load(f)
+    
+    return jsonify({
+        "success": True,
+        "devices": data.get("data", [])
+    })
+
+@casting_integration_bp.route("/api/casting/devices/<device_id>", methods=["GET"])
+def get_device(device_id):
+    """Get details of a specific device"""
+    with open(CASTING_DEVICES_FILE, "r") as f:
+        data = json.load(f)
+    
+    devices = data.get("data", [])
+    device = next((d for d in devices if d.get("id") == device_id), None)
+    
+    if not device:
+        return jsonify({"error": "Device not found"}), 404
+    
+    return jsonify({
+        "success": True,
+        "device": device
+    })
+
+# ===== CASTING SESSIONS =====
+
+@casting_integration_bp.route("/api/casting/cast", methods=["POST"])
+def start_casting():
+    """Start casting media to a device"""
+    data = request.json
+    
+    device_id = data.get("device_id")
+    media_url = data.get("media_url")
+    media_type = data.get("media_type", "video")
+    media_title = data.get("media_title", "")
+    
+    # Validate device exists
+    with open(CASTING_DEVICES_FILE, "r") as f:
+        devices_data = json.load(f)
+    
+    devices = devices_data.get("data", [])
+    device = next((d for d in devices if d.get("id") == device_id), None)
+    
+    if not device:
+        return jsonify({"error": "Device not found"}), 404
+    
+    # Create casting session
+    session_id = hashlib.md5(f"{device_id}{media_url}{datetime.now()}".encode()).hexdigest()
+    
+    session = {
+        "session_id": session_id,
+        "device_id": device_id,
+        "device_name": device.get("name"),
+        "device_type": device.get("type"),
+        "media_url": media_url,
+        "media_type": media_type,
+        "media_title": media_title,
+        "status": "playing",
+        "position": 0.0,
+        "duration": data.get("duration", 0),
+        "volume": 1.0,
+        "subtitles_enabled": False,
+        "started_at": datetime.now().isoformat()
+    }
+    
+    # Save session
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        sessions_data = json.load(f)
+    
+    sessions = sessions_data.get("data", [])
+    sessions.append(session)
+    
+    with open(CASTING_SESSIONS_FILE, "w") as f:
+        json.dump({"data": sessions}, f, indent=2)
+    
+    return jsonify({
+        "success": True,
+        "session": session
+    })
+
+@casting_integration_bp.route("/api/casting/sessions", methods=["GET"])
+def get_sessions():
+    """Get all active casting sessions"""
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        data = json.load(f)
+    
+    sessions = data.get("data", [])
+    active_sessions = [s for s in sessions if s.get("status") != "stopped"]
+    
+    return jsonify({
+        "success": True,
+        "sessions": active_sessions
+    })
+
+@casting_integration_bp.route("/api/casting/sessions/<session_id>", methods=["GET"])
+def get_session(session_id):
+    """Get details of a specific casting session"""
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        data = json.load(f)
+    
+    sessions = data.get("data", [])
+    session = next((s for s in sessions if s.get("session_id") == session_id), None)
+    
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    return jsonify({
+        "success": True,
+        "session": session
+    })
+
+# ===== PLAYBACK CONTROL =====
+
+@casting_integration_bp.route("/api/casting/sessions/<session_id>/play", methods=["POST"])
+def play_session(session_id):
+    """Resume playback"""
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        data = json.load(f)
+    
+    sessions = data.get("data", [])
+    session = next((s for s in sessions if s.get("session_id") == session_id), None)
+    
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    session["status"] = "playing"
+    
+    with open(CASTING_SESSIONS_FILE, "w") as f:
+        json.dump({"data": sessions}, f, indent=2)
+    
+    return jsonify({"success": True, "status": "playing"})
+
+@casting_integration_bp.route("/api/casting/sessions/<session_id>/pause", methods=["POST"])
+def pause_session(session_id):
+    """Pause playback"""
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        data = json.load(f)
+    
+    sessions = data.get("data", [])
+    session = next((s for s in sessions if s.get("session_id") == session_id), None)
+    
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    session["status"] = "paused"
+    
+    with open(CASTING_SESSIONS_FILE, "w") as f:
+        json.dump({"data": sessions}, f, indent=2)
+    
+    return jsonify({"success": True, "status": "paused"})
+
+@casting_integration_bp.route("/api/casting/sessions/<session_id>/stop", methods=["POST"])
+def stop_session(session_id):
+    """Stop playback and end session"""
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        data = json.load(f)
+    
+    sessions = data.get("data", [])
+    session = next((s for s in sessions if s.get("session_id") == session_id), None)
+    
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    session["status"] = "stopped"
+    session["stopped_at"] = datetime.now().isoformat()
+    
+    with open(CASTING_SESSIONS_FILE, "w") as f:
+        json.dump({"data": sessions}, f, indent=2)
+    
+    return jsonify({"success": True, "status": "stopped"})
+
+@casting_integration_bp.route("/api/casting/sessions/<session_id>/seek", methods=["POST"])
+def seek_session(session_id):
+    """Seek to a specific position"""
+    position = request.json.get("position", 0)
+    
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        data = json.load(f)
+    
+    sessions = data.get("data", [])
+    session = next((s for s in sessions if s.get("session_id") == session_id), None)
+    
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    session["position"] = position
+    
+    with open(CASTING_SESSIONS_FILE, "w") as f:
+        json.dump({"data": sessions}, f, indent=2)
+    
+    return jsonify({"success": True, "position": position})
+
+@casting_integration_bp.route("/api/casting/sessions/<session_id>/volume", methods=["POST"])
+def set_volume(session_id):
+    """Set volume level"""
+    volume = request.json.get("volume", 1.0)
+    
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        data = json.load(f)
+    
+    sessions = data.get("data", [])
+    session = next((s for s in sessions if s.get("session_id") == session_id), None)
+    
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    session["volume"] = max(0.0, min(1.0, volume))
+    
+    with open(CASTING_SESSIONS_FILE, "w") as f:
+        json.dump({"data": sessions}, f, indent=2)
+    
+    return jsonify({"success": True, "volume": session["volume"]})
+
+@casting_integration_bp.route("/api/casting/sessions/<session_id>/subtitles", methods=["POST"])
+def toggle_subtitles(session_id):
+    """Toggle subtitles on/off"""
+    enabled = request.json.get("enabled", False)
+    
+    with open(CASTING_SESSIONS_FILE, "r") as f:
+        data = json.load(f)
+    
+    sessions = data.get("data", [])
+    session = next((s for s in sessions if s.get("session_id") == session_id), None)
+    
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    session["subtitles_enabled"] = enabled
+    
+    with open(CASTING_SESSIONS_FILE, "w") as f:
+        json.dump({"data": sessions}, f, indent=2)
+    
+    return jsonify({"success": True, "subtitles_enabled": enabled})
+
+# ===== MULTI-DEVICE CASTING =====
+
+@casting_integration_bp.route("/api/casting/group", methods=["POST"])
+def create_device_group():
+    """Create a group of devices for synchronized playback"""
+    data = request.json
+    
+    group = {
+        "group_id": hashlib.md5(f"{datetime.now()}".encode()).hexdigest(),
+        "name": data.get("name", "Unnamed Group"),
+        "device_ids": data.get("device_ids", []),
+        "master_device_id": data.get("master_device_id"),
+        "created_at": datetime.now().isoformat()
+    }
+    
+    return jsonify({
+        "success": True,
+        "group": group
+    })
+
+@casting_integration_bp.route("/api/casting/group/<group_id>/cast", methods=["POST"])
+def cast_to_group(group_id):
+    """Cast media to all devices in a group"""
+    data = request.json
+    media_url = data.get("media_url")
+    
+    # Simulate casting to multiple devices
+    return jsonify({
+        "success": True,
+        "group_id": group_id,
+        "message": "Casting to all devices in group"
+    })

@@ -1,0 +1,489 @@
+from flask import Blueprint, jsonify, request
+import os, json, re
+from datetime import datetime
+
+renamer_advanced_bp = Blueprint('renamer_advanced', __name__)
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+STO = os.path.join(ROOT, 'storage')
+RENAMER_CONFIG = os.path.join(STO, 'config', 'renamer_patterns.json')
+
+# Illegal characters for different platforms
+ILLEGAL_CHARS = {
+    'windows': r'[<>:"/\\|?*]',
+    'unix': r'/',
+    'macos': r'[:/]',
+    'universal': r'[<>:"/\\|?*]'
+}
+
+def _load_renamer_config():
+    """Load renamer configuration"""
+    try:
+        with open(RENAMER_CONFIG, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {
+            'patterns': {
+                'movie': '{title} ({year}) [{quality}] [{codec}] [{audio}]{hdr}{edition}',
+                'tv': '{series} - S{season}E{episode} - {title} [{quality}] [{codec}]',
+                'anime': '{series} - {episode} - {title} [{quality}] [{group}]'
+            },
+            'replacement_mode': 'universal',
+            'replacement_char': '_',
+            'case_mode': 'preserve',
+            'max_length': 255,
+            'strip_trailing_dots': True
+        }
+
+def _save_renamer_config(data):
+    """Save renamer configuration"""
+    os.makedirs(os.path.dirname(RENAMER_CONFIG), exist_ok=True)
+    tmp = RENAMER_CONFIG + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, RENAMER_CONFIG)
+
+def _extract_tokens_from_metadata(metadata):
+    """
+    Extract all available tokens from metadata
+    Returns dict with all possible tokens
+    """
+    tokens = {}
+    
+    # Basic tokens
+    tokens['title'] = metadata.get('title', 'Unknown')
+    tokens['year'] = metadata.get('year', '')
+    tokens['series'] = metadata.get('series', metadata.get('title', 'Unknown'))
+    tokens['season'] = str(metadata.get('season', '')).zfill(2) if metadata.get('season') else ''
+    tokens['episode'] = str(metadata.get('episode', '')).zfill(2) if metadata.get('episode') else ''
+    
+    # Quality tokens
+    tokens['quality'] = metadata.get('resolution', '1080p')
+    tokens['resolution'] = metadata.get('resolution', '1080p')
+    tokens['source'] = metadata.get('source', 'BluRay')
+    
+    # Codec tokens
+    tokens['codec'] = metadata.get('video_codec', 'x264')
+    tokens['vcodec'] = metadata.get('video_codec', 'x264')
+    tokens['acodec'] = metadata.get('audio_codec', 'AAC')
+    
+    # Audio tokens
+    tokens['audio'] = metadata.get('audio_codec', 'AAC')
+    tokens['audio.channels'] = metadata.get('audio_channels', '2.0')
+    tokens['audio.language'] = metadata.get('audio_language', 'en')
+    
+    # HDR tokens
+    hdr_info = metadata.get('hdr', '')
+    tokens['hdr'] = f' [{hdr_info}]' if hdr_info else ''
+    tokens['hdr.type'] = hdr_info if hdr_info else ''
+    tokens['dv'] = ' [DV]' if 'DV' in hdr_info or 'Dolby Vision' in hdr_info else ''
+    tokens['hdr10'] = ' [HDR10]' if 'HDR10' in hdr_info and 'HDR10+' not in hdr_info else ''
+    tokens['hdr10plus'] = ' [HDR10+]' if 'HDR10+' in hdr_info else ''
+    
+    # Edition tokens
+    edition = metadata.get('edition', '')
+    tokens['edition'] = f' [{edition}]' if edition else ''
+    tokens['cut'] = edition if edition else ''
+    
+    # Language tokens
+    tokens['language'] = metadata.get('language', 'en')
+    tokens['languages'] = metadata.get('languages', ['en'])
+    
+    # ID tokens
+    tokens['id.imdb'] = metadata.get('imdb_id', '')
+    tokens['id.tmdb'] = metadata.get('tmdb_id', '')
+    tokens['id.tvdb'] = metadata.get('tvdb_id', '')
+    tokens['imdb'] = metadata.get('imdb_id', '')
+    tokens['tmdb'] = metadata.get('tmdb_id', '')
+    tokens['tvdb'] = metadata.get('tvdb_id', '')
+    
+    # Group tokens
+    tokens['group'] = metadata.get('release_group', '')
+    tokens['scene'] = metadata.get('release_group', '')
+    
+    # File tokens
+    tokens['ext'] = metadata.get('extension', 'mkv')
+    tokens['fn'] = metadata.get('original_filename', '')
+    
+    # Date tokens
+    tokens['date'] = metadata.get('release_date', '')
+    tokens['airdate'] = metadata.get('air_date', '')
+    
+    # Additional tokens
+    tokens['tags'] = ' '.join(f'[{tag}]' for tag in metadata.get('tags', []))
+    tokens['bitrate'] = metadata.get('bitrate', '')
+    tokens['size'] = metadata.get('file_size', '')
+    
+    return tokens
+
+def _apply_pattern(pattern, tokens):
+    """
+    Apply a naming pattern with tokens
+    Returns the formatted filename
+    """
+    result = pattern
+    
+    # Replace all tokens
+    for token_name, token_value in tokens.items():
+        # Handle both {token} and {token.subtoken} formats
+        result = result.replace(f'{{{token_name}}}', str(token_value))
+    
+    # Clean up empty brackets
+    result = re.sub(r'\[\s*\]', '', result)
+    result = re.sub(r'\(\s*\)', '', result)
+    
+    # Clean up multiple spaces
+    result = re.sub(r'\s+', ' ', result)
+    
+    # Clean up spaces before punctuation
+    result = re.sub(r'\s+([.,;:])', r'\1', result)
+    
+    return result.strip()
+
+def _sanitize_filename(filename, mode='universal', replacement_char='_', max_length=255, strip_trailing_dots=True):
+    """
+    Sanitize filename by removing illegal characters
+    """
+    # Get illegal character pattern
+    pattern = ILLEGAL_CHARS.get(mode, ILLEGAL_CHARS['universal'])
+    
+    # Replace illegal characters
+    sanitized = re.sub(pattern, replacement_char, filename)
+    
+    # Strip trailing dots (Windows doesn't allow them)
+    if strip_trailing_dots:
+        sanitized = sanitized.rstrip('.')
+    
+    # Truncate to max length
+    if len(sanitized) > max_length:
+        name, ext = os.path.splitext(sanitized)
+        max_name_length = max_length - len(ext)
+        sanitized = name[:max_name_length] + ext
+    
+    return sanitized
+
+def _validate_pattern(pattern):
+    """
+    Validate a naming pattern
+    Returns dict with: valid, errors, warnings, available_tokens
+    """
+    errors = []
+    warnings = []
+    
+    # Extract tokens from pattern
+    tokens_in_pattern = re.findall(r'\{([^}]+)\}', pattern)
+    
+    # Check for unknown tokens
+    known_tokens = [
+        'title', 'year', 'series', 'season', 'episode', 'quality', 'resolution', 'source',
+        'codec', 'vcodec', 'acodec', 'audio', 'audio.channels', 'audio.language',
+        'hdr', 'hdr.type', 'dv', 'hdr10', 'hdr10plus', 'edition', 'cut',
+        'language', 'languages', 'id.imdb', 'id.tmdb', 'id.tvdb', 'imdb', 'tmdb', 'tvdb',
+        'group', 'scene', 'ext', 'fn', 'date', 'airdate', 'tags', 'bitrate', 'size'
+    ]
+    
+    for token in tokens_in_pattern:
+        if token not in known_tokens:
+            warnings.append(f'Unknown token: {{{token}}}')
+    
+    # Check for unmatched brackets
+    if pattern.count('{') != pattern.count('}'):
+        errors.append('Unmatched curly brackets')
+    
+    if pattern.count('[') != pattern.count(']'):
+        errors.append('Unmatched square brackets')
+    
+    if pattern.count('(') != pattern.count(')'):
+        errors.append('Unmatched parentheses')
+    
+    # Check for illegal characters in pattern (outside of tokens)
+    # Remove tokens temporarily
+    pattern_without_tokens = re.sub(r'\{[^}]+\}', '', pattern)
+    if re.search(r'[<>:"|?*]', pattern_without_tokens):
+        warnings.append('Pattern contains characters that may be illegal on some filesystems')
+    
+    return {
+        'valid': len(errors) == 0,
+        'errors': errors,
+        'warnings': warnings,
+        'tokens_used': tokens_in_pattern,
+        'available_tokens': known_tokens
+    }
+
+@renamer_advanced_bp.route('/api/renamer/config', methods=['GET'])
+def get_config():
+    try:
+        """Get renamer configuration"""
+        config = _load_renamer_config()
+        return jsonify({
+        'ok': True,
+        'config': config
+        })
+
+        # DUPLICATE REMOVED: @renamer_advanced_bp.route('/api/renamer/config', methods=['POST'])
+        # DUPLICATE REMOVED: def set_config():
+        """
+        Update renamer configuration
+        Body: {
+        "patterns": {...},
+        "replacement_mode": "universal",
+        "replacement_char": "_",
+        "case_mode": "preserve",
+        "max_length": 255,
+        "strip_trailing_dots": true
+        }
+        """
+        req_data = request.get_json(silent=True) or {}
+
+        config = _load_renamer_config()
+        config.update(req_data)
+        _save_renamer_config(config)
+
+        return jsonify({
+        'ok': True,
+        'message': 'Configuration updated',
+        'config': config
+        })
+
+        @renamer_advanced_bp.route('/api/renamer/validate-pattern', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def validate_pattern():
+    try:
+        """
+        Validate a naming pattern
+        Body: {
+        "pattern": "{title} ({year}) [{quality}]"
+        }
+        """
+        req_data = request.get_json(silent=True) or {}
+        pattern = req_data.get('pattern', '')
+
+        if not pattern:
+        return jsonify({'ok': False, 'error': 'pattern required'}), 400
+
+        validation = _validate_pattern(pattern)
+
+        return jsonify({
+        'ok': True,
+        'validation': validation
+        })
+
+        @renamer_advanced_bp.route('/api/renamer/preview', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def preview_rename():
+    try:
+        """
+        Preview rename with live diff
+        Body: {
+        "original_filename": "Movie.Name.2024.1080p.BluRay.x264-Group.mkv",
+        "metadata": {
+        "title": "Movie Name",
+        "year": 2024,
+        "resolution": "1080p",
+        "source": "BluRay",
+        "video_codec": "x264",
+        "audio_codec": "AAC",
+        "hdr": "HDR10",
+        "edition": "Extended",
+        "release_group": "Group"
+        },
+        "pattern": "{title} ({year}) [{quality}] [{codec}] [{audio}]{hdr}{edition}",
+        "sanitize": true
+        }
+        """
+        req_data = request.get_json(silent=True) or {}
+        original_filename = req_data.get('original_filename', '')
+        metadata = req_data.get('metadata', {})
+        pattern = req_data.get('pattern', '')
+        sanitize = req_data.get('sanitize', True)
+
+        if not pattern:
+        return jsonify({'ok': False, 'error': 'pattern required'}), 400
+
+        # Extract tokens from metadata
+        tokens = _extract_tokens_from_metadata(metadata)
+
+        # Apply pattern
+        new_filename = _apply_pattern(pattern, tokens)
+
+        # Add extension if not in pattern
+        if not new_filename.endswith(tokens.get('ext', 'mkv')):
+        new_filename += f".{tokens.get('ext', 'mkv')}"
+
+        # Sanitize if requested
+        config = _load_renamer_config()
+        if sanitize:
+        new_filename = _sanitize_filename(
+        new_filename,
+        mode=config.get('replacement_mode', 'universal'),
+        replacement_char=config.get('replacement_char', '_'),
+        max_length=config.get('max_length', 255),
+        strip_trailing_dots=config.get('strip_trailing_dots', True)
+        )
+
+        # Generate diff
+        diff = {
+        'original': original_filename,
+        'new': new_filename,
+        'changed': original_filename != new_filename,
+        'length_diff': len(new_filename) - len(original_filename)
+        }
+
+        return jsonify({
+        'ok': True,
+        'preview': diff,
+        'tokens_used': tokens
+        })
+
+        @renamer_advanced_bp.route('/api/renamer/batch-preview', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def batch_preview():
+    try:
+        """
+        Preview rename for multiple files
+        Body: {
+        "files": [
+        {
+        "original_filename": "...",
+        "metadata": {...}
+        }
+        ],
+        "pattern": "{title} ({year})",
+        "sanitize": true
+        }
+        """
+        req_data = request.get_json(silent=True) or {}
+        files = req_data.get('files', [])
+        pattern = req_data.get('pattern', '')
+        sanitize = req_data.get('sanitize', True)
+
+        if not pattern:
+        return jsonify({'ok': False, 'error': 'pattern required'}), 400
+
+        if not files:
+        return jsonify({'ok': False, 'error': 'files array required'}), 400
+
+        config = _load_renamer_config()
+        previews = []
+
+        for file_data in files:
+        original_filename = file_data.get('original_filename', '')
+        metadata = file_data.get('metadata', {})
+
+        # Extract tokens
+        tokens = _extract_tokens_from_metadata(metadata)
+
+        # Apply pattern
+        new_filename = _apply_pattern(pattern, tokens)
+
+        # Add extension
+        if not new_filename.endswith(tokens.get('ext', 'mkv')):
+        new_filename += f".{tokens.get('ext', 'mkv')}"
+
+        # Sanitize
+        if sanitize:
+        new_filename = _sanitize_filename(
+        new_filename,
+        mode=config.get('replacement_mode', 'universal'),
+        replacement_char=config.get('replacement_char', '_'),
+        max_length=config.get('max_length', 255),
+        strip_trailing_dots=config.get('strip_trailing_dots', True)
+        )
+
+        previews.append({
+        'original': original_filename,
+        'new': new_filename,
+        'changed': original_filename != new_filename
+        })
+
+        return jsonify({
+        'ok': True,
+        'total_files': len(files),
+        'changed_count': sum(1 for p in previews if p['changed']),
+        'previews': previews
+        })
+
+        @renamer_advanced_bp.route('/api/renamer/tokens', methods=['GET'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_available_tokens():
+    try:
+        """Get list of all available tokens with descriptions"""
+        tokens_info = {
+        'basic': {
+        'title': 'Movie or episode title',
+        'year': 'Release year',
+        'series': 'TV series name',
+        'season': 'Season number (zero-padded)',
+        'episode': 'Episode number (zero-padded)'
+        },
+        'quality': {
+        'quality': 'Resolution (e.g., 1080p)',
+        'resolution': 'Same as quality',
+        'source': 'Source type (e.g., BluRay, WEB-DL)'
+        },
+        'codec': {
+        'codec': 'Video codec (e.g., x264, x265)',
+        'vcodec': 'Video codec',
+        'acodec': 'Audio codec (e.g., AAC, DTS)'
+        },
+        'audio': {
+        'audio': 'Audio codec',
+        'audio.channels': 'Audio channels (e.g., 5.1, 7.1)',
+        'audio.language': 'Audio language code'
+        },
+        'hdr': {
+        'hdr': 'HDR info with brackets if present',
+        'hdr.type': 'HDR type without brackets',
+        'dv': 'Dolby Vision marker',
+        'hdr10': 'HDR10 marker',
+        'hdr10plus': 'HDR10+ marker'
+        },
+        'edition': {
+        'edition': 'Edition info with brackets',
+        'cut': 'Edition without brackets'
+        },
+        'language': {
+        'language': 'Primary language code',
+        'languages': 'List of language codes'
+        },
+        'ids': {
+        'id.imdb': 'IMDb ID',
+        'id.tmdb': 'TMDb ID',
+        'id.tvdb': 'TVDb ID',
+        'imdb': 'IMDb ID (short form)',
+        'tmdb': 'TMDb ID (short form)',
+        'tvdb': 'TVDb ID (short form)'
+        },
+        'group': {
+        'group': 'Release group name',
+        'scene': 'Scene group name'
+        },
+        'file': {
+        'ext': 'File extension',
+        'fn': 'Original filename'
+        },
+        'date': {
+        'date': 'Release date',
+        'airdate': 'Air date'
+        },
+        'other': {
+        'tags': 'Additional tags',
+        'bitrate': 'Video bitrate',
+        'size': 'File size'
+        }
+        }
+
+        return jsonify({
+        'ok': True,
+        'tokens': tokens_info
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

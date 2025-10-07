@@ -1,0 +1,87 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Bundles</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/auth.js"></script>
+<style>
+  body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  .card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}
+  .row{display:flex;gap:8px;align-items:center;margin:6px 0}
+  textarea{width:100%;min-height:120px;background:#0b1220;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:8px}
+  .pkg{padding:8px;border:1px dashed #334155;border-radius:8px;margin:6px 0}
+  .items{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:12px;color:#94a3b8;margin-top:6px;white-space:pre-wrap}
+</style><script src="assets/row_progress.js"></script>
+</head><body>
+<div class="wrap">
+  <a href="home.html">&larr; Home</a>
+  <h1>Bundles</h1>
+  <div id="gate" class="card">Checking feature flag…</div>
+  <div id="ui" style="display:none">
+    <div class="card">
+      <h3>Existing Packages</h3>
+      <div id="list"></div>
+      <button onclick="save()">Save Changes</button> <span id="msg"></span>
+    </div>
+    <div class="card">
+      <h3>Suggest Groups from File List</h3>
+      <p>Paste filenames/paths (one per line). We group by folder + filename prefix (before first dot or ' - ').</p>
+      <textarea id="src"></textarea>
+      <button onclick="suggest()">Suggest Groups</button>
+      <div id="sugs"></div>
+    </div>
+  </div>
+</div>
+<script>
+async function gate(){
+  const f=await (await fetch('/api/flags')).json();
+  if(!f.enable_package_grouping){ 
+    document.getElementById('gate').textContent='Package Grouping is disabled by feature flag. Enable it in Settings → Features.';
+    return;
+  }
+  document.getElementById('gate').style.display='none'; document.getElementById('ui').style.display='block';
+  load();
+}
+let PKG=null;
+async function load(){
+  const j=await (await fetch('/api/packages')).json(); PKG=j;
+  const list=document.getElementById('list'); list.innerHTML='';
+  (j.packages||[]).forEach((p,idx)=>{
+    const div=document.createElement('div'); div.className='pkg';
+    div.innerHTML=`<div class=row><b>Name</b><input value="${p.name||''}" data-i="${idx}" data-k="name"></div>
+    <div class=row><b>Save path</b><input value="${p.save_path||''}" data-i="${idx}" data-k="save_path"></div>
+    <div class=row><b>Tags</b><input value="${(p.tags||[]).join(', ')}" data-i="${idx}" data-k="tags"></div>
+    <div class=items>${(p.items||[]).join('\n')}</div>`;
+    list.appendChild(div);
+  });
+}
+async function save(){
+  // read edits
+  const map={};
+  document.querySelectorAll('[data-i]').forEach(n=>{
+    const i=n.getAttribute('data-i'); const k=n.getAttribute('data-k'); const v=n.value;
+    map[i]=map[i]||{}; map[i][k]=v;
+  });
+  (PKG.packages||[]).forEach((p,i)=>{
+    if(map[i]){
+      p.name=map[i].name||p.name;
+      p.save_path=map[i].save_path||p.save_path;
+      p.tags=(map[i].tags||'').split(',').map(s=>s.trim()).filter(Boolean);
+    }
+  });
+  const r=await fetch('/api/packages/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(PKG)});
+  document.getElementById('msg').textContent = r.ok ? 'Saved' : 'Error';
+}
+async function suggest(){
+  const lines=(document.getElementById('src').value||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const r=await fetch('/api/packages/group_suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:lines})});
+  const j=await r.json(); const el=document.getElementById('sugs'); el.innerHTML='';
+  (j.suggestions||[]).forEach(s=>{
+    const div=document.createElement('div'); div.className='pkg';
+    div.innerHTML=`<div><b>${s.name}</b> — ${s.save_path}</div><div class=items>${(s.items||[]).join('\n')}</div>`;
+    el.appendChild(div);
+  });
+}
+document.addEventListener('DOMContentLoaded', gate);
+</script>
+</body></html>

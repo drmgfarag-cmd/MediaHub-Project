@@ -1,0 +1,1 @@
+Place 7-Zip binary here (7z / 7z.exe). Path will be detected from Tools → Dependencies.

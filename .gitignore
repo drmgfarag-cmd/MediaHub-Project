@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-store/
+package-lock.json
+yarn.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+.directory
+
+# MediaHub specific
+storage/*.db
+storage/*.json
+storage/logs/
+logs/*.log
+data/*.db
+downloads/
+temp/
+*.zip
+test_*.txt
+test_*.json
+api_coverage_*.txt
+api_coverage_*.json
+comprehensive_test_*.txt
+comprehensive_test_*.json
+
+# Keep structure
+!storage/.gitkeep
+!logs/.gitkeep
+!data/.gitkeep
+!downloads/.gitkeep
+
+# Environment
+.env
+.env.local
+config/local_*.json

@@ -1,0 +1,21 @@
+{
+  "filters": {
+    "include": [
+      "2160p",
+      "1080p",
+      "remux"
+    ],
+    "exclude": [
+      "sample",
+      "trailer"
+    ],
+    "allow_ext": [
+      "mkv",
+      "mp4"
+    ],
+    "deny_ext": [
+      "exe",
+      "bat"
+    ]
+  }
+}

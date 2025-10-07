@@ -1,0 +1,10 @@
+{
+  "title": "MediaHub Books",
+  "author": "MediaHub",
+  "calibre_server": {
+    "enabled": false,
+    "url": "http://localhost:8080",
+    "fts_passthrough": false
+  },
+  "items_per_page": 50
+}

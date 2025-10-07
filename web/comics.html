@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comics Library - MediaHub</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #fff; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header h1 { font-size: 32px; font-weight: 700; }
+        .view-toggle { display: flex; gap: 5px; background: #1a1a1a; padding: 4px; border-radius: 8px; }
+        .view-btn { padding: 8px 16px; background: transparent; border: none; color: #999; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+        .view-btn.active { background: #e50914; color: #fff; }
+        .filters { display: flex; gap: 15px; margin-bottom: 25px; align-items: center; }
+        .filter-select { padding: 10px 15px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 14px; }
+        .search-box { flex: 1; max-width: 400px; padding: 10px 15px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #fff; }
+        .comics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
+        .comic-item { background: #1a1a1a; border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.2s; position: relative; }
+        .comic-item:hover { transform: scale(1.05); }
+        .cover { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #333; }
+        .info { padding: 12px; }
+        .title { font-size: 14px; font-weight: 600; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .meta { font-size: 12px; color: #999; margin-bottom: 5px; }
+        .progress-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .completed-badge { background: #46d369; }
+        .reading-badge { background: #e50914; }
+        .series-view { display: flex; flex-direction: column; gap: 20px; }
+        .series-section { background: #1a1a1a; border-radius: 12px; padding: 20px; }
+        .series-header { font-size: 20px; font-weight: 700; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .series-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+        .empty-state svg { width: 80px; height: 80px; margin-bottom: 20px; opacity: 0.3; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Comics Library</h1>
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="switchView('grid')">Grid</button>
+                <button class="view-btn" onclick="switchView('series')">By Series</button>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <input type="text" class="search-box" placeholder="Search comics..." oninput="searchComics(this.value)">
+            <select class="filter-select" onchange="filterComics(this.value)">
+                <option value="all">All Comics</option>
+                <option value="reading">Currently Reading</option>
+                <option value="completed">Completed</option>
+                <option value="unread">Unread</option>
+            </select>
+            <select class="filter-select" id="publisher-filter" onchange="filterByPublisher(this.value)">
+                <option value="all">All Publishers</option>
+            </select>
+        </div>
+        
+        <div id="comics-container" class="comics-grid">
+            <div class="loading">Loading comics library...</div>
+        </div>
+        
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            <h2>No Comics Found</h2>
+            <p>Add comics to your library to start reading</p>
+        </div>
+    </div>
+    
+    <script>
+        let allComics = [];
+        let currentView = 'grid';
+        let currentFilter = 'all';
+        let searchQuery = '';
+        
+        async function loadComics() {
+            try {
+                const response = await fetch('/api/comics');
+                const data = await response.json();
+                allComics = data.comics || [];
+                populatePublishers();
+                renderComics();
+            } catch (error) {
+                console.error('Error loading comics:', error);
+                document.getElementById('comics-container').innerHTML = '<div class="loading">Error loading comics</div>';
+            }
+        }
+        
+        function populatePublishers() {
+            const publishers = [...new Set(allComics.map(c => c.publisher).filter(Boolean))];
+            const select = document.getElementById('publisher-filter');
+            publishers.forEach(pub => {
+                const option = document.createElement('option');
+                option.value = pub;
+                option.textContent = pub;
+                select.appendChild(option);
+            });
+        }
+        
+        function renderComics() {
+            const container = document.getElementById('comics-container');
+            const emptyState = document.getElementById('empty-state');
+            
+            let filtered = allComics;
+            
+            // Apply filters
+            if (currentFilter === 'reading') {
+                filtered = filtered.filter(c => c.current_page > 1 && !c.completed);
+            } else if (currentFilter === 'completed') {
+                filtered = filtered.filter(c => c.completed);
+            } else if (currentFilter === 'unread') {
+                filtered = filtered.filter(c => c.current_page === 1);
+            }
+            
+            // Apply search
+            if (searchQuery) {
+                filtered = filtered.filter(c => 
+                    c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (c.series && c.series.toLowerCase().includes(searchQuery.toLowerCase()))
+                );
+            }
+            
+            if (filtered.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            container.style.display = currentView === 'grid' ? 'grid' : 'flex';
+            emptyState.style.display = 'none';
+            
+            if (currentView === 'grid') {
+                renderGridView(filtered);
+            } else {
+                renderSeriesView(filtered);
+            }
+        }
+        
+        function renderGridView(comics) {
+            const container = document.getElementById('comics-container');
+            container.className = 'comics-grid';
+            
+            container.innerHTML = comics.map(comic => {
+                const progressPercent = comic.page_count > 0 ? (comic.current_page / comic.page_count) * 100 : 0;
+                const badge = comic.completed ? 'completed-badge">✓ Done' : 
+                             progressPercent > 0 ? 'reading-badge">' + Math.round(progressPercent) + '%' : '';
+                
+                return `
+                    <div class="comic-item" onclick="readComic(${comic.id})">
+                        ${badge ? `<div class="progress-badge ${badge}</div>` : ''}
+                        <img class="cover" src="${comic.cover_url || '/static/img/comic-placeholder.jpg'}" alt="${comic.title}">
+                        <div class="info">
+                            <div class="title">${comic.title}</div>
+                            <div class="meta">
+                                ${comic.series ? comic.series + (comic.issue_number ? ' #' + comic.issue_number : '') : ''}
+                            </div>
+                            <div class="meta">${comic.publisher || 'Unknown'} ${comic.year ? '• ' + comic.year : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderSeriesView(comics) {
+            const container = document.getElementById('comics-container');
+            container.className = 'series-view';
+            
+            // Group by series
+            const bySeries = {};
+            comics.forEach(comic => {
+                const series = comic.series || 'Standalone';
+                if (!bySeries[series]) bySeries[series] = [];
+                bySeries[series].push(comic);
+            });
+            
+            // Sort each series by issue number
+            Object.values(bySeries).forEach(series => {
+                series.sort((a, b) => {
+                    const numA = parseInt(a.issue_number) || 0;
+                    const numB = parseInt(b.issue_number) || 0;
+                    return numA - numB;
+                });
+            });
+            
+            container.innerHTML = Object.entries(bySeries).map(([series, comics]) => `
+                <div class="series-section">
+                    <div class="series-header">
+                        <span>${series}</span>
+                        <span style="color: #666; font-size: 14px;">${comics.length} issue${comics.length > 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="series-grid">
+                        ${comics.map(comic => `
+                            <div class="comic-item" onclick="readComic(${comic.id})">
+                                <img class="cover" src="${comic.cover_url || '/static/img/comic-placeholder.jpg'}" alt="${comic.title}">
+                                <div class="info">
+                                    <div class="title">#${comic.issue_number || '?'}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderComics();
+        }
+        
+        function filterComics(filter) {
+            currentFilter = filter;
+            renderComics();
+        }
+        
+        function filterByPublisher(publisher) {
+            if (publisher === 'all') {
+                allComics = allComics;
+            } else {
+                allComics = allComics.filter(c => c.publisher === publisher);
+            }
+            renderComics();
+        }
+        
+        function searchComics(query) {
+            searchQuery = query;
+            renderComics();
+        }
+        
+        function readComic(comicId) {
+            window.location.href = `/reader/comic?id=${comicId}`;
+        }
+        
+        // Load on page load
+        loadComics();
+    </script>
+</body>
+</html>

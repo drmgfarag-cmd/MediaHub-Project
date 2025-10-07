@@ -1,0 +1,15 @@
+<html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Insights</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+<h2>Local Insights (privacy-safe)</h2>
+<button onclick="loadInsights()">Refresh</button> <button onclick="exportInsights()">Export</button>
+<pre id="out"></pre>
+<script>
+async function loadInsights(){
+  const j = await (await fetch('/api/insights/snapshot')).json();
+  document.getElementById('out').textContent = JSON.stringify(j,null,2);
+}
+async function exportInsights(){
+  const j = await (await fetch('/api/insights/export')).json();
+  UI.toast('Saved: '+j.path);
+}
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

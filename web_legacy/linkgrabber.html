@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>LinkGrabber</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/auth.js">
+async function afterAdd(name,id){
+  const payload={name, id, referrer: lg_ref.value, hoster: lg_hoster.value, save_path: lg_path.value, description: lg_desc.value};
+  try{ await fetch('/api/queue/meta/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }catch(e){}
+}
+</script>
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}</style>
+</head><body>
+<div class="wrap">
+  <a href="downloads.html">&larr; Downloads</a>
+  <h1>LinkGrabber</h1>
+  <div class="card">
+    <h3>Paste URLs or magnets</h3>
+    <textarea id="txt" style="width:100%;height:160px" placeholder="Paste here…"></textarea>
+    <button onclick="parse()">Parse</button>
+  </div>
+  <div class="card"><h3>Detected</h3><div id="out"></div></div>
+</div>
+<script>
+function parse(){
+  const t=(document.getElementById('txt').value||''); const urls=[...t.matchAll(/(https?:\/\/\S+|magnet:\?xt=\S+)/gi)].map(m=>m[1]);
+  const out=document.getElementById('out'); out.innerHTML='';
+  urls.forEach(u=>{ const row=document.createElement('div'); row.style='display:flex;gap:8px;align-items:center;margin:4px 0'; row.innerHTML=`<code style='flex:1;overflow:hidden;text-overflow:ellipsis'>${u}</code>`; const b=document.createElement('button'); b.textContent='Send to Downloader'; b.onclick=async()=>{ await fetch('/api/downloader/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:u})}); b.textContent='Added'; }; row.appendChild(b); out.appendChild(row); });
+}
+
+async function afterAdd(name,id){
+  const payload={name, id, referrer: lg_ref.value, hoster: lg_hoster.value, save_path: lg_path.value, description: lg_desc.value};
+  try{ await fetch('/api/queue/meta/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }catch(e){}
+}
+</script>
+</body></html>

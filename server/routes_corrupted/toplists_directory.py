@@ -1,0 +1,88 @@
+from flask import Blueprint, jsonify, request
+import os, json, time, threading
+from connectors.lists_providers import fetch_tmdb, fetch_trakt
+
+td_bp = Blueprint('toplists_directory', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..')); STO=os.path.join(ROOT,'storage')
+FILE=os.path.join(STO,'top_lists_directory.json'); CFG=os.path.join(STO,'config.json')
+
+def _load(): 
+    try: return json.load(open(FILE,'r',encoding='utf-8'))
+    except: 
+        return {"sources":[
+            {"id":"imdb_top250_movies","name":"IMDb Top 250 (Movies)","type":"imdb","enabled":True,"interval_h":24},
+            {"id":"imdb_top250_tv","name":"IMDb Top 250 (TV)","type":"imdb","enabled":True,"interval_h":24},
+            {"id":"tmdb_top_rated_movies","name":"TMDb Top Rated (Movies)","type":"tmdb","enabled":True,"interval_h":24,"path":"movie_top_rated"},
+            {"id":"tmdb_popular_tv","name":"TMDb Popular (TV)","type":"tmdb","enabled":True,"interval_h":12,"path":"tv_popular"},
+            {"id":"trakt_trending_tv","name":"Trakt Trending (TV)","type":"trakt","enabled":False,"interval_h":24,"path":"/shows/trending"}
+        ], "last_fetch":{}, "cache":{}}
+
+def _save(d): open(FILE+'.tmp','w',encoding='utf-8').write(json.dumps(d,indent=2)); os.replace(FILE+'.tmp',FILE)
+def _now(): return int(time.time())
+def _touch(d,sid): d.setdefault('last_fetch',{})[sid]=_now()
+
+def _run_fetch(d, s):
+    t=s.get('type'); sid=s.get('id'); path=s.get('path','')
+    cfg=json.load(open(CFG,'r',encoding='utf-8')) if os.path.exists(CFG) else {}
+    try:
+        if t=='tmdb' and cfg.get('tmdb',{}).get('api_key'):
+            items = fetch_tmdb(cfg['tmdb']['api_key'], list_type=path or 'movie_top_rated')
+        elif t=='trakt' and cfg.get('trakt',{}).get('client_id'):
+            items = fetch_trakt(cfg['trakt']['client_id'], path=s.get('path','/movies/trending'))
+        else:
+            items = []
+    except Exception:
+        items = []
+    d.setdefault('cache',{})[sid]=items
+
+@td_bp.route('/api/toplists/dir')
+def dir():
+    try:
+        return jsonify(_load())
+
+        @td_bp.route('/api/toplists/set_config',methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def cfg():
+    try:
+        js = request.get_json(silent=True) or {}
+        d = _load()
+        if 'sources' in js and isinstance(js['sources'], list):
+        d['sources'] = js['sources']
+        _save(d)
+        return jsonify({'ok': True})
+
+
+        @td_bp.route('/api/toplists/refresh',methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def ref():
+    try:
+        js=request.get_json(silent=True) or {}; d=_load(); sid=js.get('id'); 
+        if not sid: return jsonify({'error':'id required'}),400
+        ss=[s for s in d.get('sources',[]) if s.get('id')==sid]
+        if not ss: return jsonify({'error':'not found'}),404
+        _run_fetch(d, ss[0]); _touch(d, sid); _save(d); 
+        return jsonify({'ok':True, 'count': len(d.get('cache',{}).get(sid,[]))})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def _loop():
+    while True:
+        try:
+            d=_load(); now=_now(); ch=False
+            for s in d.get('sources',[]):
+                sid=s.get('id'); en=bool(s.get('enabled',True)); iv=int(s.get('interval_h',24) or 24); last=int(d.get('last_fetch',{}).get(sid,0))
+                if en and now-last>=iv*3600:
+                    _run_fetch(d, s); _touch(d,sid); ch=True
+            if ch: _save(d)
+        except Exception: pass
+        time.sleep(300)
+_started=False
+@td_bp.record
+def _on_load(setup):
+    global _started
+    if not _started:
+        threading.Thread(target=_loop, daemon=True).start(); _started=True

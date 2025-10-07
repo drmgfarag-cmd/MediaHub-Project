@@ -1,0 +1,13 @@
+<html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Subtitles</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+
+<h2>Subtitles Policy</h2>
+<button onclick="loadP()">Load</button>
+<button onclick="saveP()">Save</button>
+<label><input type="checkbox" id="enb" checked> Enabled</label>
+<script>
+async function loadP(){ const j=await (await fetch('/api/subs/policy')).json(); document.getElementById('enb').checked=!!j.enabled; document.getElementById('langs').value=(j.priority||['ar','en']).join(','); }
+async function saveP(){ const pr=document.getElementById('langs').value.split(',').map(x=>x.trim()).filter(Boolean); const enabled=document.getElementById('enb').checked;
+  await fetch('/api/subs/policy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled, priority:pr})}); alert('Saved'); }
+</script>
+
+<script defer src="../assets/ui_enhance.js'></script></body></html>

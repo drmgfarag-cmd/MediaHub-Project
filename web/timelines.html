@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Collections — Timelines</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.timeline{margin:12px 0}
+.year{font-weight:600;margin:8px 0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:3px;vertical-align:middle}
+.dot.movie{background:#3a86ff} .dot.series{background:#ffbe0b} .dot.book{background:#fb5607} .dot.audio{background:#8338ec} .dot.unknown{background:#94a3b8}
+</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Collections — Timelines</strong> <a class="btn" href="collections_browser.html">Browse</a> <a class="btn" href="collections_import.html">Import</a></div>
+  <div class="card">
+    <div>Collection: <input id="cn" placeholder="Type exact collection name"> <button id="go">Show</button></div>
+    <div id="out" class="timeline">—</div>
+  </div>
+</div>
+<script>
+function render(j){
+  const yrs=j.years||[]; const map=j.items||{};
+  out.innerHTML = yrs.map(y=>{
+    const arr=map[y]||[];
+    return `<div class="year">${y}</div><div>`+arr.map(it=>{
+      const cls=it.type||'unknown'; const title=it.title||''; const pr=it.progress==null? '': (' '+it.progress+'%');
+      return `<span class="dot ${cls}" title="${title}${pr}"></span>`;
+    }).join('')+`</div>`;
+  }).join('') || 'No items';
+}
+go.onclick=async ()=>{
+  const name=cn.value.trim(); if(!name) return;
+  const j=await (await fetch('/api/timeline/by_collection?name='+encodeURIComponent(name))).json();
+  if(j.error){ out.textContent='Collection not found'; } else { render(j); }
+};
+</script>
+</body></html>

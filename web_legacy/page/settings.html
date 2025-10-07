@@ -1,0 +1,352 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Settings</title>
+<link rel="stylesheet" href="/web/ui/common.css"><link rel="stylesheet" href="/web/ui/jd.css"><script src="/web/ui/common.js">
+async function hlLoad(){
+  const j = await (await fetch('/api/downloader/limits')).json();
+  const ph = j.per_host||{};
+  const rows = Object.entries(ph).map(([host,v])=>`<tr><td>${host}</td><td><input value="${v.max_conn||4}" data-host="${host}" data-k="max_conn"></td><td><input value="${v.speed_kbps||0}" data-host="${host}" data-k="speed_kbps"></td><td><button class='iconbtn' onclick='hlDel("${host}")'>✖</button></td></tr>`).join('');
+  document.querySelector('#host_limits tbody').innerHTML = rows;
+}
+async function hlAdd(){
+  const host=hl_host.value.trim(); if(!host) return;
+  const conn=parseInt(hl_conn.value||'4'); const speed=parseInt(hl_speed.value||'0');
+  const j = await (await fetch('/api/downloader/limits')).json();
+  j.per_host = j.per_host||{}; j.per_host[host] = {"max_conn": conn, "speed_kbps": speed};
+  await fetch('/api/downloader/limits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  hl_host.value = hl_conn.value = hl_speed.value = ''; await hlLoad(); UI.toast('Host updated');
+}
+async function hlDel(host){
+  const j = await (await fetch('/api/downloader/limits')).json();
+  if(j.per_host && j.per_host[host]) delete j.per_host[host];
+  await fetch('/api/downloader/limits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  await hlLoad(); UI.toast('Host removed');
+}
+async function hlSave(){
+  const j = await (await fetch('/api/downloader/limits')).json();
+  document.querySelectorAll('#host_limits tbody input').forEach(inp=>{
+    const h = inp.dataset.host, k = inp.dataset.k, v = parseInt(inp.value||'0');
+    if(!j.per_host) j.per_host={}; if(!j.per_host[h]) j.per_host[h]={};
+    j.per_host[h][k]=v;
+  });
+  await fetch('/api/downloader/limits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  UI.toast('Limits saved');
+}
+document.addEventListener('DOMContentLoaded', hlLoad);
+
+async function dlcLoad(){
+  try{
+    const j = await (await fetch('/config/dlc.json')).json();
+    dlc_enabled.checked = !!j.enabled; dlc_endpoint.value = j.endpoint_url||''; dlc_key.value = j.api_key||'';
+  }catch(e){}
+}
+async function dlcSave(){
+  const cfg = {enabled: dlc_enabled.checked, endpoint_url: dlc_endpoint.value.trim(), api_key: dlc_key.value.trim()};
+  try{ await fetch('/config/dlc.json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});}catch(e){}
+  UI.toast('DLC settings saved');
+}
+async function dlcTest(){
+  try{
+    const r = await fetch('/api/containers/decrypt_dlc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:'DLC_SAMPLE'})});
+    UI.toast(r.ok? 'Decrypt call ok' : 'Not configured');
+  }catch(e){ UI.toast('Error'); }
+}
+document.addEventListener('DOMContentLoaded', dlcLoad);
+
+async function engLoad(){ const j = await (await fetch('/api/engine')).json(); document.querySelectorAll('input[name=eng]').forEach(r=> r.checked = (r.value===j.engine)); }
+async function engSave(){ const val = [...document.querySelectorAll('input[name=eng]')].find(r=>r.checked)?.value || 'Native'; await fetch('/api/engine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine: val})}); UI.toast('Engine: '+val); }
+async function jdLoadCfg(){ const j=await (await fetch('/api/jd/config')).json(); jd_install_url.value = j.install_url||''; }
+async function jdSaveCfg(){ await fetch('/api/jd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({install_url: jd_install_url.value.trim()})}); UI.toast('Saved'); }
+async function jdInstall(){ const r=await fetch('/api/jd/sidecar/install',{method:'POST'}); jd_status_out.textContent = await r.text(); }
+async function jdStart(){ const r=await fetch('/api/jd/sidecar/start',{method:'POST'}); jd_status_out.textContent = await r.text(); }
+async function jdStop(){ const r=await fetch('/api/jd/sidecar/stop',{method:'POST'}); jd_status_out.textContent = await r.text(); }
+async function jdStatus(){ const j=await (await fetch('/api/jd/sidecar/status')).json(); jd_status_out.textContent = JSON.stringify(j,null,2); }
+document.addEventListener('DOMContentLoaded', ()=>{ engLoad(); jdLoadCfg(); });
+
+(function jdTabs(){
+  const host=document.getElementById('jd_subtabs'); if(!host) return;
+  host.addEventListener('click',(e)=>{
+    const b=e.target.closest('.tab'); if(!b) return;
+    host.querySelectorAll('.tab').forEach(x=>x.classList.remove('sel')); b.classList.add('sel');
+    const id=b.dataset.jdtab;
+    document.getElementById('panel_jd_overview').style.display = (id==='overview')?'block':'none';
+    document.getElementById('panel_jd_accounts').style.display = (id==='accounts')?'block':'none';
+    document.getElementById('panel_jd_captcha').style.display = (id==='captcha')?'block':'none';
+    document.getElementById('panel_jd_reconnect').style.display = (id==='reconnect')?'block':'none';
+  });
+})();
+async function jdOpenGUI(){ const r=await fetch('/api/jd/gui/open',{method:'POST'}); UI.toast(r.ok?'Opened':'Failed'); }
+async function capSaveTest(){
+  const provider = cap_provider.value.trim(), api_key = cap_key.value.trim(), test_url = cap_url.value.trim();
+  const r = await fetch('/api/jd/captcha/providers/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider, api_key, test_url})});
+  const j = await r.json(); cap_out.textContent = JSON.stringify(j,null,2);
+}
+async function recoSave(){
+  const cmd = reconnect_cmd.value;
+  const j = await (await fetch('/api/jd/config')).json(); j.reconnect_cmd = cmd;
+  await fetch('/api/jd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  UI.toast('Saved');
+}
+async function recoRun(){ const r = await fetch('/api/jd/reconnect/run',{method:'POST'}); reco_out.textContent = await r.text(); }
+
+async function jdRemoteLoad(){
+  const j = await (await fetch('/api/jd/config')).json();
+  const r = j.remote||{};
+  jd_remote_enabled.checked = !!r.enabled; jd_remote_host.value = r.host||'127.0.0.1'; jd_remote_port.value = r.port||10025;
+  const s = await (await fetch('/api/jd/remote/status')).json().catch(()=>({}));
+  jd_remote_stat.textContent = (s.enabled? (s.error? 'Error' : ('HTTP '+(s.http||'-'))) : 'Disabled');
+}
+async function jdRemoteSave(){
+  const j = await (await fetch('/api/jd/config')).json();
+  j.remote = {enabled: jd_remote_enabled.checked, host: jd_remote_host.value.trim()||'127.0.0.1', port: parseInt(jd_remote_port.value||'10025')};
+  await fetch('/api/jd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  UI.toast('RemoteControl saved'); jdRemoteLoad();
+}
+async function myjdSave(){
+  const j = await (await fetch('/api/jd/config')).json();
+  j.myjd = {email: myjd_email.value.trim(), password: myjd_password.value, remember: myjd_remember.checked};
+  await fetch('/api/jd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  UI.toast('MyJDownloader saved');
+}
+function myjdOpenEmbed(){ document.getElementById('myjd_iframe').style.display='block'; }
+document.addEventListener('DOMContentLoaded', ()=>{
+  jdRemoteLoad();
+  const tabs=document.getElementById('jd_subtabs');
+  if(tabs){
+    tabs.addEventListener('click', (e)=>{
+      const b=e.target.closest('.tab'); if(!b) return;
+      const id=b.dataset.jdtab;
+      document.getElementById('panel_jd_myjd').style.display = (id==='myjd')?'block':'none';
+    });
+  }
+});
+</script><script src="/js/command_palette.js"></script></head>
+<body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header><div class="shell">
+<nav class="side">
+  <div class="section-title">Settings</div>
+  <a href="#" onclick="openPanel('general')">General</a>
+  <a href="#" onclick="openPanel('dl')">Download & Connections</a>
+  <a href="#" onclick="openPanel('accounts')">Account Manager</a>
+  <a href="#" onclick="openPanel('captcha')">Captcha</a>
+  <a href="#" onclick="openPanel('reconnect')">Reconnect</a>
+  <a href="#" onclick="openPanel('packagizer')">Packagizer</a>
+  <a href="#" onclick="openPanel('linkgrabber')">Linkgrabber Filter</a>
+  <a href="#" onclick="openPanel('plugins')">Plugins</a><a href="#" onclick="openPanel('jd')">JD Integration</a>
+  <a href="#" onclick="openPanel('scheduler')">Scheduler</a>
+  <a href="#" onclick="openPanel('advanced')">Advanced</a>
+</nav>
+<main class="content"><div class="card">
+  <div id="panel_general" class="panel">
+    <h3>General</h3>
+    <label>Layout:
+      <select id="ui_layout">
+        <option value="Prime">Prime</option>
+        <option value="JD">JD Classic</option>
+      </select>
+    </label>
+    <button class="btn" onclick="saveLayout()">Save</button>
+  </div>
+    <h3>Download & Connections</h3>
+    <a class="iconbtn" href="/page/scheduler.html" target="_blank">Scheduler…</a>
+    <button class="iconbtn" onclick="openLimiter()">Limiter…</button>
+  </div>
+  <div id="panel_accounts" class="panel" style="display:none">
+    <h3>Account Manager</h3>
+    <div id="acc_list"></div>
+  </div>
+  <div id="panel_captcha" class="panel" style="display:none">
+    <h3>Captcha</h3>
+    <button class="iconbtn" onclick="capTest()">Test</button>
+    <pre id="cap_out"></pre>
+  </div>
+  <div id="panel_reconnect" class="panel" style="display:none">
+    <h3>Reconnect</h3>
+    <button class="iconbtn" onclick="reconnectRun()">Run Reconnect</button>
+  </div>
+  <div id="panel_packagizer" class="panel" style="display:none"><h3>Packagizer</h3><iframe src="/page/packagizer.html" style="width:100%;height:60vh;border:0;border-radius:12px;background:#0f1520"></iframe></div>
+  <div id="panel_linkgrabber" class="panel" style="display:none"><h3>Linkgrabber Filter</h3><iframe src="/page/rd_filters.html" style="width:100%;height:60vh;border:0;border-radius:12px;background:#0f1520"></iframe></div>
+  <div id="panel_plugins" class="panel" style="display:none"><h3>Plugins</h3><iframe src="/page/jd_sync.html" style="width:100%;height:60vh;border:0;border-radius:12px;background:#0f1520"></iframe></div>
+  <div id="panel_scheduler" class="panel" style="display:none"><h3>Scheduler</h3><iframe src="/page/scheduler.html" style="width:100%;height:60vh;border:0;border-radius:12px;background:#0f1520"></iframe></div>
+  <div id="panel_advanced" class="panel" style="display:none"><h3>Advanced</h3><pre id="adv_out"></pre></div>
+
+  <div id="panel_dlc" class="panel" style="display:none">
+    <h3>DLC Decrypt</h3>
+    <label><input type="checkbox" id="dlc_enabled"> Enable</label>
+    <div class="inline" style="gap:6px;margin-top:6px">
+      <button class="iconbtn" onclick="dlcSave()">Save</button>
+      <button class="iconbtn" onclick="dlcTest()">Test</button>
+    </div>
+    <p class="muted">Note: Provide your own decrypt service. Respect licenses/ToS.</p>
+  </div>
+
+  <div id="panel_jd" class="panel" style="display:none"><div class='tabs-sub' id='jd_subtabs'><button class='tab sel' data-jdtab='overview'>Overview</button><button class='tab' data-jdtab='accounts'>Accounts</button><button class='tab' data-jdtab='captcha'>Captcha</button><button class='tab' data-jdtab='reconnect'>Reconnect</button><button class='tab' data-jdtab='myjd'>MyJDownloader</button></div><div id='panel_jd_overview'>
+    <h3>JD Integration (Sidecar)</h3>
+    <div class="grid" style="grid-template-columns:2fr 1fr; gap:12px">
+      <div>
+        <div class="inline" style="gap:6px;margin-top:6px">
+          <button class="iconbtn" onclick="jdSaveCfg()">Save URL</button>
+          <button class="iconbtn" onclick="jdInstall()">Download & Install</button>
+          <button class="iconbtn" onclick="jdStart()">Start</button>
+          <button class="iconbtn" onclick="jdStop()">Stop</button>
+          <button class="iconbtn" onclick="jdStatus()">Status</button>
+        </div>
+        <pre class="muted" id="jd_status_out"></pre>
+      </div>
+      <div class="card">
+        <h4>Engine</h4>
+        <label><input type="radio" name="eng" value="Native"> Native</label>
+        <label><input type="radio" name="eng" value="JD"> JD</label>
+        <div><button class="iconbtn" onclick="engSave()">Apply</button></div>
+      </div>
+  </div>
+</div></main></div>
+<script>
+async function openPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+  document.getElementById('panel_'+id).style.display='block';
+}
+async function saveLayout(){
+  const layout = document.getElementById('ui_layout').value;
+  await fetch('/api/ui/layout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({layout})});
+  UI.toast('Layout saved: '+layout);
+}
+async function loadLayout(){
+  const j = await (await fetch('/api/ui/layout')).json();
+  document.getElementById('ui_layout').value = (j.layout==='JD'?'JD':'Prime');
+}
+async function openLimiter(){ window.open('/page/scheduler.html','_blank'); }
+async function accList(){
+  const j = await (await fetch('/api/accounts')).json();
+  const wrap = document.getElementById('acc_list');
+  wrap.innerHTML = (j.accounts||[]).map(a=>`<div class='chip'>${a.host} — ${a.username}</div>`).join('');
+}
+async function accAdd(){
+  const host=acc_host.value.trim(),user=acc_user.value.trim(),password=acc_pass.value;
+  const j = await (await fetch('/api/accounts')).json();
+  const list = j.accounts||[]; list.push({host,username:user,password});
+  await fetch('/api/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accounts:list})});
+  acc_host.value=acc_user.value=acc_pass.value=''; accList(); UI.toast('Account saved');
+}
+async function capTest(){ const j=await (await fetch('/api/captcha/test',{method:'POST'})).json(); cap_out.textContent = JSON.stringify(j,null,2); }
+async function reconnectRun(){ const j=await (await fetch('/api/reconnect/run',{method:'POST'})).json(); UI.toast('Reconnect started'); }
+async function loadAdvanced(){ const cfg = await (await fetch('/api/jd/hosts')).json(); document.getElementById('adv_out').textContent = JSON.stringify(cfg,null,2); }
+document.addEventListener('DOMContentLoaded', ()=>{ loadLayout(); accList(); openPanel('general'); });
+
+async function hlLoad(){
+  const j = await (await fetch('/api/downloader/limits')).json();
+  const ph = j.per_host||{};
+  const rows = Object.entries(ph).map(([host,v])=>`<tr><td>${host}</td><td><input value="${v.max_conn||4}" data-host="${host}" data-k="max_conn"></td><td><input value="${v.speed_kbps||0}" data-host="${host}" data-k="speed_kbps"></td><td><button class='iconbtn' onclick='hlDel("${host}")'>✖</button></td></tr>`).join('');
+  document.querySelector('#host_limits tbody').innerHTML = rows;
+}
+async function hlAdd(){
+  const host=hl_host.value.trim(); if(!host) return;
+  const conn=parseInt(hl_conn.value||'4'); const speed=parseInt(hl_speed.value||'0');
+  const j = await (await fetch('/api/downloader/limits')).json();
+  j.per_host = j.per_host||{}; j.per_host[host] = {"max_conn": conn, "speed_kbps": speed};
+  await fetch('/api/downloader/limits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  hl_host.value = hl_conn.value = hl_speed.value = ''; await hlLoad(); UI.toast('Host updated');
+}
+async function hlDel(host){
+  const j = await (await fetch('/api/downloader/limits')).json();
+  if(j.per_host && j.per_host[host]) delete j.per_host[host];
+  await fetch('/api/downloader/limits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  await hlLoad(); UI.toast('Host removed');
+}
+async function hlSave(){
+  const j = await (await fetch('/api/downloader/limits')).json();
+  document.querySelectorAll('#host_limits tbody input').forEach(inp=>{
+    const h = inp.dataset.host, k = inp.dataset.k, v = parseInt(inp.value||'0');
+    if(!j.per_host) j.per_host={}; if(!j.per_host[h]) j.per_host[h]={};
+    j.per_host[h][k]=v;
+  });
+  await fetch('/api/downloader/limits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  UI.toast('Limits saved');
+}
+document.addEventListener('DOMContentLoaded', hlLoad);
+
+async function dlcLoad(){
+  try{
+    const j = await (await fetch('/config/dlc.json')).json();
+    dlc_enabled.checked = !!j.enabled; dlc_endpoint.value = j.endpoint_url||''; dlc_key.value = j.api_key||'';
+  }catch(e){}
+}
+async function dlcSave(){
+  const cfg = {enabled: dlc_enabled.checked, endpoint_url: dlc_endpoint.value.trim(), api_key: dlc_key.value.trim()};
+  try{ await fetch('/config/dlc.json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});}catch(e){}
+  UI.toast('DLC settings saved');
+}
+async function dlcTest(){
+  try{
+    const r = await fetch('/api/containers/decrypt_dlc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:'DLC_SAMPLE'})});
+    UI.toast(r.ok? 'Decrypt call ok' : 'Not configured');
+  }catch(e){ UI.toast('Error'); }
+}
+document.addEventListener('DOMContentLoaded', dlcLoad);
+
+async function engLoad(){ const j = await (await fetch('/api/engine')).json(); document.querySelectorAll('input[name=eng]').forEach(r=> r.checked = (r.value===j.engine)); }
+async function engSave(){ const val = [...document.querySelectorAll('input[name=eng]')].find(r=>r.checked)?.value || 'Native'; await fetch('/api/engine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine: val})}); UI.toast('Engine: '+val); }
+async function jdLoadCfg(){ const j=await (await fetch('/api/jd/config')).json(); jd_install_url.value = j.install_url||''; }
+async function jdSaveCfg(){ await fetch('/api/jd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({install_url: jd_install_url.value.trim()})}); UI.toast('Saved'); }
+async function jdInstall(){ const r=await fetch('/api/jd/sidecar/install',{method:'POST'}); jd_status_out.textContent = await r.text(); }
+async function jdStart(){ const r=await fetch('/api/jd/sidecar/start',{method:'POST'}); jd_status_out.textContent = await r.text(); }
+async function jdStop(){ const r=await fetch('/api/jd/sidecar/stop',{method:'POST'}); jd_status_out.textContent = await r.text(); }
+async function jdStatus(){ const j=await (await fetch('/api/jd/sidecar/status')).json(); jd_status_out.textContent = JSON.stringify(j,null,2); }
+document.addEventListener('DOMContentLoaded', ()=>{ engLoad(); jdLoadCfg(); });
+
+(function jdTabs(){
+  const host=document.getElementById('jd_subtabs'); if(!host) return;
+  host.addEventListener('click',(e)=>{
+    const b=e.target.closest('.tab'); if(!b) return;
+    host.querySelectorAll('.tab').forEach(x=>x.classList.remove('sel')); b.classList.add('sel');
+    const id=b.dataset.jdtab;
+    document.getElementById('panel_jd_overview').style.display = (id==='overview')?'block':'none';
+    document.getElementById('panel_jd_accounts').style.display = (id==='accounts')?'block':'none';
+    document.getElementById('panel_jd_captcha').style.display = (id==='captcha')?'block':'none';
+    document.getElementById('panel_jd_reconnect').style.display = (id==='reconnect')?'block':'none';
+  });
+})();
+async function jdOpenGUI(){ const r=await fetch('/api/jd/gui/open',{method:'POST'}); UI.toast(r.ok?'Opened':'Failed'); }
+async function capSaveTest(){
+  const provider = cap_provider.value.trim(), api_key = cap_key.value.trim(), test_url = cap_url.value.trim();
+  const r = await fetch('/api/jd/captcha/providers/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider, api_key, test_url})});
+  const j = await r.json(); cap_out.textContent = JSON.stringify(j,null,2);
+}
+async function recoSave(){
+  const cmd = reconnect_cmd.value;
+  const j = await (await fetch('/api/jd/config')).json(); j.reconnect_cmd = cmd;
+  await fetch('/api/jd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  UI.toast('Saved');
+}
+async function recoRun(){ const r = await fetch('/api/jd/reconnect/run',{method:'POST'}); reco_out.textContent = await r.text(); }
+
+async function jdRemoteLoad(){
+  const j = await (await fetch('/api/jd/config')).json();
+  const r = j.remote||{};
+  jd_remote_enabled.checked = !!r.enabled; jd_remote_host.value = r.host||'127.0.0.1'; jd_remote_port.value = r.port||10025;
+  const s = await (await fetch('/api/jd/remote/status')).json().catch(()=>({}));
+  jd_remote_stat.textContent = (s.enabled? (s.error? 'Error' : ('HTTP '+(s.http||'-'))) : 'Disabled');
+}
+async function jdRemoteSave(){
+  const j = await (await fetch('/api/jd/config')).json();
+  j.remote = {enabled: jd_remote_enabled.checked, host: jd_remote_host.value.trim()||'127.0.0.1', port: parseInt(jd_remote_port.value||'10025')};
+  await fetch('/api/jd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  UI.toast('RemoteControl saved'); jdRemoteLoad();
+}
+async function myjdSave(){
+  const j = await (await fetch('/api/jd/config')).json();
+  j.myjd = {email: myjd_email.value.trim(), password: myjd_password.value, remember: myjd_remember.checked};
+  await fetch('/api/jd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)});
+  UI.toast('MyJDownloader saved');
+}
+function myjdOpenEmbed(){ document.getElementById('myjd_iframe').style.display='block'; }
+document.addEventListener('DOMContentLoaded', ()=>{
+  jdRemoteLoad();
+  const tabs=document.getElementById('jd_subtabs');
+  if(tabs){
+    tabs.addEventListener('click', (e)=>{
+      const b=e.target.closest('.tab'); if(!b) return;
+      const id=b.dataset.jdtab;
+      document.getElementById('panel_jd_myjd').style.display = (id==='myjd')?'block':'none';
+    });
+  }
+});
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

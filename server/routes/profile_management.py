@@ -1,0 +1,421 @@
+from flask import Blueprint, jsonify, request
+import os, json, hashlib
+from datetime import datetime
+from pathlib import Path
+
+profile_management_bp = Blueprint("profile_management", __name__)
+
+# Storage paths
+STORAGE_DIR = Path("storage/config")
+PROFILES_FILE = STORAGE_DIR / "user_profiles.json"
+PROFILE_SETTINGS_FILE = STORAGE_DIR / "profile_settings.json"
+
+# Ensure storage directory exists
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Initialize files
+for file_path in [PROFILES_FILE, PROFILE_SETTINGS_FILE]:
+    if not file_path.exists():
+        file_path.write_text(json.dumps({"data": []}, indent=2))
+
+# ===== PROFILE MANAGEMENT =====
+
+@profile_management_bp.route("/api/profiles", methods=["GET", "POST"])
+def manage_profiles():
+    """Get all profiles or create a new one"""
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    if request.method == "GET":
+        return jsonify({
+            "success": True,
+            "profiles": data.get("data", [])
+        })
+    
+    else:  # POST
+        profile_data = request.json
+        profiles = data.get("data", [])
+        
+        new_profile = {
+            "id": len(profiles) + 1,
+            "name": profile_data.get("name", ""),
+            "email": profile_data.get("email", ""),
+            "avatar": profile_data.get("avatar", ""),
+            "type": profile_data.get("type", "standard"),  # admin, standard, kids
+            "pin": profile_data.get("pin", ""),
+            "pin_hash": hashlib.sha256(profile_data.get("pin", "").encode()).hexdigest() if profile_data.get("pin") else "",
+            "preferences": {
+                "theme": "dark",
+                "language": "en",
+                "autoplay": True,
+                "subtitles": False,
+                "quality": "auto"
+            },
+            "watch_history": [],
+            "watchlist": [],
+            "favorites": [],
+            "created_at": datetime.now().isoformat()
+        }
+        
+        profiles.append(new_profile)
+        data["data"] = profiles
+        
+        with open(PROFILES_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+        
+        return jsonify({
+            "success": True,
+            "profile": new_profile
+        })
+
+@profile_management_bp.route("/api/profiles/<int:profile_id>", methods=["GET", "PUT", "DELETE"])
+def manage_profile(profile_id):
+    """Get, update, or delete a specific profile"""
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    profiles = data.get("data", [])
+    profile = next((p for p in profiles if p.get("id") == profile_id), None)
+    
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+    
+    if request.method == "GET":
+        return jsonify({
+            "success": True,
+            "profile": profile
+        })
+    
+    elif request.method == "PUT":
+        updates = request.json
+        
+        # Update allowed fields
+        for key in ["name", "email", "avatar", "preferences"]:
+            if key in updates:
+                profile[key] = updates[key]
+        
+        # Update PIN if provided
+        if "pin" in updates:
+            profile["pin_hash"] = hashlib.sha256(updates["pin"].encode()).hexdigest()
+        
+        profile["updated_at"] = datetime.now().isoformat()
+        
+        with open(PROFILES_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+        
+        return jsonify({
+            "success": True,
+            "profile": profile
+        })
+    
+    else:  # DELETE
+        profiles.remove(profile)
+        data["data"] = profiles
+        
+        with open(PROFILES_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+        
+        return jsonify({
+            "success": True,
+            "message": "Profile deleted"
+        })
+
+@profile_management_bp.route("/api/profiles/<int:profile_id>/verify-pin", methods=["POST"])
+def verify_profile_pin(profile_id):
+    """Verify profile PIN"""
+    pin = request.json.get("pin", "")
+    
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    profiles = data.get("data", [])
+    profile = next((p for p in profiles if p.get("id") == profile_id), None)
+    
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+    
+    pin_hash = hashlib.sha256(pin.encode()).hexdigest()
+    
+    if pin_hash == profile.get("pin_hash", ""):
+        return jsonify({
+            "success": True,
+            "verified": True
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "verified": False,
+            "message": "Incorrect PIN"
+        })
+
+# ===== PROFILE PREFERENCES =====
+
+@profile_management_bp.route("/api/profiles/<int:profile_id>/preferences", methods=["GET", "PUT"])
+def manage_preferences(profile_id):
+    """Get or update profile preferences"""
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    profiles = data.get("data", [])
+    profile = next((p for p in profiles if p.get("id") == profile_id), None)
+    
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+    
+    if request.method == "GET":
+        return jsonify({
+            "success": True,
+            "preferences": profile.get("preferences", {})
+        })
+    
+    else:  # PUT
+        updates = request.json
+        
+        if "preferences" not in profile:
+            profile["preferences"] = {}
+        
+        profile["preferences"].update(updates)
+        
+        with open(PROFILES_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+        
+        return jsonify({
+            "success": True,
+            "preferences": profile["preferences"]
+        })
+
+# ===== WATCH HISTORY =====
+
+@profile_management_bp.route("/api/profiles/<int:profile_id>/watch-history", methods=["GET", "POST"])
+def manage_watch_history(profile_id):
+    """Get or add to watch history"""
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    profiles = data.get("data", [])
+    profile = next((p for p in profiles if p.get("id") == profile_id), None)
+    
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+    
+    if request.method == "GET":
+        limit = int(request.args.get("limit", 50))
+        history = profile.get("watch_history", [])[-limit:]
+        
+        return jsonify({
+            "success": True,
+            "watch_history": history
+        })
+    
+    else:  # POST
+        entry = request.json
+        
+        if "watch_history" not in profile:
+            profile["watch_history"] = []
+        
+        profile["watch_history"].append({
+            "content_id": entry.get("content_id"),
+            "content_type": entry.get("content_type", ""),
+            "content_title": entry.get("content_title", ""),
+            "watched_at": datetime.now().isoformat(),
+            "progress": entry.get("progress", 0)
+        })
+        
+        # Keep only last 500 entries
+        if len(profile["watch_history"]) > 500:
+            profile["watch_history"] = profile["watch_history"][-500:]
+        
+        with open(PROFILES_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+        
+        return jsonify({"success": True})
+
+# ===== WATCHLIST =====
+
+@profile_management_bp.route("/api/profiles/<int:profile_id>/watchlist", methods=["GET", "POST", "DELETE"])
+def manage_watchlist(profile_id):
+    """Get, add to, or remove from watchlist"""
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    profiles = data.get("data", [])
+    profile = next((p for p in profiles if p.get("id") == profile_id), None)
+    
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+    
+    if request.method == "GET":
+        return jsonify({
+            "success": True,
+            "watchlist": profile.get("watchlist", [])
+        })
+    
+    elif request.method == "POST":
+        item = request.json
+        
+        if "watchlist" not in profile:
+            profile["watchlist"] = []
+        
+        # Check if already in watchlist
+        if not any(w.get("content_id") == item.get("content_id") for w in profile["watchlist"]):
+            profile["watchlist"].append({
+                "content_id": item.get("content_id"),
+                "content_type": item.get("content_type", ""),
+                "content_title": item.get("content_title", ""),
+                "added_at": datetime.now().isoformat()
+            })
+            
+            with open(PROFILES_FILE, "w") as f:
+                json.dump(data, f, indent=2)
+            
+            return jsonify({
+                "success": True,
+                "message": "Added to watchlist"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Already in watchlist"
+            })
+    
+    else:  # DELETE
+        content_id = request.json.get("content_id")
+        
+        if "watchlist" in profile:
+            profile["watchlist"] = [w for w in profile["watchlist"] if w.get("content_id") != content_id]
+            
+            with open(PROFILES_FILE, "w") as f:
+                json.dump(data, f, indent=2)
+        
+        return jsonify({
+            "success": True,
+            "message": "Removed from watchlist"
+        })
+
+# ===== FAVORITES =====
+
+@profile_management_bp.route("/api/profiles/<int:profile_id>/favorites", methods=["GET", "POST", "DELETE"])
+def manage_favorites(profile_id):
+    """Get, add to, or remove from favorites"""
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    profiles = data.get("data", [])
+    profile = next((p for p in profiles if p.get("id") == profile_id), None)
+    
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+    
+    if request.method == "GET":
+        return jsonify({
+            "success": True,
+            "favorites": profile.get("favorites", [])
+        })
+    
+    elif request.method == "POST":
+        item = request.json
+        
+        if "favorites" not in profile:
+            profile["favorites"] = []
+        
+        # Check if already in favorites
+        if not any(f.get("content_id") == item.get("content_id") for f in profile["favorites"]):
+            profile["favorites"].append({
+                "content_id": item.get("content_id"),
+                "content_type": item.get("content_type", ""),
+                "content_title": item.get("content_title", ""),
+                "added_at": datetime.now().isoformat()
+            })
+            
+            with open(PROFILES_FILE, "w") as f:
+                json.dump(data, f, indent=2)
+            
+            return jsonify({
+                "success": True,
+                "message": "Added to favorites"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Already in favorites"
+            })
+    
+    else:  # DELETE
+        content_id = request.json.get("content_id")
+        
+        if "favorites" in profile:
+            profile["favorites"] = [f for f in profile["favorites"] if f.get("content_id") != content_id]
+            
+            with open(PROFILES_FILE, "w") as f:
+                json.dump(data, f, indent=2)
+        
+        return jsonify({
+            "success": True,
+            "message": "Removed from favorites"
+        })
+
+# ===== PROFILE SWITCHING =====
+
+@profile_management_bp.route("/api/profiles/switch", methods=["POST"])
+def switch_profile():
+    """Switch to a different profile"""
+    profile_id = request.json.get("profile_id")
+    pin = request.json.get("pin", "")
+    
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    profiles = data.get("data", [])
+    profile = next((p for p in profiles if p.get("id") == profile_id), None)
+    
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+    
+    # Verify PIN if profile has one
+    if profile.get("pin_hash"):
+        pin_hash = hashlib.sha256(pin.encode()).hexdigest()
+        if pin_hash != profile.get("pin_hash"):
+            return jsonify({
+                "success": False,
+                "message": "Incorrect PIN"
+            }), 403
+    
+    return jsonify({
+        "success": True,
+        "profile": profile,
+        "message": f"Switched to profile: {profile.get('name')}"
+    })
+
+# ===== PROFILE STATISTICS =====
+
+@profile_management_bp.route("/api/profiles/<int:profile_id>/statistics", methods=["GET"])
+def get_profile_statistics(profile_id):
+    """Get statistics for a profile"""
+    with open(PROFILES_FILE, "r") as f:
+        data = json.load(f)
+    
+    profiles = data.get("data", [])
+    profile = next((p for p in profiles if p.get("id") == profile_id), None)
+    
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+    
+    watch_history = profile.get("watch_history", [])
+    watchlist = profile.get("watchlist", [])
+    favorites = profile.get("favorites", [])
+    
+    # Calculate statistics
+    stats = {
+        "total_watched": len(watch_history),
+        "watchlist_count": len(watchlist),
+        "favorites_count": len(favorites),
+        "most_watched_type": "movie",  # Placeholder
+        "total_watch_time_hours": 0,  # Placeholder
+        "created_at": profile.get("created_at"),
+        "last_active": watch_history[-1].get("watched_at") if watch_history else None
+    }
+    
+    return jsonify({
+        "success": True,
+        "statistics": stats
+    })

@@ -1,0 +1,13 @@
+{
+    "default_policy": "keep_largest",
+    "policies": {
+        "keep_largest": {
+            "description": "Keeps the largest file among duplicates.",
+            "rules": [{"action": "keep", "criteria": "size", "order": "desc"}]
+        },
+        "keep_newest": {
+            "description": "Keeps the newest file among duplicates.",
+            "rules": [{"action": "keep", "criteria": "date_added", "order": "desc"}]
+        }
+    }
+}

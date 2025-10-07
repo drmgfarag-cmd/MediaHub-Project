@@ -1,0 +1,67 @@
+from flask import Blueprint, jsonify, request
+stubs_bp = Blueprint('stubs_extra', __name__)
+
+@stubs_bp.route('/api/backup/restore')
+def backup_restore():
+    try:
+        name = request.args.get('name','')
+        return jsonify({'ok': True, 'restored': False, 'name': name})
+
+        @stubs_bp.route('/api/collections/')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def collections_root():
+    try:
+        return jsonify({'ok': True, 'collections': []})
+
+        @stubs_bp.route('/api/collections/rest')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def collections_rest():
+    try:
+        cat = request.args.get('category','')
+        return jsonify({'ok': True, 'category': cat, 'items': []})
+
+        @stubs_bp.route('/api/library/item/')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def lib_item():
+    try:
+        return jsonify({'ok': True, 'item': {}})
+
+        @stubs_bp.route('/api/library/search')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def lib_search():
+    try:
+        q = request.args.get('q','')
+        return jsonify({'ok': True, 'query': q, 'items': []})
+
+        @stubs_bp.route('/api/library/title/')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def lib_title():
+    try:
+        t = request.args.get('t','')
+        return jsonify({'ok': True, 'title': t, 'items': []})
+
+        @stubs_bp.route('/api/reader/cbz_pages')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def cbz_pages():
+    path = request.args.get('path','')
+    return jsonify({'ok': True, 'path': path, 'pages': []})
+
+@stubs_bp.route('/api/trailer/hero')
+def trailer_hero():
+    try:
+        cat = request.args.get('category','')
+        return jsonify({'ok': True, 'category': cat, 'trailers': []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

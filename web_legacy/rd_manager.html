@@ -1,0 +1,1604 @@
+
+<!doctype html><html><head><link rel='icon' href='assets/favicon.svg'><link rel='stylesheet' href='assets/ui.css'><link rel='stylesheet' href='assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Rd Manager</title>
+<style>
+body{font-family:system-ui;background:#0b0e13;color:#e6e6e6;margin:0}
+header{background:#11161d;padding:12px 16px;display:flex;gap:16px;align-items:center}
+main{padding:16px}
+section{background:#131a22;border:1px solid #2b3643;border-radius:14px;padding:16px;margin-bottom:16px}
+h2,h3{margin:0 0 10px 0}
+button,input,textarea{background:#1a232e;color:#e6e6e6;border:1px solid #2b3643;border-radius:8px;padding:6px}
+textarea{width:100%;height:120px}
+.list{max-height:280px;overflow:auto;border:1px solid #2b3643;border-radius:8px;padding:8px}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+small{color:#9bdcff}
+a{color:#9bdcff}
+</style><link rel="stylesheet" href="/web/ui/common.css">
+<script src="/web/ui/common.js">
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+</div><script src="/js/command_palette.js"></script></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+<header class="topbar">
+  <div class="brand">MediaHub</div>
+  <nav class="nav">
+    <a href="/web/hub.html">Library</a>
+    <a href="/web/rd_manager.html">RD Manager</a>
+    <a href="/web/downloader.html">Downloader</a>
+    <a href="/web/editor.html">Text Editor</a>
+  </nav>
+  <a href="/page/rules_audit.html">Rules Audit</a>
+</header>
+
+
+<div class="shell"><div class="subbar">Search RD actions...</div>
+<div class="program-menubar" id="pm_rd"><div class="menu-wrap"><div class="m">File</div><div class="menu-drop" id="menu_rd_file"><div class="menu-item" onclick="pasteLinks()">Paste Links</div><div class="menu-item" onclick="exportFilters()">Export Filters…</div><div class="menu-item" onclick="importFilters()">Import Filters…</div></div></div><div class="menu-wrap"><div class="m">Tools</div><div class="menu-drop" id="menu_rd_tools"><div class="menu-item" onclick="openPackagizer()">Packagizer…</div><div class="menu-item" onclick="openFilters()">Filters…</div></div></div>
+  <div class="menu">
+    <div class="m" onclick="rdMenu('file')">File</div>
+    <div class="m" onclick="rdMenu('view')">View</div>
+    <div class="m" onclick="rdMenu('tools')">Tools</div>
+  </div>
+</div>
+  <div class="tab active" data-for="rd_tab_download">Download</div>
+  <div class="tab" data-for="rd_tab_upload">Upload</div>
+  <div class="tab" data-for="rd_tab_extract">Extract</div>
+  <div class="tab" data-for="rd_tab_exclusions">Exclusions</div>
+</div><div class="tab" data-for="rd_tab_download">Download</div><div class="tab" data-for="rd_tab_extract">Extract</div><div class="tab" data-for="rd_tab_exclusions">Exclusions</div></div>
+<div class="toolbar-strip" id="rd_toolbar">
+  <button class="btn" onclick="rdParseNow()">🔎 Parse</button>
+  <button class="btn" onclick="rdQueueIncluded()">➕ Add to Downloader</button>
+  <div class="sep"></div>
+  <button class="btn" onclick="toggleFilters && toggleFilters()">⚙ Filters</button>
+  <button class="btn" onclick="location.href='/web/downloader.html#dl_tab_queue'">📥 Open Downloader</button>
+  <span class="hint">Manager actions in menu bar</span>
+</div>
+<div class="card">
+  <div id="rd_tabs" style="display:flex;gap:10px;margin-bottom:8px">
+    <button onclick="tab('upload')">Upload</button>
+    <button onclick="tab('download')">Download</button>
+    <button onclick="tab('extract')">Extract</button>
+    <button style="margin-left:auto" onclick="toggleFilters()">Filters ▸</button>
+  </div>
+  <div id="rd_tab_upload" class="section show"><div id="rd_upload">
+    <h3>Paste RD links / magnets / .torrent</h3>
+    <div style="margin-top:8px"><button onclick="parse()">Parse</button> <button onclick="queue()">Add to Download Queue</button></div>
+    <pre id="rd_out"></pre>
+  </div>
+  <div id="rd_tab_download" class="section"><div id="rd_download" style="display:none">
+    <h3>Download Queue</h3>
+    <div style="margin-bottom:6px"><button onclick="start()">Start</button> <button onclick="stop()">Stop</button> <button onclick="retry()">Retry Failed</button> <button onclick="clean()">Clean Samples/Trash</button> <button onclick="preview()">Apply Dedupe (preview)</button></div>
+    <pre id="rd_q"></pre>
+  </div>
+  <div id="rd_tab_extract" class="section"><div id="rd_extract" style="display:none"><h3>Archive Extraction</h3><p>Handled during post-process (configurable in Downloader Settings).</p></div>
+</div>
+<div id="filters_panel" class="sidepanel"><h4>RD Filters</h4>
+  <div id="f_lists" class="compact-list"></div>
+  <div style="margin-top:8px;display:flex;gap:6px"><button onclick="loadProfile()">Apply Profile…</button><button onclick="saveProfile()">Save as Profile…</button></div>
+
+<div id="rd_tab_exclusions" class="section"><div class="card">
+  <h3>Exclusions Browser</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div>
+      <h4>Paste Links (magnet / RD / torrent text)</h4>
+      <div style="margin-top:6px"><button onclick="excParse()">Extract Names/Hashes</button></div>
+      <pre id="exc_out"></pre>
+    </div>
+    <div>
+      <h4>Current Exclusions</h4>
+      <div style="display:flex;gap:6px;margin-bottom:6px"><button onclick="excLoad()">Refresh</button><button onclick="excSave()">Save</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <b>Filenames</b>
+          <textarea id="exc_files" rows="6"></textarea>
+        </div>
+        <div>
+          <b>Hashes</b>
+          <textarea id="exc_hashes" rows="6"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:6px">
+        <b>Names</b>
+        <textarea id="exc_names" rows="3"></textarea>
+      </div>
+    </div>
+  </div>
+
+  </div>
+  <div id="rd_sidepanel" class="sidepanel">
+    <h4>Parsed Links</h4>
+    <div id="rd_side_list" style="max-height:320px;overflow:auto"></div>
+  </div>
+</div>
+<script>
+let RD_PARSED = [];
+function rdRenderSide(){ const box=document.getElementById('rd_side_list'); box.innerHTML=''; RD_PARSED.forEach((it,idx)=>{ const row=document.createElement('div'); row.style.cssText='border:1px solid var(--line);border-radius:8px;padding:6px;margin:6px 0'; row.innerHTML = `<div style="font-size:12px;opacity:.8">${it.host||''}</div><div><b>${(it.name||it.url||'')}</b></div><div class="inline"><label><input type="checkbox" checked data-i="${idx}" class="incl"> Include</label><label><input type="checkbox" data-i="${idx}" class="excl"> Exclude</label></div>`; box.appendChild(row); }); box.querySelectorAll('.incl').forEach(c=>c.onchange=()=>{ const i=parseInt(c.dataset.i); RD_PARSED[i].include=c.checked; }); box.querySelectorAll('.excl').forEach(c=>c.onchange=()=>{ const i=parseInt(c.dataset.i); RD_PARSED[i].exclude=c.checked; }); }
+function rdParseNow(){ const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : ''; if(!paste){ return UI.toast('Paste links first'); } const links = paste.split(/\s+/).filter(Boolean); const text = links.join('\n'); fetch('/api/rd/exclusions/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})}).then(r=>r.json()).then(j=>{ RD_PARSED = links.map(u=>({url:u, name:(j.filenames||[])[0]||u, host:(new URL(u, location.href)).host, include:true, exclude:false})); rdRenderSide(); }); }
+async function rdQueueIncluded(){ const links = RD_PARSED.filter(x=>x.include && !x.exclude).map(x=>x.url); if(!links.length){ return UI.toast('Nothing selected'); } const j=await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json(); UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected); }
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+async function excParse(){ const txt=document.getElementById('exc_src').value; const j=await (await fetch('/api/rd/exclusions/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt})})).json(); document.getElementById('exc_out').textContent=JSON.stringify(j,null,2); document.getElementById('exc_files').value=(j.filenames||[]).join('\n'); document.getElementById('exc_hashes').value=(j.hashes||[]).join('\n'); }
+async function excLoad(){ const j=await (await fetch('/api/rd/exclusions')).json(); document.getElementById('exc_files').value=(j.filenames||[]).join('\n'); document.getElementById('exc_hashes').value=(j.hashes||[]).join('\n'); document.getElementById('exc_names').value=(j.names||[]).join('\n'); }
+async function excSave(){ const body={filenames:(document.getElementById('exc_files').value||'').split(/\n+/).filter(Boolean), hashes:(document.getElementById('exc_hashes').value||'').split(/\n+/).filter(Boolean), names:(document.getElementById('exc_names').value||'').split(/\n+/).filter(Boolean)}; const j=await (await fetch('/api/rd/exclusions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json(); UI.toast('Exclusions saved'); }
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+let parsed=[]; function tab(x){ document.getElementById('rd_upload').style.display=(x==='upload')?'block':'none'; document.getElementById('rd_download').style.display=(x==='download')?'block':'none'; document.getElementById('rd_extract').style.display=(x==='extract')?'block':'none'; }
+function toggleFilters(){ document.getElementById('filters_panel').classList.toggle('show'); }
+async function parse(){ const txt=document.getElementById('rd_input').value; const r=await fetch('/api/downloader/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt})}); const j=await r.json(); parsed=j.items||[]; document.getElementById('rd_out').textContent=JSON.stringify(parsed,null,2); }
+async function queue(){ if(!parsed.length){ await parse(); } const r=await fetch('/api/downloader/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:parsed})}); document.getElementById('rd_out').textContent=JSON.stringify(await r.json(),null,2); loadQ(); }
+async function loadQ(){ const r=await fetch('/api/downloader/queue'); document.getElementById('rd_q').textContent = JSON.stringify(await r.json(), null, 2); }
+async function start(){ await fetch('/api/downloader/start',{method:'POST'}); loadQ(); }
+async function stop(){ await fetch('/api/downloader/stop',{method:'POST'}); loadQ(); }
+async function retry(){ await fetch('/api/downloader/retry_failed',{method:'POST'}); loadQ(); }
+async function clean(){ const r=await fetch('/api/rd/clean',{method:'POST'}); UI.toast('Cleaned'); loadQ(); }
+async function preview(){ const r=await fetch('/api/rd/dedupe/preview'); UI.openModalSmall('p','data:text/html,'+encodeURIComponent('<pre>'+JSON.stringify(await r.json(),null,2)+'</pre>'),'Dedupe Preview'); }
+async function loadFilters(){ const cat=await (await fetch('/api/rd/filters/catalog')).json(); const d=document.getElementById('f_lists'); const lists=[['Include',cat.include_examples],['Exclude',cat.exclude_examples],['Allow ext',cat.allow_ext_examples],['Deny ext',cat.deny_ext_examples],['Groups',cat.group_examples]]; d.innerHTML=lists.map(([n,arr])=>`<h4>${n}</h4>`+arr.map(x=>`<label><input type="checkbox" checked> ${x}</label>`).join('')).join(''); }
+async function loadProfile(){ UI.toast('Applied profile (demo)'); }
+async function saveProfile(){ UI.toast('Saved as profile (demo)'); }
+document.addEventListener('DOMContentLoaded', ()=>{ loadFilters(); loadQ(); });
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+  <aside class="sidemenu">
+    <h4>Quick Edit</h4>
+    <a href="/page/rd_filters.html" data-modal="modal_rd" data-url="/page/rd_filters.html">RD Filters</a>
+    <a href="/page/rss_filters.html" data-modal="modal_rss" data-url="/page/rss_filters.html">RSS Filters</a>
+    <a href="/page/providers.html" data-modal="modal_providers" data-url="/page/providers.html">Providers</a>
+    <a href="/page/duplicates.html" data-modal="modal_dupes" data-url="/page/duplicates.html">Dedupe Policy</a>
+    <a href="/page/settings.html" data-modal="modal_settings" data-url="/page/settings.html">Subtitles & Backups</a>
+    <a href="/page/profiles.html" data-modal="modal_profiles" data-url="/page/profiles.html">Profiles</a>
+  </aside>
+  <main class="content">
+
+<header><strong>RD Manager</strong>
+<nav><a href="/page/rd_filters.html">Open RD Filters</a></nav>
+</header>
+<main>
+<section>
+  <h3>Exclusions — Extract from Torrents / Magnets / RD Links</h3>
+  <div class="row"><input type="file" id="files" multiple accept=".torrent"><button onclick="extract()">Extract</button></div>
+  <div class="row"><button onclick="selectAll(true)">All</button><button onclick="selectAll(false)">None</button><button onclick="apply()">Add to Exclude</button><button onclick="copyAll()">Copy All</button></div>
+  <div class="list fill-vert" id="list"></div>
+  <small>Checked items will be appended to RD exclude list; no code editing needed.</small>
+</section>
+<section><h3>Status</h3><pre id="out"></pre></section>
+</main>
+<script>
+let names=[]; let selected=new Set();
+function render(){
+  const box=document.getElementById('list'); box.innerHTML='';
+  names.forEach(n=>{
+    const id='n_'+btoa(n).replace(/[^a-zA-Z0-9]/g,'_');
+    const row=document.createElement('div'); row.className='row';
+    row.innerHTML=`<input type="checkbox" id="${id}" checked onchange="tog('${n}')"><label for="${id}">${n}</label>`;
+    box.appendChild(row); selected.add(n);
+  });
+}
+function tog(n){ if(selected.has(n)) selected.delete(n); else selected.add(n); }
+async function extract(){
+  const fd=new FormData();
+  fd.append('text', document.getElementById('txt').value||'');
+  const fs=document.getElementById('files').files;
+  for(const f of fs) fd.append('file_'+f.name, f);
+  const r = await fetch('/api/rd/extract_names',{method:'POST', body:fd});
+  const j = await r.json(); names = j.names||[]; selected=new Set(names); render();
+  out.textContent = JSON.stringify(j, null, 2);
+}
+function selectAll(on){ names.forEach(n=>{ const id='n_'+btoa(n).replace(/[^a-zA-Z0-9]/g,'_'); const el=document.getElementById(id); if(el){el.checked=on;} if(on) selected.add(n); else selected.delete(n); }); }
+async function apply(){
+  const list = Array.from(selected);
+  const r = await fetch('/api/rd/exclusions/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({names:list})});
+  out.textContent = JSON.stringify(await r.json(), null, 2);
+}
+async function status(){ out.textContent = JSON.stringify(await (await fetch('/api/rd/filters/config')).json(),null,2); }
+status();
+function copyAll(){ navigator.clipboard.writeText(names.join('
+')); }
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+  </main>
+
+<div id="rd_tab_exclusions" class="section"><div class="card">
+  <h3>Exclusions Browser</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div>
+      <h4>Paste Links (magnet / RD / torrent text)</h4>
+      <div style="margin-top:6px"><button onclick="excParse()">Extract Names/Hashes</button></div>
+      <pre id="exc_out"></pre>
+    </div>
+    <div>
+      <h4>Current Exclusions</h4>
+      <div style="display:flex;gap:6px;margin-bottom:6px"><button onclick="excLoad()">Refresh</button><button onclick="excSave()">Save</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <b>Filenames</b>
+          <textarea id="exc_files" rows="6"></textarea>
+        </div>
+        <div>
+          <b>Hashes</b>
+          <textarea id="exc_hashes" rows="6"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:6px">
+        <b>Names</b>
+        <textarea id="exc_names" rows="3"></textarea>
+      </div>
+    </div>
+  </div>
+
+  </div>
+  <div id="rd_sidepanel" class="sidepanel">
+    <h4>Parsed Links</h4>
+    <div id="rd_side_list" style="max-height:320px;overflow:auto"></div>
+  </div>
+</div>
+<script>
+let RD_PARSED = [];
+function rdRenderSide(){ const box=document.getElementById('rd_side_list'); box.innerHTML=''; RD_PARSED.forEach((it,idx)=>{ const row=document.createElement('div'); row.style.cssText='border:1px solid var(--line);border-radius:8px;padding:6px;margin:6px 0'; row.innerHTML = `<div style="font-size:12px;opacity:.8">${it.host||''}</div><div><b>${(it.name||it.url||'')}</b></div><div class="inline"><label><input type="checkbox" checked data-i="${idx}" class="incl"> Include</label><label><input type="checkbox" data-i="${idx}" class="excl"> Exclude</label></div>`; box.appendChild(row); }); box.querySelectorAll('.incl').forEach(c=>c.onchange=()=>{ const i=parseInt(c.dataset.i); RD_PARSED[i].include=c.checked; }); box.querySelectorAll('.excl').forEach(c=>c.onchange=()=>{ const i=parseInt(c.dataset.i); RD_PARSED[i].exclude=c.checked; }); }
+function rdParseNow(){ const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : ''; if(!paste){ return UI.toast('Paste links first'); } const links = paste.split(/\s+/).filter(Boolean); const text = links.join('\n'); fetch('/api/rd/exclusions/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})}).then(r=>r.json()).then(j=>{ RD_PARSED = links.map(u=>({url:u, name:(j.filenames||[])[0]||u, host:(new URL(u, location.href)).host, include:true, exclude:false})); rdRenderSide(); }); }
+async function rdQueueIncluded(){ const links = RD_PARSED.filter(x=>x.include && !x.exclude).map(x=>x.url); if(!links.length){ return UI.toast('Nothing selected'); } const j=await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json(); UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected); }
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+async function excParse(){ const txt=document.getElementById('exc_src').value; const j=await (await fetch('/api/rd/exclusions/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt})})).json(); document.getElementById('exc_out').textContent=JSON.stringify(j,null,2); document.getElementById('exc_files').value=(j.filenames||[]).join('\n'); document.getElementById('exc_hashes').value=(j.hashes||[]).join('\n'); }
+async function excLoad(){ const j=await (await fetch('/api/rd/exclusions')).json(); document.getElementById('exc_files').value=(j.filenames||[]).join('\n'); document.getElementById('exc_hashes').value=(j.hashes||[]).join('\n'); document.getElementById('exc_names').value=(j.names||[]).join('\n'); }
+async function excSave(){ const body={filenames:(document.getElementById('exc_files').value||'').split(/\n+/).filter(Boolean), hashes:(document.getElementById('exc_hashes').value||'').split(/\n+/).filter(Boolean), names:(document.getElementById('exc_names').value||'').split(/\n+/).filter(Boolean)}; const j=await (await fetch('/api/rd/exclusions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json(); UI.toast('Exclusions saved'); }
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  UI.wireSideMenu();
+  UI.wireCmd([
+    {k:'filters', label:'Open RD Filters', run:()=>UI.openModal('modal_rd','/page/rd_filters.html','RD Filters')},
+    {k:'rss', label:'Open RSS Filters', run:()=>UI.openModal('modal_rss','/page/rss_filters.html','RSS Filters')},
+    {k:'providers', label:'Open Providers', run:()=>UI.openModal('modal_providers','/page/providers.html','Providers')},
+    {k:'dedupe', label:'Open Dedupe Policy', run:()=>UI.openModal('modal_dupes','/page/duplicates.html','Duplicates / Policy')},
+    {k:'subs', label:'Open Subtitles Settings', run:()=>UI.openModal('modal_settings','/page/settings.html','Settings')},
+    {k:'backup', label:'Create Backup', run:()=>UI.openModal('modal_settings','/page/settings.html','Settings')},
+    {k:'queue', label:'Show Downloader Queue', run:()=>location.href='/web/downloader.html'},
+    {k:'replace', label:'Editor: Find & Replace', run:()=>document.getElementById('findreplace')?.showModal?.()},
+  ]); window._ctx_items = _items; return _items;
+});
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+<div id="cmd_float" class="float">
+  <label>Quick actions</label>
+  <div id="cmd_list"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  // add Minimize buttons to any UI modal header
+  document.querySelectorAll('.modal .inner header').forEach(h=>{
+    if(h.querySelector('.minibtn')) return;
+    const wrap = h.querySelector('div') || h;
+    const b = document.createElement('button');
+    b.textContent='Minimize'; b.className='minibtn';
+    b.onclick=()=>{ const m=h.closest('.modal'); if(m) m.classList.toggle('mini'); };
+    wrap.prepend(b);
+  });
+});
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+
+<script>
+function rd_tab(t){
+  const tabs={up:'pane_up',down:'pane_down',ext:'pane_ext'};
+  for(const k in tabs){
+    const pane=document.getElementById(tabs[k]); window._ctx_items = _items; return _items;
+    const btn=document.getElementById('tab_'+k);
+    if(k===t){ pane?.classList.remove('hidden'); btn?.classList.add('active'); }
+    else { pane?.classList.add('hidden'); btn?.classList.remove('active'); }
+  }
+}
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+<script>
+let splitOn=false;
+function toggleSplit(){
+  splitOn = !splitOn;
+  document.getElementById('rd_split').style.display = splitOn? 'flex':'none';
+  // when split, show both panes; when tabs, show active only
+  if(splitOn){
+    // clone content of upload & download panes into split panes
+    const up = document.getElementById('pane_up'); const down = document.getElementById('pane_down');
+    document.getElementById('split_up').innerHTML = up.innerHTML;
+    document.getElementById('split_down').innerHTML = down.innerHTML;
+    document.querySelector('.rd-tabs')?.classList.add('hidden');
+    // init drag
+    initDrag();
+  }else{
+    document.querySelector('.rd-tabs')?.classList.remove('hidden');
+  }
+}
+function initDrag(){
+  const drag = document.getElementById('dragbar'); const left = document.getElementById('split_up'); const right = document.getElementById('split_down'); const container = document.getElementById('rd_split');
+  let down=false, startX=0, leftW=0, total=0;
+  drag.addEventListener('mousedown', (e)=>{ down=true; startX=e.clientX; total=container.clientWidth; leftW=left.clientWidth; document.body.style.userSelect='none'; });
+  window.addEventListener('mousemove', (e)=>{
+    if(!down) return; const dx=e.clientX-startX; let l=leftW+dx; l=Math.max(280, Math.min(total-280, l)); left.style.flex='0 0 '+l+'px'; right.style.flex='1 1 auto';
+  });
+  window.addEventListener('mouseup', ()=>{ down=false; document.body.style.userSelect=''; });
+}
+// auto-tabs on narrow screens
+function applyResponsiveTabs(){
+  const w=window.innerWidth||document.documentElement.clientWidth;
+  if(w<1200){ if(splitOn){ toggleSplit(); } document.querySelector('.rd-tabs')?.classList.remove('hidden'); }
+}
+window.addEventListener('resize', applyResponsiveTabs);
+document.addEventListener('DOMContentLoaded', applyResponsiveTabs);
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  UI.contextInit(function(){
+    const _items = UI.globalMenu().concat([
+      { text:'Upload', on: ()=>rd_tab('up') },
+      { text:'Download', on: ()=>rd_tab('down') },
+      { text:'Extract', on: ()=>rd_tab('ext') },
+      { text:'Split View', on: ()=>toggleSplit() },
+      { text:'Filters', on: ()=>UI.openModalSmall('modal_rd','/page/rd_filters.html','RD Filters') },
+      { text:'Paste Links', on: ()=>document.getElementById('paste')?.focus() },
+      { text:'.torrent / RD parse', on: ()=>extract() },
+      { text:'Add to Download Queue', on: ()=>add() },
+      { text:'Start', on: ()=>fetch('/api/downloader/start',{method:'POST'}) },
+      { text:'Stop', on: ()=>fetch('/api/downloader/stop',{method:'POST'}) },
+      { text:'Retry Failed', on: ()=>fetch('/api/downloader/retry_failed',{method:'POST'}) },
+      { text:'Throttle…', on: ()=>prompt('Speed limit (KB/s)?') },
+      { text:'Max parallel…', on: ()=>prompt('Max parallel downloads?') },
+      { text:'Clear completed', on: ()=>fetch('/api/downloader/clear_completed',{method:'POST'}) },
+      { text:'Export queue', on: ()=>fetch('/api/downloader/export') },
+      { text:'Import queue', on: ()=>fetch('/api/downloader/import') },
+      { text:'Apply RD Filters profile…', on: ()=>applyProfile() },
+      { text:'Save filters as profile…', on: ()=>saveLists() },
+      { text:'Apply Dedupe (preview)', on: ()=>fetch('/api/rd/dedupe/preview') },
+      { text:'Delete RD duplicates (confirm)', on: ()=>confirm('Delete duplicates?')&&fetch('/api/rd/dedupe/delete',{method:'POST'}) },
+      { text:'Clean samples/trash (confirm)', on: ()=>confirm('Clean samples & trash?')&&fetch('/api/rd/clean',{method:'POST'}) }
+    ]); window._ctx_items = _items; return _items;
+  });
+});
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const d=document.getElementById('density'); if(d){ d.value=localStorage.getItem('ui_density')||''; d.onchange=()=>UI.density.set(d.value||''); }
+  const t=document.getElementById('theme'); if(t){ t.value=localStorage.getItem('ui_theme')||''; t.onchange=()=>UI.theme.set(t.value||''); }
+  // persist view basics
+  const sort=document.getElementById('sort'); if(sort){ const p=UI.persist.load(); if(p.sort) sort.value=p.sort; sort.onchange=()=>{ const o=UI.persist.load(); o.sort=sort.value; UI.persist.save(o); }; }
+  UI.rulesBadge(['.topbar','.subbar','.sidemenu']); window._ctx_items = _items; return _items;
+});
+
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+<script>document.addEventListener('DOMContentLoaded', ()=>{ try{ UI.qa.ensureBase(); }catch(e){} });
+async function rdAddBatch(){
+  const paste = document.querySelector('#rd_download textarea, #rd_download input') ? (document.querySelector('#rd_download textarea')?.value || document.querySelector('#rd_download input')?.value || '') : '';
+  if(!paste){ return UI.toast('Paste links first'); }
+  const links = paste.split(/\s+/).filter(Boolean);
+  const j = await (await fetch('/api/rd/queue/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})})).json();
+  UI.toast('Accepted '+j.accepted+', Rejected '+j.rejected);
+}
+
+function rdMenu(which){ if(which==='view' && typeof toggleFilters==='function'){ toggleFilters(); } }
+(function bindRDS(){ const s=document.getElementById('pm_search_rd'); if(!s) return; s.oninput=()=>{ const v=s.value.trim().toLowerCase(); document.querySelectorAll('.pack_item').forEach(div=>{ const t=div.textContent.toLowerCase(); div.style.display = t.includes(v)? '':'none'; }); }; })();
+
+function openPackagizer(){ window.open('/page/packagizer.html','_blank'); }
+function openFilters(){ window.open('/page/rd_filters.html','_blank'); }
+function pasteLinks(){ const t=document.getElementById('lg_text'); if(t){ t.focus(); document.execCommand && document.execCommand('paste'); } }
+function exportFilters(){ UI.toast('Exported'); }
+function importFilters(){ UI.toast('Imported'); }
+
+function pill(name, group){ return `<div class='chip'>${name}<button class='x' onclick='pillDel("${group}","${name}")'>✖</button></div>`; }
+function renderLists(){ inc_list.innerHTML=(window.INC||[]).map(n=>pill(n,'inc')).join(''); exc_list.innerHTML=(window.EXC||[]).map(n=>pill(n,'exc')).join(''); }
+function incAdd(){ const v=inc_add.value.trim(); if(!v) return; window.INC=(window.INC||[]).concat([v]); inc_add.value=''; renderLists(); }
+function excAdd(){ const v=exc_add.value.trim(); if(!v) return; window.EXC=(window.EXC||[]).concat([v]); exc_add.value=''; renderLists(); }
+function pillDel(group, name){ if(group==='inc') window.INC=(window.INC||[]).filter(x=>x!==name); if(group==='exc') window.EXC=(window.EXC||[]).filter(x=>x!==name); renderLists(); }
+function extractNames(){
+  const t=names_paste.value; const out=[];
+  t.split(/\s+/).forEach(tok=>{
+    if(tok.startsWith('magnet:?')){
+      const m = /[?&]dn=([^&]+)/.exec(tok); if(m){ out.push(decodeURIComponent(m[1]).replace(/[+]/g,' ')); }
+    }else if(/\.(mkv|mp4|avi|flac|m4b|epub|pdf|mp3|aac|zip|rar)$/i.test(tok)){
+      out.push(tok.split('/').pop());
+    }
+  });
+  window.EXC = (window.EXC||[]).concat(out);
+  renderLists(); UI.toast('Extracted '+out.length+' names');
+}
+document.addEventListener('DOMContentLoaded', ()=>{ window.INC=[]; window.EXC=[]; renderLists(); });
+
+function toggleRDLists(){
+  const d = document.getElementById('rd_side_lists');
+  if(!d) return;
+  d.classList.toggle('collapsed');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const tb = document.getElementById('pm_rd') || document.body;
+  const b = document.createElement('button'); b.className='iconbtn'; b.textContent='Lists';
+  b.onclick = toggleRDLists; tb.appendChild(b);
+  // Context actions on candidates table: add to include/exclude
+  const tbl = document.getElementById('rd_candidates') || document.getElementById('lg_table');
+  if(tbl){
+    tbl.addEventListener('contextmenu',(e)=>{
+      e.preventDefault();
+      const row = e.target.closest('tr'); if(!row) return;
+      const name = row.dataset.name || row.textContent.trim();
+      const m = document.createElement('div'); m.className='ctx'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+      m.innerHTML = "<div class='menu-item' id='ctx_inc'>Add to Include</div><div class='menu-item' id='ctx_exc'>Add to Exclude</div>";
+      document.body.appendChild(m); m.style.display='block';
+      const done=()=>{ m.remove(); };
+      m.addEventListener('click',(ev)=>{
+        if(ev.target.id==='ctx_inc'){ window.INC=(window.INC||[]).concat([name]); }
+        if(ev.target.id==='ctx_exc'){ window.EXC=(window.EXC||[]).concat([name]); }
+        if(typeof renderLists==='function') renderLists(); done();
+      });
+      document.addEventListener('click', done, {once:true});
+    });
+  }
+});
+
+function rdDockApply(on){
+  const host = document.getElementById('qt_docked_rd'); if(!host) return;
+  host.style.display = on? 'flex':'none';
+}
+async function rdDockInit(){
+  try{
+    const j = await (await fetch('/api/ui/density')).json();
+    rdDockApply(j.toggles_docked!==false);
+    await loadToggles?.();
+    const map = [['qdr_clip','clipboard_monitor'],['qdr_parse','auto_parse_links'],['qdr_apply','auto_apply_rules'],['qdr_add','auto_add_to_queue'],['qdr_extract','auto_extract_archives'],['qdr_move','move_finished_to_library']];
+    map.forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.checked=!!(window.TOGGLES||{})[key]; el && (el.onchange = ()=> saveToggle(key, el.checked)); });
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', rdDockInit);
+</script>
+
+<h2>Exclusion / Include Browser</h2>
+<div id="excl_browser">
+  <div>
+    <button onclick="extractNames()">Extract Names</button>
+    <button onclick="copyAll()">Copy-All</button>
+  </div>
+  <div style="display:flex; gap:16px">
+    <div><h4>Include Words</h4><div id="inc_list" class="list"></div></div>
+    <div><h4>Exclude Words</h4><div id="exc_list" class="list"></div></div>
+    <div><h4>Allow Extensions</h4><div id="allow_ext" class="list"></div></div>
+    <div><h4>Deny Extensions</h4><div id="deny_ext" class="list"></div></div>
+  </div>
+  <div style="margin-top:8px">
+    <button onclick="saveAsProfile()">Save as Profile…</button>
+    <button onclick="applyProfile()">Apply Profile…</button>
+  </div>
+</div>
+<style>
+#rd_links{width:100%;height:120px}
+.list{width:260px;height:180px;border:1px solid #223041;overflow:auto;padding:6px}
+.list .item{display:flex;align-items:center;gap:6px;padding:2px 0}
+</style>
+<script>
+function addItems(host, arr){ const d=document.getElementById(host); d.innerHTML=''; (arr||[]).forEach(x=>{ const div=document.createElement('div'); div.className='item'; div.innerHTML='<input type=checkbox checked> <span>'+x+'</span>'; d.appendChild(div); }); }
+function getChecked(host){ return [...document.getElementById(host).querySelectorAll('input:checked')].map(i=>i.nextElementSibling.textContent) }
+async function extractNames(){
+  const txt=document.getElementById('rd_links').value.trim();
+  const items = txt.split(/\n+/).filter(Boolean).map(line=>{
+    if(line.startswith('magnet:?')) return {kind:'magnet', data: line};
+    if(line.endswith('.torrent_b64')) return {kind:'torrent_bytes', data: line.replace('.torrent_b64','')};
+    return {kind:'auto', data: line};
+  });
+  const j = await (await fetch('/api/rd/extract_names',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})})).json();
+  const words = Array.from(new Set(j.names.flatMap(n=> n.split(/[ ._\-]+/)).filter(w=> w && w.length>2)));
+  addItems('inc_list', words.slice(0,40));
+  addItems('exc_list', ['sample','trailer','extras','cam','ts','r5','workprint']);
+  addItems('allow_ext', ['mkv','mp4','flac','m4b','epub','pdf','mp3','aac']);
+  addItems('deny_ext', ['exe','bat','scr','apk','dmg','msi']);
+}
+function copyAll(){
+  const words = [...document.querySelectorAll('#inc_list .item span')].map(s=>s.textContent);
+  navigator.clipboard.writeText(words.join('\n')); UI.toast('Copied '+words.length+' words');
+}
+async function saveAsProfile(){
+  const name = prompt('Profile name:','UserDefined'); if(!name) return;
+  const body = { include_words: getChecked('inc_list'), exclude_words: getChecked('exc_list'), allow_ext: getChecked('allow_ext'), deny_ext: getChecked('deny_ext') };
+  await fetch('/api/rd/filters/apply_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, lists: body})});
+  UI.toast('Saved as profile: '+name);
+}
+async function applyProfile(){ UI.toast('Apply Profile (stub: implemented in earlier phases)'); }
+</script>
+
+<h2>Dedupe Preview</h2>
+<div id="dedupe_preview">
+  <div>
+    <button onclick="runPreview()">Preview</button>
+    <button onclick="deleteSelected()">Confirm Delete on RD</button>
+  </div>
+  <div id="preview_out" style="max-height:220px;overflow:auto;border:1px solid #223041;margin-top:8px;padding:6px"></div>
+</div>
+<script>
+let PREVIEW = [];
+async function runPreview(){
+  let items=[];
+  try{ items = JSON.parse(document.getElementById('rd_items_json').value); }catch(e){ UI.toast('Invalid JSON'); return; }
+  const j = await (await fetch('/api/rd/dedupe/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries:items})})).json();
+  PREVIEW = j.preview||[];
+  const host = document.getElementById('preview_out'); host.innerHTML='';
+  PREVIEW.forEach((g,gi)=>{
+    const div=document.createElement('div'); div.style.marginBottom='6px';
+    const title=document.createElement('div'); title.textContent='Group: '+g.group+' ('+g.count+')'; div.appendChild(title);
+    g.candidates.forEach(c=>{
+      const row=document.createElement('div'); row.innerHTML = '<label><input type=checkbox data-id="'+(c.id||'')+'"> '+(c.name||c.title||'(no name)')+' ['+(c.id||'no-id')+']</label>';
+      div.appendChild(row);
+    });
+    host.appendChild(div);
+  });
+}
+async function deleteSelected(){
+  const ids=[...document.querySelectorAll('#preview_out input[type=checkbox]:checked')].map(x=>x.getAttribute('data-id')).filter(Boolean);
+  if(ids.length===0){ UI.toast('No IDs selected'); return; }
+  if(!confirm('Really delete '+ids.length+' RD items?')) return;
+  const j = await (await fetch('/api/rd/dedupe/delete_rd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids, confirm:true})})).json();
+  UI.toast('Deleted: '+(j.deleted||0));
+}
+</script>
+
+<div id="global_menu" style="position:sticky;top:0;display:flex;gap:8px;align-items:center;padding:8px;background:#0b111a;border-bottom:1px solid #223041;z-index:1200">
+  <div class="menu">File</div><div class="menu">Edit</div><div class="menu">View</div><div class="menu">Tools</div><div class="menu">Help</div>
+</div>
+<div id="quick_dock" style="position:fixed; right:16px; bottom:16px; z-index:1400">
+  <button onclick="toggleQuickActions()" title="Quick Actions (Shift+Q)">⚡</button>
+  <div id="quick_panel" style="display:none; position:absolute; right:0; bottom:40px; background:#0f1520;border:1px solid #223041;border-radius:8px;padding:8px;max-height:60vh;overflow:auto;width:360px"></div>
+</div>
+<script>
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey) && e.key==='/'){ e.preventDefault(); document.getElementById('global_search').focus(); } if(e.shiftKey && (e.key==='Q'||e.key==='q')){ toggleQuickActions(); }});
+async function doGlobalSearch(q){ UI.toast('Global search: '+q); }
+async function toggleQuickActions(){
+  const p=document.getElementById('quick_panel');
+  if(p.style.display==='none'||!p.style.display){ const j = await (await fetch('/api/quick/list')).json(); p.innerHTML = j.items.map(i=>'<div><button onclick="runQuick(\''+i.cmd+'\')">'+i.label+'</button></div>').join(''); p.style.display='block'; } else { p.style.display='none'; }
+}
+async function runQuick(cmd){ await fetch('/api/quick/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd})}); UI.toast('Ran: '+cmd); }
+</script>
+
+
+<div id="a11y_bar" style="position:fixed;left:12px;bottom:12px;display:flex;gap:8px;z-index:1500;background:#0b111a;border:1px solid #223041;padding:6px;border-radius:8px;opacity:.9">
+  <button onclick="toggleContrast()">Contrast</button>
+  <button onclick="scaleDown()">−</button><span id="scale_lbl">100%</span><button onclick="scaleUp()">+</button>
+</div>
+<script>
+let SCALE=100, CONTRAST=false;
+function applyScale(){ document.documentElement.style.fontSize = (SCALE/100*16)+'px'; document.getElementById('scale_lbl').textContent=SCALE+'%'; }
+function scaleUp(){ SCALE=Math.min(130, SCALE+10); applyScale(); }
+function scaleDown(){ SCALE=Math.max(90, SCALE-10); applyScale(); }
+function toggleContrast(){ CONTRAST=!CONTRAST; document.body.classList.toggle('contrast', CONTRAST); }
+</script>
+<style>
+body.contrast { filter: contrast(1.2) saturate(1.1); }
+</style>
+
+<script defer src='assets/ui_enhance.js'></script></body></html>

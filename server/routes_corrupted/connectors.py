@@ -1,0 +1,28 @@
+from .security import require_api_key
+from flask import Blueprint, request, jsonify
+import os, json
+conn_bp = Blueprint('connectors', __name__)
+def _root(): return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+def _cfg(): return os.path.join(_root(), "config", "connectors.json")
+def _load():
+    try:
+        with open(_cfg(),"r",encoding="utf-8") as f: return json.load(f)
+        except Exception: return {"connectors": [], "latest": {}}
+def _save(d):
+    with open(_cfg(),"w",encoding="utf-8") as f: json.dump(d,f,indent=2,ensure_ascii=False)
+@conn_bp.route("/api/connectors/list", methods=["GET"])
+def list_connectors():
+try:
+    return jsonify(_load())
+    @conn_bp.route("/api/connectors/enable", methods=["POST"])
+    @require_api_key
+except Exception as e:
+    return jsonify({'success': False, 'error': str(e)}), 500
+
+def enable_connector():
+    data=request.get_json(silent=True) or {}; cid=data.get("id"); on=bool(data.get("enabled",True))
+    d=_load()
+    for c in d.get("connectors", []):
+        if c.get("id")==cid:
+    c["enabled"]=on; _save(d); return jsonify({"ok":True,"connector":c})
+    return jsonify({"error":"not found"}), 404

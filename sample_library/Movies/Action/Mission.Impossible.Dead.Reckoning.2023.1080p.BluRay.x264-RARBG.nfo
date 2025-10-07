@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<movie>
+    <title>Mission Impossible Dead Reckoning</title>
+    <year>2023</year>
+    <rating>8.6</rating>
+    <plot>High-octane action thriller from 2023</plot>
+    <genre>Action / Thriller</genre>
+    <director>Sample Director</director>
+    <runtime>134 min</runtime>
+    <mpaa>PG-13</mpaa>
+</movie>

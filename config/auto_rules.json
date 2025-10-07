@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "if": {
+        "host": "example.com"
+      },
+      "then": {
+        "dest": "Downloads/Example",
+        "priority": 1
+      }
+    }
+  ]
+}

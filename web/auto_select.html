@@ -1,0 +1,93 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Smart Auto‑Select</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Smart Auto‑Select</strong> <a class="btn" href="rd_browser.html">RD Browser</a> <a class="btn" href="feeds.html">Feeds</a> <a class="btn" href="downloader.html">Downloader</a></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Query</h3>
+      <input id="q" placeholder="e.g., Example Movie 2021 or Show S01E05" style="width:70%">
+      <button id="scan">Find Candidates</button> <button id="best">Select Best</button>
+      <div style="margin-top:6px">Save to: <input id="save_to" placeholder="optional path" style="width:60%"></div>
+      <div class="card" style="margin-top:8px">
+        <h4>Candidates</h4>
+        <table class="tbl"><thead><tr><th>Score</th><th>Source</th><th>Title</th><th>Flags</th><th>Size</th><th></th></tr></thead><tbody id="tb"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Auto‑Select Rules</h3>
+      <div id="rules">Loading…</div>
+      <div style="margin-top:6px"><button id="save_rules">Save Rules</button></div>
+      <div class="card" style="margin-top:12px">
+        <h4>Batch from Search Tasks</h4>
+        <button id="batch">Queue Best for All Tasks</button>
+        <div id="bstat" style="margin-top:6px">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function fmtMB(x){ return x? (x>=1024? (Math.round(x/102.4)/10+' GB') : (x+' MB')) : '—'; }
+function flagsFromTitle(t){
+  const tl=(t||'').toLowerCase(); const f=[];
+  if(tl.includes('2160p')||tl.includes('uhd')||tl.includes('4k')) f.push('4K');
+  if(tl.includes('dolby.vision')||tl.includes('dovi')||tl.includes(' dv')) f.push('DV');
+  if(tl.includes('hdr')) f.push('HDR');
+  if(tl.includes('atmos')) f.push('Atmos');
+  return f.join(', ');
+}
+async function loadRules(){
+  const r=await (await fetch('/api/auto/rules_get')).json();
+  rules.innerHTML = `
+  <div><strong>Preferences</strong></div>
+  <label><input type="checkbox" id="p4k" ${r.prefer&&r.prefer.uhd_4k?'checked':''}> Prefer 4K/UHD</label><br>
+  <label><input type="checkbox" id="pdv" ${r.prefer&&r.prefer.dolby_vision?'checked':''}> Prefer Dolby Vision</label><br>
+  <label><input type="checkbox" id="phdr" ${r.prefer&&r.prefer.hdr?'checked':''}> Prefer HDR</label><br>
+  <label><input type="checkbox" id="pat" ${r.prefer&&r.prefer.atmos?'checked':''}> Prefer Atmos</label><br>
+  <div style="margin-top:6px">Min size (MB): <input id="min" type="number" value="${r.min_size_mb||0}" style="width:120px"> · Max (GB): <input id="max" type="number" value="${r.max_size_gb||0}" style="width:120px"></div>
+  <div style="margin-top:6px">Allowed kinds (CSV): <input id="kinds" value="${(r.allowed_kinds||[]).join(', ')}" style="width:70%"></div>
+  <div style="margin-top:6px">Prefer source order (CSV): <input id="psrc" value="${(r.prefer_source_order||[]).join(', ')}" style="width:70%"></div>
+  <div style="margin-top:6px">Exclude tokens (CSV): <input id="ex" value="${(r.exclude_tokens||[]).join(', ')}" style="width:70%"></div>
+  <div style="margin-top:6px">Title must include any (CSV, optional): <input id="inc" value="${(r.title_must_include_any||[]).join(', ')}" style="width:70%"></div>
+  <div style="margin-top:6px">Title must exclude any (CSV, optional): <input id="exc" value="${(r.title_must_exclude_any||[]).join(', ')}" style="width:70%"></div>
+  <div style="margin-top:6px"><strong>Weights</strong> (quality/size/recency/source): <input id="wq" type="number" value="${(r.weights&&r.weights.quality)||60}" style="width:80px"> / <input id="ws" type="number" value="${(r.weights&&r.weights.size)||30}" style="width:80px"> / <input id="wr" type="number" value="${(r.weights&&r.weights.recency)||10}" style="width:80px"> / <input id="wo" type="number" value="${(r.weights&&r.weights.source)||10}" style="width:80px"></div>
+  `;
+}
+save_rules.onclick=async ()=>{
+  await fetch('/api/auto/rules_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    prefer:{uhd_4k:p4k.checked,dolby_vision:pdv.checked,hdr:phdr.checked,atmos:pat.checked},
+    min_size_mb: parseInt(min.value)||0, max_size_gb: parseInt(max.value)||0,
+    allowed_kinds: kinds.value.split(',').map(s=>s.trim()).filter(Boolean),
+    prefer_source_order: psrc.value.split(',').map(s=>s.trim()).filter(Boolean),
+    exclude_tokens: ex.value.split(',').map(s=>s.trim()).filter(Boolean),
+    title_must_include_any: inc.value.split(',').map(s=>s.trim()).filter(Boolean),
+    title_must_exclude_any: exc.value.split(',').map(s=>s.trim()).filter(Boolean),
+    weights:{quality:parseInt(wq.value)||60,size:parseInt(ws.value)||30,recency:parseInt(wr.value)||10,source:parseInt(wo.value)||10}
+  })});
+  alert('Rules saved.');
+};
+scan.onclick=async ()=>{
+  const j=await (await fetch('/api/auto/candidates?q='+encodeURIComponent(q.value))).json();
+  tb.innerHTML = (j.candidates||[]).slice(0,200).map(c=>`<tr><td>${c.score}</td><td>${c.kind}</td><td>${c.title}</td><td>${(c.why||[]).join(', ')||flagsFromTitle(c.title)}</td><td>${fmtMB(c.size_mb)}</td><td><button class="qb" data-q="${encodeURIComponent(c.title)}" data-title="${encodeURIComponent(c.title)}" data-link="${encodeURIComponent(c.link||'')}" data-kind="${c.kind}">Queue</button></td></tr>`).join('') || '<tr><td colspan="6">No candidates.</td></tr>';
+};
+best.onclick=async ()=>{
+  const j=await (await fetch('/api/auto/select?q='+encodeURIComponent(q.value))).json();
+  if(!(j.best)){ alert('No candidates'); return; }
+  const b=j.best; if(!confirm('Queue best: '+b.title+' (score '+b.score+') ?')) return;
+  const r=await (await fetch('/api/auto/queue_best',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:q.value, save_to: save_to.value})})).json();
+  if(r.ok){ alert('Queued '+(r.selected&&r.selected.title||q.value)); }
+};
+document.addEventListener('click', async (e)=>{
+  const qb=e.target.closest('button.qb'); if(!qb) return;
+  // Manual queue of any candidate by calling queue_best on its title as query (simple path)
+  const rq=decodeURIComponent(qb.dataset.q);
+  const r=await (await fetch('/api/auto/queue_best',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:rq, save_to: save_to.value})})).json();
+  if(r.ok){ alert('Queued '+(r.selected&&r.selected.title||rq)); }
+});
+batch.onclick=async ()=>{
+  const r=await (await fetch('/api/auto/batch_from_tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({save_to: save_to.value})})).json();
+  if(r.ok){ bstat.textContent = 'Queued: '+r.queued+' · Misses: '+r.misses; }
+};
+document.addEventListener('DOMContentLoaded', loadRules);
+</script>
+</body></html>

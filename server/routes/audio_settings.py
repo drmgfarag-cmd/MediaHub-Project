@@ -1,0 +1,25 @@
+from flask import Blueprint, jsonify, request
+import os, json
+
+aset_bp = Blueprint('aset', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+CFG=os.path.join(STO,'config.json')
+
+def _cfg():
+    try: return json.load(open(CFG,'r',encoding='utf-8'))
+    except Exception: return {}
+
+@aset_bp.route('/api/audio/settings_get')
+def get_():
+    c=_cfg().get('audio',{})
+    return jsonify(c)
+
+@aset_bp.route('/api/audio/settings_set', methods=['POST'])
+def set_():
+    js=request.get_json(silent=True) or {}
+    cfg=_cfg(); cfg['audio']=cfg.get('audio',{})
+    for k in ('gapless','crossfade_ms','replaygain_mode','preamp_db','lyrics_provider','lyrics_cache','mood_rules'):
+        if k in js: cfg['audio'][k]=js[k]
+    json.dump(cfg, open(CFG,'w',encoding='utf-8'), indent=2)
+    return jsonify({'ok':True})

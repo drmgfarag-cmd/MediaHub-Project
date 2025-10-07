@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub Book Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .reader-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #252525;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #2a2a2a;
+            border-bottom: 1px solid #333;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-header .book-info {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .toc {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .toc-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            transition: background 0.2s;
+        }
+
+        .toc-item:hover {
+            background: #333;
+        }
+
+        .toc-item.active {
+            background: #0066cc;
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            height: 60px;
+            background: #252525;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 15px;
+        }
+
+        .toolbar button {
+            background: #333;
+            border: none;
+            color: #e0e0e0;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toolbar button:hover {
+            background: #444;
+        }
+
+        .toolbar button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .toolbar .spacer {
+            flex: 1;
+        }
+
+        .toolbar .page-info {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .reader-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            background: #1a1a1a;
+        }
+
+        .reader-content {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #252525;
+            padding: 60px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            line-height: 1.8;
+            font-size: 18px;
+        }
+
+        .reader-content h1, .reader-content h2, .reader-content h3 {
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .reader-content p {
+            margin-bottom: 20px;
+        }
+
+        .reader-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 60px;
+            right: 0;
+            width: 300px;
+            background: #252525;
+            border-left: 1px solid #333;
+            padding: 20px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+
+        .settings-panel.visible {
+            transform: translateX(0);
+        }
+
+        .settings-group {
+            margin-bottom: 25px;
+        }
+
+        .settings-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .settings-group input[type="range"] {
+            width: 100%;
+        }
+
+        .settings-group select {
+            width: 100%;
+            padding: 8px;
+            background: #333;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 5px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-size: 24px;
+            color: #888;
+        }
+
+        .toggle-sidebar {
+            position: fixed;
+            left: 10px;
+            bottom: 20px;
+            background: #333;
+            border: none;
+            color: #e0e0e0;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+
+        .toggle-sidebar:hover {
+            background: #444;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">Loading book...</div>
+
+    <div class="reader-container" id="readerContainer" style="display: none;">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="bookTitle">Book Title</h2>
+                <div class="book-info" id="bookAuthor">Author</div>
+            </div>
+            <div class="toc" id="toc">
+                <!-- Table of contents will be populated here -->
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="toolbar">
+                <button onclick="toggleSidebar()">☰ Contents</button>
+                <button onclick="previousChapter()" id="prevBtn">← Previous</button>
+                <button onclick="nextChapter()" id="nextBtn">Next →</button>
+                <div class="spacer"></div>
+                <div class="page-info" id="pageInfo">Chapter 1 of 10</div>
+                <button onclick="toggleSettings()">⚙ Settings</button>
+            </div>
+
+            <div class="reader-area" id="readerArea">
+                <div class="reader-content" id="readerContent">
+                    <!-- Book content will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-group">
+                <label>Font Size</label>
+                <input type="range" min="12" max="32" value="18" id="fontSizeSlider" oninput="updateFontSize(this.value)">
+                <span id="fontSizeValue">18px</span>
+            </div>
+
+            <div class="settings-group">
+                <label>Line Height</label>
+                <input type="range" min="1.2" max="2.5" step="0.1" value="1.8" id="lineHeightSlider" oninput="updateLineHeight(this.value)">
+                <span id="lineHeightValue">1.8</span>
+            </div>
+
+            <div class="settings-group">
+                <label>Theme</label>
+                <select id="themeSelect" onchange="updateTheme(this.value)">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="sepia">Sepia</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+
+    <script>
+        let currentChapter = 0;
+        let chapters = [];
+        let bookData = null;
+
+        // Simulate loading a book (in real implementation, this would fetch from server)
+        function loadBook() {
+            // Simulated book data
+            bookData = {
+                title: "Sample Book Title",
+                author: "Sample Author",
+                chapters: [
+                    {
+                        title: "Chapter 1: Introduction",
+                        content: "<h1>Chapter 1: Introduction</h1><p>This is the first chapter of the book. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p><p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>"
+                    },
+                    {
+                        title: "Chapter 2: The Journey Begins",
+                        content: "<h1>Chapter 2: The Journey Begins</h1><p>The story continues with our protagonist embarking on an epic adventure. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>"
+                    },
+                    {
+                        title: "Chapter 3: Challenges",
+                        content: "<h1>Chapter 3: Challenges</h1><p>Obstacles appear along the way. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>"
+                    }
+                ]
+            };
+
+            chapters = bookData.chapters;
+            
+            // Update UI
+            document.getElementById('bookTitle').textContent = bookData.title;
+            document.getElementById('bookAuthor').textContent = bookData.author;
+            
+            // Populate table of contents
+            const tocElement = document.getElementById('toc');
+            tocElement.innerHTML = '';
+            chapters.forEach((chapter, index) => {
+                const tocItem = document.createElement('div');
+                tocItem.className = 'toc-item';
+                tocItem.textContent = chapter.title;
+                tocItem.onclick = () => goToChapter(index);
+                tocElement.appendChild(tocItem);
+            });
+
+            // Show first chapter
+            goToChapter(0);
+
+            // Hide loading, show reader
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('readerContainer').style.display = 'flex';
+        }
+
+        function goToChapter(index) {
+            if (index < 0 || index >= chapters.length) return;
+
+            currentChapter = index;
+            const chapter = chapters[index];
+
+            // Update content
+            document.getElementById('readerContent').innerHTML = chapter.content;
+
+            // Update page info
+            document.getElementById('pageInfo').textContent = `Chapter ${index + 1} of ${chapters.length}`;
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = index === 0;
+            document.getElementById('nextBtn').disabled = index === chapters.length - 1;
+
+            // Update TOC active state
+            document.querySelectorAll('.toc-item').forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+
+            // Scroll to top
+            document.getElementById('readerArea').scrollTop = 0;
+        }
+
+        function previousChapter() {
+            goToChapter(currentChapter - 1);
+        }
+
+        function nextChapter() {
+            goToChapter(currentChapter + 1);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('hidden');
+        }
+
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('visible');
+        }
+
+        function updateFontSize(value) {
+            document.getElementById('readerContent').style.fontSize = value + 'px';
+            document.getElementById('fontSizeValue').textContent = value + 'px';
+        }
+
+        function updateLineHeight(value) {
+            document.getElementById('readerContent').style.lineHeight = value;
+            document.getElementById('lineHeightValue').textContent = value;
+        }
+
+        function updateTheme(theme) {
+            const readerContent = document.getElementById('readerContent');
+            const body = document.body;
+
+            if (theme === 'light') {
+                body.style.background = '#f5f5f5';
+                readerContent.style.background = '#ffffff';
+                readerContent.style.color = '#333';
+            } else if (theme === 'sepia') {
+                body.style.background = '#f4ecd8';
+                readerContent.style.background = '#fdf6e3';
+                readerContent.style.color = '#5c4a3a';
+            } else {
+                body.style.background = '#1a1a1a';
+                readerContent.style.background = '#252525';
+                readerContent.style.color = '#e0e0e0';
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                previousChapter();
+            } else if (e.key === 'ArrowRight') {
+                nextChapter();
+            }
+        });
+
+        // Load book on page load
+        window.onload = () => {
+            setTimeout(loadBook, 1000); // Simulate loading delay
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Downloader — Columns</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.col{display:flex;align-items:center;gap:8px;margin:4px 0}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Downloader — Column Presets</strong> <button id="apply_jd">Apply JD Default</button> <button id="save">Save</button></div>
+  <div class="card">
+    <h3>Order</h3>
+    <div id="order">—</div>
+    <h3 style="margin-top:10px">Hidden</h3>
+    <div id="hidden">—</div>
+  </div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/dl/columns_get')).json();
+  order.innerHTML = (j.order||[]).map(c=>`<div class="col"><input type="text" value="${c}" data-col="${c}"></div>`).join('') || 'No columns';
+  hidden.innerHTML = (j.hidden||[]).map(c=>`<div class="col"><input type="text" value="${c}" data-hid="${c}"></div>`).join('') || 'None';
+}
+save.onclick=async ()=>{
+  const orderCols=[...document.querySelectorAll('[data-col]')].map(i=>i.value.trim()).filter(Boolean);
+  const hiddenCols=[...document.querySelectorAll('[data-hid]')].map(i=>i.value.trim()).filter(Boolean);
+  await fetch('/api/dl/columns_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order:orderCols, hidden:hiddenCols})});
+  alert('Saved.');
+};
+apply_jd.onclick=async ()=>{
+  await fetch('/api/dl/columns_preset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'jd'})});
+  load();
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

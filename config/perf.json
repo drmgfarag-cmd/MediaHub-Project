@@ -1,0 +1,4 @@
+{
+  "cpu_budget": "balanced",
+  "table_virtualization": true
+}

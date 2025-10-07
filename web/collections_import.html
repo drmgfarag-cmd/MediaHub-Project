@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Collections — Import Presets</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Collections — Import Presets</strong> <a class="btn" href="collections_browser.html">Browse</a> <a class="btn" href="timelines.html">Timelines</a></div>
+  <div class="card">
+    <h3>Presets</h3>
+    <div id="presets">Loading…</div>
+  </div>
+</div>
+<script>
+async function load(){
+  const p=await (await fetch('/api/collections/presets')).json();
+  presets.innerHTML = (p.presets||[]).map(x=>`<div style="margin:6px 0">
+    <strong>${x.name}</strong> <code>${x.id}</code> 
+    Refresh: <select data-id="${x.id}" class="iv">
+      <option value="0">Manual</option><option value="1440">Daily</option><option value="10080">Weekly</option>
+    </select> <button class="imp" data-id="${x.id}">Import/Update</button></div>`).join('') || 'None';
+}
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.imp'); if(!b) return;
+  const id=b.dataset.id; const iv= b.parentElement.querySelector('.iv').value;
+  const r=await (await fetch('/api/collections/import_preset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({preset_id:id, refresh_interval_min: parseInt(iv)||0})})).json();
+  alert(r.ok? 'Imported' : 'Failed');
+});
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

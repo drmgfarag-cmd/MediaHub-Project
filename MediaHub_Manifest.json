@@ -1,0 +1,40 @@
+{
+  "features": [
+    "UI Ground Rules",
+    "Hero Trailers (Movies/TV) with poster fallback",
+    "Quick Actions Sets",
+    "Context Panels & Compact Checklists"
+  ],
+  "apis": [
+    "/api/backup/create",
+    "/download/backups/<filename>",
+    "/api/support/collect",
+    "/api/rd/filters/catalog",
+    "/api/rd/filters/apply_profile",
+    "/api/rss/filters/catalog",
+    "/api/rss/filters/config",
+    "/api/rss/filters/apply_profile",
+    "/api/providers/catalog",
+    "/api/providers/profiles",
+    "/api/providers/apply_profile",
+    "/api/subs/policy",
+    "/api/rd/dedupe/preview",
+    "/api/rd/dedupe/delete",
+    "/api/rd/clean",
+    "/api/downloader/parse",
+    "/api/downloader/queue",
+    "/api/downloader/start",
+    "/api/downloader/stop",
+    "/api/downloader/retry_failed",
+    "/api/downloader/detect_hls",
+    "/api/downloader/move_finished",
+    "/api/collections/fetch",
+    "/api/collections/save",
+    "/api/library/rebuild_cache",
+    "/api/library/reindex",
+    "/api/self_audit/run",
+    "/api/guard/scan",
+    "/api/trailer/hero",
+    "/integrations/status"
+  ]
+}

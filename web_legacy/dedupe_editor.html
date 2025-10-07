@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Dedupe Editor</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px} code{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:2px 4px}</style>
+</head><body><div class="wrap">
+  <a href="tools.html">&larr; Tools</a><h1>Dedupe Editor</h1>
+  <div class="card"><button onclick="scan()">Scan</button></div>
+  <div class="card" id="out"></div>
+</div>
+<script>
+async function scan(){
+  const j=await (await fetch('/api/dedupe/scan')).json(); const out=document.getElementById('out'); out.innerHTML='';
+  (j.dupes||[]).forEach(g=>{ const card=document.createElement('div'); card.style='border:1px solid #334155;border-radius:12px;margin:8px 0;padding:8px';
+    const head=document.createElement('div'); head.textContent='Key: '+g.key+' ('+g.items.length+')'; head.style='font-weight:600'; card.appendChild(head);
+    g.items.forEach(i=>{ const p=document.createElement('div'); p.innerHTML='<code>'+i.path+'</code>'; card.appendChild(p); });
+    out.appendChild(card);
+  });
+}
+</script></body></html>

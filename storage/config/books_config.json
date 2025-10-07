@@ -1,0 +1,11 @@
+{
+  "google_books_enabled": true,
+  "api_key": "AIzaSyA8OHWm7_imDTRCAEvC7rja2NZCInTw3d8",
+  "reading_preferences": {
+    "default_font": "Georgia",
+    "default_font_size": 18,
+    "default_line_height": 1.8,
+    "default_theme": "dark"
+  },
+  "library_path": "/storage/books"
+}

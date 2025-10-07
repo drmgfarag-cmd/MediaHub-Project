@@ -1,0 +1,77 @@
+<!doctype html><html><head><meta charset="utf-8"><title>RD Manager — Add/Browse</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>#bx{width:100%;height:150px} .list{max-height:50vh;overflow:auto}</style></head>
+<style>
+#drop{border:1px dashed var(--fgDim); padding:10px; margin:6px 0; border-radius:8px; text-align:center}
+#drop.drag{background:rgba(255,255,255,0.05)}
+#inbox .row{display:flex; gap:8px; align-items:center}
+#inbox .row input[type=checkbox]{margin-right:6px}
+</style>
+
+<body><div class="wrap">
+  <div class="toolbar"><a href="rd_manager.html">← RD Manager</a> · <strong>Add / Browse</strong></div>
+  <div class="card">
+    <h3>Add Items</h3><div class='muted'>Paste links/magnets/file names, or <strong>Drop .torrent files</strong> here.</div>
+    <textarea id="bx" placeholder="Paste RD links, magnets, torrent file names (one per line)"></textarea>
+    Save-To: <input id="save" value="/Downloads" style="width:320px">
+    <button id="add">Add to Inbox</button> <button id="queue">Queue Selected → Downloader</button>
+  <div id="drop">Drop .torrent files to add</div>
+    <button id="dd">Deduplicate</button> <button id="ddr">Show Dedupe Report</button>
+    <button id="cp">Copy Save-To Paths</button>
+  </div>
+  <div class="card"><h3>Export Non‑Duplicates</h3>
+    <button class="ex" data-k="link">RD Links</button> <button class="ex" data-k="magnet">Magnets</button> <button class="ex" data-k="file">Torrent File Names</button> <button class="ex" data-k="name">Plain File Names</button>
+  </div>
+  <div class="card">
+    <h3>Inbox</h3>
+    <div class="list" id="list">—</div>
+  </div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/rd/inbox')).json();
+  list.innerHTML = (j.items||[]).map(it=>`<div class="row"><label><input type="checkbox" class="sel" data-id="${it.id}"></label> <span class="badge">${it.type}</span> ${it.value} <span class="badge">${it.save_to}</span></div>`).join('') || 'Empty';
+}
+add.onclick=async ()=>{
+  const lines=bx.value.split('\n').map(x=>x.trim()).filter(Boolean);
+  if(!lines.length) return;
+  const items=lines.map(v=>({type: (v.startswith? (v.startswith('magnet:')?'magnet':'link'):'link'), value:v, save_to: save.value}));
+  await fetch('/api/rd/inbox_add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})});
+  bx.value=''; load();
+};
+dd.onclick=async ()=>{ await fetch('/api/rd/inbox_dedupe',{method:'POST'}); load(); };
+cp.onclick=async ()=>{ const r=await (await fetch('/api/rd/inbox_copy_paths')).json(); navigator.clipboard && navigator.clipboard.writeText(r.paths); alert('Paths copied'); };
+document.addEventListener('DOMContentLoaded', load);
+
+ddr.onclick=async ()=>{
+  const r=await (await fetch('/api/rd/inbox_dedupe_report',{method:'POST'})).json();
+  alert('Removed '+r.removed_total+'\nLinks: '+r.removed_by_type.link+'\nMagnets: '+r.removed_by_type.magnet+'\nFiles: '+r.removed_by_type.file+'\nNames: '+r.removed_by_type.name);
+  load();
+};
+document.querySelectorAll('.ex').forEach(btn=> btn.addEventListener('click', async ()=>{
+  const k=btn.dataset.k; const r=await (await fetch('/api/rd/inbox_export?kind='+k)).json();
+  alert('Exported '+k+' to '+r.file+' (storage/exports)');
+}));
+
+const drop=document.getElementById('drop');
+drop.addEventListener('dragover', e=>{e.preventDefault(); drop.classList.add('drag');});
+drop.addEventListener('dragleave', e=> drop.classList.remove('drag'));
+drop.addEventListener('drop', async e=>{
+  e.preventDefault(); drop.classList.remove('drag');
+  const fd=new FormData();
+  [...e.dataTransfer.files].forEach(f=>fd.append('files',f));
+  const sv=save_to.value||''; fd.append('save_to', sv);
+  await fetch('/api/rd/inbox_add_files',{method:'POST', body:fd});
+  load();
+});
+
+queue.onclick=async ()=>{
+  const ids=[...document.querySelectorAll('.pick:checked')].map(x=>x.dataset.id);
+  if(!ids.length){alert('Pick items to queue'); return;}
+  const sv=save_to.value||'';
+  const r=await (await fetch('/api/rd/inbox_queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids, save_to: sv})})).json();
+  alert('Queued '+r.queued+' items to Downloader as package '+(sv||'RD Inbox'));
+  load();
+};
+</script>
+</body></html>

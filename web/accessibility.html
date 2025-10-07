@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Accessibility</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.high-contrast body, body.high-contrast {filter: contrast(1.1) brightness(1.05)}
+body.high-contrast .card{border-color:#cbd6f7}
+body.rtl{direction:rtl}
+#kb {font-size:14px}
+#kb table{border-collapse:collapse;width:100%}
+#kb th,#kb td{border:1px solid #1f2537;padding:6px 8px;text-align:left}
+</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Accessibility</strong></div>
+  <div class="card"><h3>Display</h3>
+    <label><input type="checkbox" id="hc"> High-contrast mode</label>
+    <label style="margin-left:12px"><input type="checkbox" id="rtl"> RTL UI</label>
+  </div>
+  <div class="card"><h3>Keyboard Map</h3>
+    <div id="kb">
+      <table>
+        <tr><th>Action</th><th>Shortcut</th></tr>
+        <tr><td>Command Palette</td><td>Ctrl/Cmd+K</td></tr>
+        <tr><td>Global Search</td><td>/ (slash)</td></tr>
+        <tr><td>Navigate Rails</td><td>↑/↓ then Enter</td></tr>
+        <tr><td>Play/Pause Trailer</td><td>Space (on hero)</td></tr>
+        <tr><td>Open Logs</td><td>Alt+L</td></tr>
+        <tr><td>Open Keyboard Map</td><td>?</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+async function init(){
+  const c=await (await fetch('/api/config/get')).json();
+  hc.checked=!!(c.accessibility&&c.accessibility.high_contrast); rtl.checked=!!(c.accessibility&&c.accessibility.rtl_ui);
+}
+hc.onchange=async ()=>{ const c=await (await fetch('/api/config/get')).json(); c.accessibility=c.accessibility||{}; c.accessibility.high_contrast=hc.checked; await fetch('/api/config/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}); alert('Saved'); };
+rtl.onchange=async ()=>{ const c=await (await fetch('/api/config/get')).json(); c.accessibility=c.accessibility||{}; c.accessibility.rtl_ui=rtl.checked; await fetch('/api/config/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}); alert('Saved'); };
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body></html>

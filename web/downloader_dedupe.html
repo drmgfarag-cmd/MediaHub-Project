@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Dedupe Review</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="downloads.html">← Downloads</a> · <strong>Dedupe Review</strong> <button id="scan">Scan</button></div>
+  <div class="card" id="out">–</div>
+</div>
+<script>
+async function scan(){ const j=await (await fetch('/api/dedupe/scan')).json(); 
+  out.innerHTML = (j.dupes||[]).length? (j.dupes.map(d=>`<div><strong>${d.key}</strong><div>${d.hits.map(h=>h.source+' '+(h.id||h.path||'')+' '+(h.size||0)).join('<br>')}</div></div>`).join('<hr>')) : 'No duplicates found.'; }
+document.getElementById('scan').onclick=scan;
+document.addEventListener('DOMContentLoaded', scan);
+</script>
+</body></html>

@@ -1,0 +1,131 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Editor — Pro</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+#ed{width:100%;height:48vh;border:1px solid #1f2537;border-radius:12px;padding:8px;background:#0b1220;color:#e8ebf5;font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+#sb{display:flex;gap:12px;margin-top:6px;opacity:.9}
+#tabs{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}
+.tab{padding:6px 10px;border:1px solid #1f2537;border-radius:999px;cursor:pointer}
+.tab.cur{background:#121a2d}
+.menu{display:flex;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.menu .m{position:relative}
+.menu .m > button{padding:6px 10px}
+.menu .drop{position:absolute;display:none;z-index:1000;min-width:220px;background:#0b1220;border:1px solid #1f2537;border-radius:10px}
+.menu .drop .it{padding:8px 10px;cursor:pointer}
+.menu .drop .it:hover{background:#121a2d}
+</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Editor — Pro</strong></div>
+  <div class="menu">
+    <div class="m"><button>File ▾</button><div class="drop">
+      <div class="it" data-a="new">New</div>
+      <div class="it" data-a="open">Open…</div>
+      <div class="it" data-a="save">Save</div>
+      <div class="it" data-a="saveall">Save All</div>
+      <div class="it" data-a="close">Close Tab</div>
+    </div></div>
+    <div class="m"><button>Edit ▾</button><div class="drop">
+      <div class="it" data-a="undo">Undo</div>
+      <div class="it" data-a="redo">Redo</div>
+      <div class="it" data-a="cut">Cut</div>
+      <div class="it" data-a="copy">Copy</div>
+      <div class="it" data-a="paste">Paste</div>
+      <div class="it" data-a="dup">Duplicate Line</div>
+      <div class="it" data-a="del">Delete Line</div>
+    </div></div>
+    <div class="m"><button>Search ▾</button><div class="drop">
+      <div class="it" data-a="find">Find…</div>
+      <div class="it" data-a="replace">Replace…</div>
+      <div class="it" data-a="diff">Open Diff View</div>
+    </div></div>
+    <div class="m"><button>View ▾</button><div class="drop">
+      <div class="it" data-a="wrap">Toggle Word Wrap</div>
+      <div class="it" data-a="invis">Toggle Invisibles</div>
+    </div></div>
+  </div>
+  <div id="tabs"></div>
+  <div class="card">
+    <div>Open path: <input id="fp" placeholder="storage/samples/..." style="width:420px"> <button id="btnOpen">Open</button> <button id="fr">Find/Replace</button> <button id="up">Update/Repair Monaco</button></div>
+    <textarea id="ed" spellcheck="false"></textarea>
+    <div id="sb"><span id="ln">Ln 1</span> <span id="col">Col 1</span> <span id="eol">EOL: LF</span> <span id="enc">UTF‑8</span> <span id="tab">Tab: 2</span></div>
+  </div>
+  <div class="card">
+    <h3>Diff (side‑by‑side)</h3>
+    <div id="diff"><textarea id="a" placeholder="Left" style="width:49%;height:28vh"></textarea><textarea id="b" placeholder="Right" style="width:49%;height:28vh"></textarea></div>
+    <button id="cmp">Compare</button> <span id="cmpo"></span>
+  </div>
+</div>
+<div id="find" class="modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center"><div class="pane" style="background:#0b1220;border:1px solid #1f2537;border-radius:12px;padding:12px;width:480px">
+  <h3>Find & Replace</h3>
+  <div>Find: <input id="q" style="width:90%"></div>
+  <div>Replace: <input id="r" style="width:90%"></div>
+  <div><label><input type="checkbox" id="rx"> Regex</label> <label><input type="checkbox" id="ww"> Whole word</label> <label><input type="checkbox" id="cs"> Match case</label> <label><input type="checkbox" id="sel"> Selection only</label></div>
+  <div style="margin-top:6px"><button id="ap">Apply</button> <button id="cl">Close</button></div>
+</div></div>
+<script>
+let tabs=[], active='', wrap=false, showInv=false;
+function renderTabs(){
+  tabsEl=document.getElementById('tabs');
+  tabsEl.innerHTML = tabs.map(t=>`<span class="tab ${t.path===active?'cur':''}" data-id="${t.path}">${t.name} ✕</span>`).join('') || '<span class="tab cur">Untitled</span>';
+}
+async function loadTabs(){
+  const j=await (await fetch('/api/editor/tabs')).json();
+  tabs=j.tabs||[]; active=j.active||''; renderTabs(); if(active){ const r=await (await fetch('/api/editor/open?path='+encodeURIComponent(active))).json(); ed.value=r.content||''; }
+}
+async function saveTabs(){ await fetch('/api/editor/tabs_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabs,active})}); }
+tabsEl=document.getElementById('tabs');
+tabsEl.addEventListener('click', async (e)=>{
+  const t=e.target.closest('.tab'); if(!t) return;
+  if(e.offsetX > t.offsetWidth-20){ // close
+    tabs = tabs.filter(x=> x.path!==t.dataset.id);
+    if(active===t.dataset.id){ active=(tabs[0]&&tabs[0].path)||''; }
+    await saveTabs(); renderTabs(); if(active){ const r=await (await fetch('/api/editor/open?path='+encodeURIComponent(active))).json(); ed.value=r.content||''; } else { ed.value=''; }
+  }else{
+    active=t.dataset.id; await saveTabs(); const r=await (await fetch('/api/editor/open?path='+encodeURIComponent(active))).json(); ed.value=r.content||'';
+  }
+});
+btnOpen.onclick=async ()=>{
+  const p=fp.value.trim(); if(!p) return;
+  const name=p.split('/').pop(); if(!tabs.find(t=>t.path===p)){ tabs.push({path:p,name:name}); }
+  active=p; await saveTabs(); renderTabs();
+  const r=await (await fetch('/api/editor/open?path='+encodeURIComponent(p))).json(); ed.value=r.content||'';
+};
+document.addEventListener('click',(e)=>{
+  const m=e.target.closest('.m'); document.querySelectorAll('.drop').forEach(d=>{ if(!m||!m.contains(d)) d.style.display='none'; });
+  if(m){ const d=m.querySelector('.drop'); d.style.display = d.style.display==='block' ? 'none':'block'; }
+});
+document.addEventListener('click', async (e)=>{
+  const it=e.target.closest('.drop .it'); if(!it) return;
+  const a=it.dataset.a;
+  if(a==='new'){ const ts=Date.now(); const p='storage/samples/new_'+ts+'.txt'; await fetch('/api/editor/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:p,content:''})}); fp.value=p; btnOpen.click(); }
+  if(a==='open'){ fp.focus(); }
+  if(a==='save'){ if(!active) return; await fetch('/api/editor/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:active,content: ed.value})}); }
+  if(a==='saveall'){ for(const t of tabs){ if(t.path){ await fetch('/api/editor/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:t.path,content: t.path===active? ed.value: ''})}); } } }
+  if(a==='close'){ const idx=tabs.findIndex(x=>x.path===active); if(idx>=0){ tabs.splice(idx,1); active=(tabs[0]&&tabs[0].path)||''; await saveTabs(); renderTabs(); if(active){ const r=await (await fetch('/api/editor/open?path='+encodeURIComponent(active))).json(); ed.value=r.content||''; } else { ed.value=''; } }
+  if(a==='undo'){ document.execCommand('undo'); }
+  if(a==='redo'){ document.execCommand('redo'); }
+  if(a==='cut'){ document.execCommand('cut'); }
+  if(a==='copy'){ document.execCommand('copy'); }
+  if(a==='paste'){ document.execCommand('paste'); }
+  if(a==='dup'){ const p=ed.selectionStart; const s=ed.value; const ls=s.substr(0,p).lastIndexOf('\n')+1; const le=s.indexOf('\n',p); const end = le===-1? s.length: le; const line=s.substring(ls,end); ed.value=s.substring(0,end)+'\n'+line+s.substring(end); }
+  if(a==='del'){ const p=ed.selectionStart; const s=ed.value; const ls=s.substr(0,p).lastIndexOf('\n')+1; const le=s.indexOf('\n',p); const end = le===-1? s.length: le; ed.value=s.substring(0,ls)+s.substring(end+(s[end]==='\n'?1:0)); }
+  if(a==='find'){ document.getElementById('find').style.display='flex'; }
+  if(a==='replace'){ document.getElementById('find').style.display='flex'; }
+  if(a==='diff'){ document.getElementById('a').value=ed.value; document.getElementById('b').focus(); }
+  if(a==='wrap'){ wrap=!wrap; ed.style.whiteSpace = wrap? 'pre-wrap':'pre'; }
+  if(a==='invis'){ showInv=!showInv; ed.style.backgroundImage = showInv? 'linear-gradient(0deg, rgba(255,255,255,.03) 1px, transparent 1px)' : 'none'; }
+});
+ed.addEventListener('keyup', ()=>{
+  const v=ed.value; const pos=ed.selectionStart;
+  const lines=v.substr(0,pos).split('\n'); const ln=lines.length; const col=lines[lines.length-1].length+1;
+  document.getElementById('ln').textContent='Ln '+ln; document.getElementById('col').textContent='Col '+col;
+});
+cmp.onclick=()=>{
+  const A=a.value.split('\n'); const B=b.value.split('\n');
+  let diff=[]; const max=Math.max(A.length,B.length);
+  for(let i=0;i<max;i++){ if((A[i]||'') !== (B[i]||'')){ diff.push('Line '+(i+1)+' differs'); } }
+  cmpo.textContent = diff.join(' · ') || 'No differences';
+};
+up.onclick=async ()=>{ const r=await (await fetch('/api/editor/monaco_update',{method:'POST'})).json(); alert('Monaco set to '+r.monaco_version+' (fallback stub)'); };
+document.addEventListener('DOMContentLoaded', loadTabs);
+</script>
+</body></html>

@@ -1,0 +1,236 @@
+{
+  "tiers": {
+    "tier1": {
+      "name": "Premium Groups",
+      "score_multiplier": 1.5,
+      "groups": [
+        {
+          "name": "CtrlHD",
+          "score": 100,
+          "specialties": [
+            "4K",
+            "HDR",
+            "Remux"
+          ]
+        },
+        {
+          "name": "FraMeSToR",
+          "score": 95,
+          "specialties": [
+            "BluRay",
+            "4K"
+          ]
+        },
+        {
+          "name": "KRaLiMaRKo",
+          "score": 90,
+          "specialties": [
+            "WEB-DL",
+            "4K"
+          ]
+        },
+        {
+          "name": "HONE",
+          "score": 88,
+          "specialties": [
+            "WEB-DL",
+            "HDR"
+          ]
+        },
+        {
+          "name": "FLUX",
+          "score": 85,
+          "specialties": [
+            "WEB-DL",
+            "1080p"
+          ]
+        },
+        {
+          "name": "NTb",
+          "score": 83,
+          "specialties": [
+            "WEB-DL",
+            "TV"
+          ]
+        },
+        {
+          "name": "TOMMY",
+          "score": 80,
+          "specialties": [
+            "WEB-DL",
+            "Movies"
+          ]
+        }
+      ]
+    },
+    "tier2": {
+      "name": "Good Groups",
+      "score_multiplier": 1.2,
+      "groups": [
+        {
+          "name": "Cytsunee",
+          "score": 75,
+          "specialties": [
+            "WEB-DL",
+            "1080p"
+          ]
+        },
+        {
+          "name": "RARBG",
+          "score": 70,
+          "specialties": [
+            "General",
+            "Popular"
+          ]
+        },
+        {
+          "name": "YTS",
+          "score": 65,
+          "specialties": [
+            "Movies",
+            "Small Size"
+          ]
+        },
+        {
+          "name": "EZTV",
+          "score": 60,
+          "specialties": [
+            "TV Shows",
+            "Fast"
+          ]
+        },
+        {
+          "name": "TGx",
+          "score": 58,
+          "specialties": [
+            "General",
+            "Variety"
+          ]
+        },
+        {
+          "name": "1337x",
+          "score": 55,
+          "specialties": [
+            "General",
+            "Community"
+          ]
+        }
+      ]
+    },
+    "tier3": {
+      "name": "Acceptable Groups",
+      "score_multiplier": 1.0,
+      "groups": [
+        {
+          "name": "OFT",
+          "score": 50,
+          "specialties": [
+            "General"
+          ]
+        },
+        {
+          "name": "PublicHD",
+          "score": 45,
+          "specialties": [
+            "HD",
+            "General"
+          ]
+        },
+        {
+          "name": "YIFY",
+          "score": 40,
+          "specialties": [
+            "Movies",
+            "Compressed"
+          ]
+        },
+        {
+          "name": "Unknown",
+          "score": 30,
+          "specialties": [
+            "Various"
+          ]
+        }
+      ]
+    },
+    "blocked": {
+      "name": "Blocked Groups",
+      "score_multiplier": 0.0,
+      "groups": [
+        {
+          "name": "KORSUB",
+          "score": 0,
+          "reason": "Korean subtitles hardcoded"
+        },
+        {
+          "name": "HC",
+          "score": 0,
+          "reason": "Hardcoded subtitles"
+        },
+        {
+          "name": "CAM",
+          "score": 0,
+          "reason": "Camera rips"
+        }
+      ]
+    }
+  },
+  "custom_rules": {
+    "preferred_patterns": [
+      {
+        "pattern": "PROPER",
+        "bonus": 10,
+        "description": "Proper releases"
+      },
+      {
+        "pattern": "REPACK",
+        "bonus": 15,
+        "description": "Repacked releases"
+      },
+      {
+        "pattern": "INTERNAL",
+        "bonus": 5,
+        "description": "Internal releases"
+      },
+      {
+        "pattern": "Arabic",
+        "bonus": 20,
+        "description": "Arabic content"
+      },
+      {
+        "pattern": "MULTI",
+        "bonus": 8,
+        "description": "Multi-language"
+      }
+    ],
+    "penalty_patterns": [
+      {
+        "pattern": "KORSUB",
+        "penalty": 50,
+        "description": "Korean subtitles"
+      },
+      {
+        "pattern": "HC",
+        "penalty": 30,
+        "description": "Hardcoded subtitles"
+      },
+      {
+        "pattern": "DUBBED",
+        "penalty": 20,
+        "description": "Dubbed audio"
+      },
+      {
+        "pattern": "TS",
+        "penalty": 40,
+        "description": "Telesync quality"
+      },
+      {
+        "pattern": "CAM",
+        "penalty": 60,
+        "description": "Camera rip"
+      }
+    ]
+  },
+  "reorder_history": [],
+  "last_updated": "2025-10-02T20:42:22.687442"
+}

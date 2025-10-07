@@ -1,0 +1,5 @@
+Keys Backup & Restore
+---------------------
+• One-click: Settings → Backup Keys… (creates a plain ZIP with keys.local.json). Restore by picking the ZIP or JSON directly.
+• Encrypted: scripts\keys_secure\pack.cmd uses 7-Zip with password and header encryption; scripts\keys_secure\unpack.cmd restores.
+• Never share keys archives publicly. The app redacts secrets in UI/logs, but backups contain sensitive data.

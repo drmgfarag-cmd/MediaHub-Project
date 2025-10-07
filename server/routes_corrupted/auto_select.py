@@ -1,0 +1,265 @@
+from flask import Blueprint, jsonify, request
+import os, json, re, time, math, hashlib
+
+auto_bp = Blueprint('auto', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+RD_ITEMS=os.path.join(STO,'rd_items.json')
+FD_CACHE=os.path.join(STO,'feeds_cache.json')
+RULES=os.path.join(STO,'auto_select_rules.json')
+QF=os.path.join(STO,'downloader_queue.json')
+
+TOKS_REMOVE = re.compile(r'(?i)\b(2160p|1080p|720p|480p|UHD|4K|HDR10|HDR|DV|DoVi|Dolby\.Vision|Atmos|TrueHD|DTS[-+]?HD|EAC3|DDP|DD5\.?1|DD|x264|x265|HEVC|H\.264|H\.265|AV1|WEB[- ]?DL|WEBDL|WEB[- ]?Rip|BluRay|BRRip|Remux|NTSC|PAL|REPACK|PROPER|V2|EXTENDED|UNCUT|Hybrid|Multi|DL|Subs?)\b')
+SEP = re.compile(r'[^a-z0-9]+')
+
+def _load(path, default):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+        except Exception: return default
+
+def _save(path, obj):
+    tmp=path+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, path)
+
+def _now():
+        return int(time.time())
+
+def _rd_items():
+        return _load(RD_ITEMS, {'items':[]}).get('items',[])
+
+def _feed_items():
+    items=_load(FD_CACHE, {'items':{}}).get('items',{})
+    out=[]
+    for fid, arr in items.items():
+        for it in arr:
+            out.append({'id': it.get('id') or hashlib.sha1((it.get('title','')+it.get('link','')).encode('utf-8')).hexdigest()[:12],
+                        'title': it.get('title') or '',
+                        'kind': 'feed',
+                        'size_mb': 0,
+                        'added_ts': 0,
+                        'link': it.get('link') or '',
+                        'files': []})
+    return out
+
+def _norm_title_for_grouping(title):
+    s=title or ''
+    s=re.sub(TOKS_REMOVE, '', s)
+    s=s.lower()
+    s=' '.join([t for t in SEP.split(s) if t])
+    # keep SxxEyy token and year for specificity
+    m=re.search(r'(s\d{1,2}e\d{1,2})', title.lower())
+    if m: s=s+' '+m.group(1)
+    m2=re.search(r'\b(19\d{2}|20\d{2})\b', title)
+    if m2: s=s+' '+m2.group(1)
+    return s.strip()
+
+def _score(it, rules):
+    prefer=rules.get('prefer',{}); w=rules.get('weights',{})
+    title=(it.get('title') or '')
+    tl=title.lower()
+    qual=0; why=[]
+    if prefer.get('uhd_4k') and any(k in tl for k in ['2160p','uhd','4k']): qual+=1; why.append('4K')
+    if prefer.get('dolby_vision') and any(k in tl for k in ['dolby.vision','dovi','dv']): qual+=1; why.append('DV')
+    if prefer.get('hdr') and 'hdr' in tl: qual+=0.5; why.append('HDR')
+    if prefer.get('atmos') and 'atmos' in tl: qual+=0.75; why.append('Atmos')
+    qual=max(0.0, qual)
+    size=float(it.get('size_mb') or 0.0)
+    size_term = math.log10(max(1.0, size))/3.0  # 0..1ish for MB scale
+    rec = 0.0
+    if it.get('added_ts'):  # normalize by 30 days
+        age = max(1, _now() - int(it['added_ts']))
+        rec = max(0.0, 1.0 - (age / (30*24*3600)))
+    src_bonus=0.0
+    order=rules.get('prefer_source_order') or []
+    if it.get('kind') in order:
+        # earlier in list -> higher score
+        src_bonus = max(0.0, (len(order) - order.index(it['kind'])) / max(1.0,len(order)))
+    # compose
+    score = (qual * (w.get('quality',60))) + (size_term * (w.get('size',30))) + (rec * (w.get('recency',10))) + (src_bonus * (w.get('source',10)))
+    return score, why
+
+def _filter_candidate(it, rules, q):
+    # enforce allowed kinds and size and include/exclude tokens
+    kinds=set(rules.get('allowed_kinds') or [])
+    if kinds and it.get('kind') not in kinds: return False
+    min_mb=int(rules.get('min_size_mb') or 0); max_gb=int(rules.get('max_size_gb') or 0)
+    if min_mb>0 and (it.get('size_mb') or 0) < min_mb: return False
+    if max_gb>0 and (it.get('size_mb') or 0) > max_gb*1024: return False
+    tl=(it.get('title') or '').lower()
+    # query must appear loosely if provided
+    if q:
+        ql=q.lower()
+        if ql not in tl and ql not in (it.get('link') or '').lower(): return False
+    ex=[t.lower() for t in (rules.get('exclude_tokens') or [])]
+    if any(t in tl for t in ex): return False
+    inc = rules.get('title_must_include_any') or []
+    if inc and not any(t.lower() in tl for t in inc): return False
+    exc = rules.get('title_must_exclude_any') or []
+    if exc and any(t.lower() in tl for t in exc): return False
+    return True
+
+def _pool(q, rules):
+    arr = _rd_items() + _feed_items()
+    out=[]
+    for it in arr:
+        if _filter_candidate(it, rules, q):
+            sc, why = _score(it, rules)
+            out.append({'id': it.get('id'), 'title': it.get('title'), 'kind': it.get('kind'), 'size_mb': it.get('size_mb') or 0, 'added_ts': it.get('added_ts') or 0, 'link': it.get('link') or '', 'score': round(sc,2), 'why': why})
+    out = sorted(out, key=lambda x: x['score'], reverse=True)
+    return out
+
+def _queue_pkg(title, link, kind, save_to=''):
+    q=_load(QF, {'packages':[]})
+    pid=hashlib.sha1((title+link+str(time.time())).encode('utf-8')).hexdigest()[:10]
+    pkg={'id': pid, 'name': title or 'Auto Item', 'save_to': save_to, 'priority':'Normal', 'added_ts': int(time.time()), 'status':'Queued','speed_kbps':0,'progress':0,'eta_sec':0, 'files':[{'id':'f'+pid, 'name': title or 'file', 'size':'—', 'progress':0, 'speed_kbps':0, 'eta_sec':0, 'status':'Queued', 'attempts':0, 'referrer': link, 'hoster': kind or 'auto', 'save_to': save_to}]}
+    q['packages'].append(pkg); _save(QF, q)
+    return pid
+
+@auto_bp.route('/api/auto/rules_get')
+def rules_get():
+    try:
+        return jsonify(_load(RULES, {}))
+
+        @auto_bp.route('/api/auto/rules_set', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def rules_set():
+    try:
+        js=request.get_json(silent=True) or {}
+        cur=_load(RULES, {}); 
+        for k,v in js.items():
+        cur[k]=v
+        _save(RULES, cur); return jsonify({'ok':True})
+
+        @auto_bp.route('/api/auto/candidates')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def candidates():
+    try:
+        q=(request.args.get('q') or '').strip()
+        rules=_load(RULES, {})
+        return jsonify({'candidates': _pool(q, rules)})
+
+        @auto_bp.route('/api/auto/select')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def select():
+    try:
+        q=(request.args.get('q') or '').strip()
+        rules=_load(RULES, {})
+        pool=_pool(q, rules)
+        best = pool[0] if pool else None
+        return jsonify({'best': best, 'count': len(pool), 'candidates': pool[:10]})
+
+        @auto_bp.route('/api/auto/queue_best', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def queue_best():
+    try:
+        js=request.get_json(silent=True) or {}
+        q = (js.get('q') or '').strip()
+        save_to = (js.get('save_to') or '').strip()
+        rules=_load(RULES, {})
+        pool=_pool(q, rules)
+        if not pool: return jsonify({'error':'no candidates'}), 404
+        b=pool[0]
+        pid=_queue_pkg(b.get('title') or q, b.get('link') or '', b.get('kind') or 'auto', save_to)
+        return jsonify({'ok':True,'queued_id': pid, 'selected': b})
+
+
+        @auto_bp.route('/api/auto/batch_from_tasks', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def batch_from_tasks():
+    try:
+        tasks=_load(os.path.join(STO,'search_tasks.json'), {'tasks':[]}).get('tasks',[])
+        save_to=(request.get_json(silent=True) or {}).get('save_to') or ''
+        rules=_load(RULES, {})
+        done=0; misses=0; picks=[]
+        for t in tasks:
+        q=(t.get('q') or '').strip()
+        if not q: continue
+        pool=_pool(q, rules)
+        if not pool: misses+=1; continue
+        b=pool[0]; pid=_queue_pkg(b.get('title') or q, b.get('link') or '', b.get('kind') or 'auto', save_to)
+        done+=1; picks.append({'q': q, 'id': pid, 'title': b.get('title')})
+        return jsonify({'ok':True,'queued': done, 'misses': misses, 'picks': picks})
+
+
+
+        @auto_bp.route('/api/autorails/get')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def autorails_get():
+    try:
+        cfg=json.load(open(os.path.join(STO,'config.json'),'r',encoding='utf-8'))
+        return jsonify(cfg.get('auto_rails', {}))
+
+        @auto_bp.route('/api/autorails/set', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def autorails_set():
+    try:
+        js=request.get_json(silent=True) or {}
+        cfg=json.load(open(os.path.join(STO,'config.json'),'r',encoding='utf-8'))
+        cfg['auto_rails']=js
+        tmp=os.path.join(STO,'config.json')+'.tmp'; json.dump(cfg, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, os.path.join(STO,'config.json'))
+        return jsonify({'ok':True})
+
+
+        @auto_bp.route('/api/auto/rails')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def rails():
+    # mode: tasks (best per task) or recent (top scored overall)
+    mode=(request.args.get('mode') or 'tasks').strip()
+    try: maxn=int(request.args.get('max') or 12)
+    except Exception: maxn=12
+    rules=_load(RULES, {})
+    out=[]
+    if mode=='tasks':
+        tasks=_load(os.path.join(STO,'search_tasks.json'), {'tasks':[]}).get('tasks',[])
+        seen=set()
+        for t in tasks:
+            q=(t.get('q') or '').strip()
+            if not q or q in seen: continue
+            seen.add(q)
+            pool=_pool(q, rules)
+            if not pool: continue
+            b=pool[0]
+            out.append({'q': q, 'title': b.get('title') or q, 'kind': b.get('kind') or 'auto', 'score': b.get('score') or 0, 'link': b.get('link') or ''})
+            if len(out)>=maxn: break
+    else:
+        # recent/top: merge pool with no query and take top N unique titles
+        pool=_pool('', rules)
+        seen=set()
+        for c in pool:
+            t=c.get('title') or ''
+            if t in seen: continue
+            seen.add(t)
+            out.append({'q': t, 'title': t, 'kind': c.get('kind') or 'auto', 'score': c.get('score') or 0, 'link': c.get('link') or ''})
+            if len(out)>=maxn: break
+    return jsonify({'title': 'Auto Picks', 'items': out})
+
+
+@auto_bp.route('/api/auto/rails_refresh', methods=['POST'])
+def rails_refresh():
+    try:
+        # materialize into smart_rails_cache.json under key 'auto_best'
+        cfg=_load(os.path.join(STO,'config.json'), {}).get('auto_rails', {})
+        mode=cfg.get('mode') or 'tasks'; maxn=int(cfg.get('max_items') or 12)
+        dat=_load(os.path.join(STO,'smart_rails_cache.json'), {'last_run':0,'rails':{}})
+        res=json.loads(rails().get_data(as_text=True))
+        items=res.get('items',[])[:maxn]
+        dat['rails']['auto_best']=items
+        dat['last_run']=int(time.time())
+        _save(os.path.join(STO,'smart_rails_cache.json'), dat)
+        return jsonify({'ok':True,'rail':'auto_best','count': len(items)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

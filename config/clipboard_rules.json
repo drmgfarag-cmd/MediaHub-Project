@@ -1,0 +1,12 @@
+{
+  "discard": [
+    ".png",
+    ".jpg",
+    "/ads",
+    "utm_"
+  ],
+  "pack_by": "host",
+  "rename": {
+    "pattern": "{host}_{name}"
+  }
+}

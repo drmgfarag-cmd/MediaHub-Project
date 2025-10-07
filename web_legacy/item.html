@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Item • MediaHub</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+.hero{display:grid;grid-template-columns:280px 1fr;gap:16px}
+.poster{width:280px;height:420px;border-radius:16px;overflow:hidden;border:1px solid rgba(148,163,184,.15)}
+.poster img{width:100%;height:100%;object-fit:cover}
+.badges span{border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:2px 8px;margin-right:6px;font-size:.8rem;background:rgba(2,6,23,.6)}
+.actions button{margin-right:8px}
+.section{margin-top:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(220px,1fr));gap:10px}
+.track{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px;border:1px solid rgba(148,163,184,.15);border-radius:8px;background:#101827}
+.meta-muted{color:var(--muted)}
+</style></head><body>
+<div class="wrap">
+  <a href="home.html">← Home</a>
+  <div class="hero">
+    <div class="poster"><img id="poster" alt=""></div>
+    <div>
+      <h1 id="title"></h1>
+      <div id="badges" class="badges"></div>
+      <p id="syn" class="meta-muted"></p>
+      <div class="actions">
+        <button id="primary">Play</button>
+        <button id="queue">+ Queue</button>
+        <button id="watch">+ Watch/Read list</button>
+        <button id="mark">Mark completed</button>
+      </div>
+      <div id="facts" class="meta-muted"></div>
+    </div>
+  </div>
+  <div id="body"></div>
+</div>
+<script>
+const Q=new URLSearchParams(location.search); const ID=Q.get('id'); let ITEM=null;
+function badge(el, t){ el.innerHTML += `<span>${t}</span>`; }
+function facts(it){
+  const L=[];
+  if(it.year) L.push(it.year);
+  if(it.rating) L.push(it.rating);
+  if(it.runtime) L.push(Math.round(it.runtime/60)+' min');
+  if((it.genres||[]).length) L.push((it.genres||[]).join(' • '));
+  return L.join(' • ');
+}
+function openPlay(it){
+  if(it.type==='track') location.href = 'audio_player.html?id='+encodeURIComponent(it.id||it.path||'');
+  else if(it.type==='audiobook') location.href = 'reader_audiobook.html?id='+encodeURIComponent(it.id||it.path||'');
+  else if(it.type==='comic' || it.type==='manga') location.href = 'reader_cbz.html?id='+encodeURIComponent(it.id||it.path||'');
+  else if(it.type==='book') location.href = 'reader_pdf.html?id='+encodeURIComponent(it.id||it.path||'');
+  else location.href = 'player.html?id='+encodeURIComponent(it.id||it.path||'');
+}
+async function load(){
+  const r=await fetch('/api/library/item/'+encodeURIComponent(ID)); ITEM=await r.json();
+  if(ITEM.error){ document.body.innerHTML='Not found'; return; }
+  document.getElementById('poster').src = ITEM.poster||ITEM.cover||'sample/poster.jpg';
+  document.getElementById('title').textContent = ITEM.title||ITEM.name||'Untitled';
+  document.getElementById('syn').textContent = ITEM.synopsis||ITEM.plot||'';
+  const b=document.getElementById('badges'); (ITEM.badges||[]).forEach(x=> badge(b,x));
+  document.getElementById('facts').textContent = facts(ITEM);
+  document.getElementById('primary').onclick = ()=> openPlay(ITEM);
+  document.getElementById('queue').onclick = ()=> fetch('/api/music/queue', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({op:'enqueue', id: ITEM.id||ITEM.path})});
+  const body=document.getElementById('body');
+  if(ITEM.type==='album' && (ITEM.tracks||[]).length){
+    const sec=document.createElement('div'); sec.className='section'; sec.innerHTML='<h2>Tracks</h2>'; body.appendChild(sec);
+    ITEM.tracks.forEach((t,i)=>{
+      const row=document.createElement('div'); row.className='track';
+      row.innerHTML = `<div>${t.trackNo||i+1}.</div><div>${t.title||''} <span class="meta-muted">${t.runtime?('• '+Math.round(t.runtime/60)+' min'):''}</span></div><button>▶</button>`;
+      row.querySelector('button').onclick = ()=> location.href='audio_player.html?id='+encodeURIComponent(t.id||t.path||'');
+      sec.appendChild(row);
+    });
+  }
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

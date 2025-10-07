@@ -1,0 +1,314 @@
+/* Quality & Rating Badges - MediaHub v5.6 */
+
+/* ============================================================================
+   QUALITY BADGES
+   ============================================================================ */
+
+.quality-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+/* 4K Ultra HD */
+.quality-badge-4k {
+  background: linear-gradient(135deg, #FF6B35 0%, #FF5722 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+}
+
+/* HD */
+.quality-badge-hd {
+  background: linear-gradient(135deg, #4CAF50 0%, #45A049 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+}
+
+/* HDR */
+.quality-badge-hdr {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(156, 39, 176, 0.4);
+}
+
+/* Dolby Vision */
+.quality-badge-dolby {
+  background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(233, 30, 99, 0.4);
+}
+
+/* SD */
+.quality-badge-sd {
+  background: rgba(255, 255, 255, 0.15);
+  color: #A0A8B8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   RATING BADGES
+   ============================================================================ */
+
+.rating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.rating-star {
+  color: #FFD700;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.rating-value {
+  color: #E8EBF5;
+}
+
+/* Rating color variations based on score */
+.rating-badge-excellent {
+  /* 8.0+ */
+  border: 1px solid rgba(76, 175, 80, 0.5);
+}
+
+.rating-badge-good {
+  /* 6.0-7.9 */
+  border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.rating-badge-average {
+  /* 4.0-5.9 */
+  border: 1px solid rgba(255, 152, 0, 0.5);
+}
+
+.rating-badge-poor {
+  /* <4.0 */
+  border: 1px solid rgba(244, 67, 54, 0.5);
+}
+
+/* ============================================================================
+   CONTENT BADGES
+   ============================================================================ */
+
+.content-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* New content */
+.content-badge-new {
+  background: #FF6B35;
+  color: #fff;
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Trending */
+.content-badge-trending {
+  background: linear-gradient(135deg, #FF6B35 0%, #FF5722 100%);
+  color: #fff;
+}
+
+.content-badge-trending::before {
+  content: '🔥 ';
+}
+
+/* Popular */
+.content-badge-popular {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  color: #fff;
+}
+
+/* Award Winner */
+.content-badge-award {
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+  color: #000;
+}
+
+.content-badge-award::before {
+  content: '🏆 ';
+}
+
+/* Recently Added */
+.content-badge-recent {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+}
+
+/* ============================================================================
+   AUDIO BADGES
+   ============================================================================ */
+
+.audio-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Dolby Atmos */
+.audio-badge-atmos {
+  background: linear-gradient(135deg, #00D4FF 0%, #0099CC 100%);
+  color: #fff;
+}
+
+/* DTS:X */
+.audio-badge-dtsx {
+  background: linear-gradient(135deg, #FF6B35 0%, #FF5722 100%);
+  color: #fff;
+}
+
+/* 5.1 Surround */
+.audio-badge-51 {
+  background: rgba(255, 255, 255, 0.15);
+  color: #E8EBF5;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   SUBTITLE BADGES
+   ============================================================================ */
+
+.subtitle-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.1);
+  color: #A0A8B8;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.subtitle-badge-available {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+/* ============================================================================
+   BADGE GROUPS
+   ============================================================================ */
+
+.badge-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.badge-group-stacked {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ============================================================================
+   BADGE POSITIONING
+   ============================================================================ */
+
+.badge-overlay-top-left {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+}
+
+.badge-overlay-top-right {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+.badge-overlay-bottom-left {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 2;
+}
+
+.badge-overlay-bottom-right {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .quality-badge,
+  .content-badge,
+  .audio-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .rating-badge {
+    font-size: 12px;
+    padding: 3px 6px;
+  }
+
+  .badge-overlay-top-left,
+  .badge-overlay-top-right,
+  .badge-overlay-bottom-left,
+  .badge-overlay-bottom-right {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+  }
+
+  .badge-group {
+    gap: 4px;
+  }
+}
+
+/* ============================================================================
+   HOVER EFFECTS
+   ============================================================================ */
+
+.badge-interactive {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.badge-interactive:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.2);
+}

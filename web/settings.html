@@ -1,0 +1,91 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Settings</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Settings</strong></div>
+  <div class="card"><h3>Connectors</h3>
+    <div>aria2 RPC URL <input id="a_url" placeholder="http://127.0.0.1:6800/jsonrpc" style="width:360px"> secret <input id="a_sec" placeholder=""></div>
+    <div>qBittorrent WebUI <input id="q_url" placeholder="http://127.0.0.1:8080" style="width:280px"> user <input id="q_user"> pass <input id="q_pass" type="password"></div>
+    <div>Real‑Debrid token <input id="rd_tok" placeholder="paste token" style="width:300px"></div>
+    <div>TMDb API Key <input id="tmdb" placeholder=""></div>
+    <div>Trakt Client ID <input id="trakt" placeholder=""></div>
+    <div>FFmpeg path <input id="ffmpeg" placeholder="leave empty to auto-detect" style="width:300px"> <button id="check_ff">Check</button> <span id="ffv"></span></div>
+    <div>7‑Zip path <input id="_7zip" placeholder="leave empty to auto-detect" style="width:300px"> <button id="check_7z">Check</button> <span id="zv"></span></div>
+    <div>Debrid provider <select id="prov"><option value="rd">Real‑Debrid</option><option value="alldebrid">AllDebrid</option><option value="premiumize">Premiumize</option></select></div>
+    <div><label><input type="checkbox" id="sqlite_on"> Use SQLite Index (beta)</label></div>
+    <div><label><input type="checkbox" id="hero_auto"> Hero autoplay video (muted)</label> <span id="hls_stat" class="badge"></span> <button id="hls_get">Get/Update hls.js</button></div>
+    <div><label><input type="checkbox" id="aud_gapless"> Gapless playback</label></div>
+    <div><label><input type="checkbox" id="aud_norm"> Audio normalization</label> Target LUFS <input id="aud_lufs" style="width:80px" value="-16"></div>
+    <div>Lyrics provider <input id="lyr_name" placeholder="e.g. Genius"> API Key <input id="lyr_key" placeholder=""></div>
+    <div>AllDebrid API Key <input id="ad_key" placeholder=""></div>
+    <div>Premiumize API Key <input id="pm_key" placeholder=""></div>
+    <div>Video encoder <select id="vid_enc"><option value="h264">h264 (CPU)</option><option value="h264_nvenc">h264_nvenc (NVIDIA)</option><option value="h264_qsv">h264_qsv (Intel)</option><option value="h264_vaapi">h264_vaapi (VAAPI)</option></select></div>
+    <div>Rails auto-refresh (sec) <input id="rails_sec" type="number" min="0" step="5" placeholder="30" style="width:100px"></div>
+    <button id="save_cfg">Save</button> <span id="msg_cfg"></span>
+  </div>
+  <div class="card"><h3>Feature Gates</h3>
+    <label><input class="g" data-k="rails" type="checkbox"> Rails</label>
+    <label><input class="g" data-k="rd" type="checkbox"> Real‑Debrid</label>
+    <label><input class="g" data-k="rss" type="checkbox"> RSS</label>
+    <label><input class="g" data-k="opds" type="checkbox"> OPDS</label>
+    <label><input class="g" data-k="downloader" type="checkbox"> Downloader</label>
+    <label><input class="g" data-k="editor" type="checkbox"> Editor</label>
+    <button id="save_g">Save Gates</button> <span id="msg_g"></span>
+  </div>
+</div>
+<script>
+async function load(){
+  const c=await (await fetch('/api/config/get')).json();
+  document.getElementById('a_url').value = c.aria2?.rpc_url||''; document.getElementById('a_sec').value = c.aria2?.secret||'';
+  document.getElementById('q_url').value = c.qb?.base_url||''; document.getElementById('q_user').value = c.qb?.username||''; document.getElementById('q_pass').value = c.qb?.password||'';
+  document.getElementById('rd_tok').value = c.rd?.token||''; document.getElementById('tmdb').value = c.tmdb?.api_key||''; document.getElementById('trakt').value = c.trakt?.client_id||'';
+  document.getElementById('ffmpeg').value = c.bin?.ffmpeg||'';
+  document.getElementById('_7zip').value = (c.bin?._7zip||'');
+  document.getElementById('prov').value = c.debrid?.provider||'rd';
+  document.getElementById('ad_key').value = c.debrid?.alldebrid?.apikey||'';
+  document.getElementById('pm_key').value = c.debrid?.premiumize?.apikey||'';
+  document.getElementById('sqlite_on').checked = !!(c.db?.sqlite_enabled);
+  document.getElementById('hero_auto').checked = !!(c.ui?.hero_autoplay);
+  document.getElementById('aud_gapless').checked = !!(c.audio?.gapless);
+  document.getElementById('aud_norm').checked = !!(c.audio?.normalize_enable);
+  document.getElementById('aud_lufs').value = (c.audio?.normalize_lufs??-16);
+  document.getElementById('lyr_name').value = c.music?.lyrics_provider?.name||'';
+  document.getElementById('lyr_key').value = c.music?.lyrics_provider?.apikey||'';
+  document.getElementById('vid_enc').value = c.transcode?.video_encoder||'h264';
+  document.getElementById('rails_sec').value = (c.rails?.refresh_sec ?? 30);
+  const g=await (await fetch('/api/gates/get')).json(); document.querySelectorAll('.g').forEach(ch=> ch.checked = !!g[ch.dataset.k]);
+}
+document.addEventListener('DOMContentLoaded', load);
+document.getElementById('save_cfg').onclick=async ()=>{
+  const payload={ aria2:{rpc_url:document.getElementById('a_url').value, secret:document.getElementById('a_sec').value},
+                  qb:{base_url:document.getElementById('q_url').value, username:document.getElementById('q_user').value, password:document.getElementById('q_pass').value},
+                  rd:{token:document.getElementById('rd_tok').value},
+                  tmdb:{api_key:document.getElementById('tmdb').value},
+                  trakt:{client_id:document.getElementById('trakt').value},
+                  bin:{ffmpeg:document.getElementById('ffmpeg').value,_7zip:document.getElementById('_7zip').value},
+                  transcode:{video_encoder:document.getElementById('vid_enc').value, audio_encoder:'aac'},
+                  debrid:{provider:document.getElementById('prov').value, alldebrid:{apikey:document.getElementById('ad_key').value}, premiumize:{apikey:document.getElementById('pm_key').value}},
+                  db:{sqlite_enabled: document.getElementById('sqlite_on').checked},
+                  ui:{hero_autoplay: document.getElementById('hero_auto').checked},
+                  music:{lyrics_provider:{name:document.getElementById('lyr_name').value,apikey:document.getElementById('lyr_key').value}},
+                  audio:{gapless: document.getElementById('aud_gapless').checked, normalize_enable: document.getElementById('aud_norm').checked, normalize_lufs: parseFloat(document.getElementById('aud_lufs').value||'-16')},
+                  rails:{refresh_sec:parseInt(document.getElementById('rails_sec').value||'0')} };
+  await fetch('/api/config/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  document.getElementById('msg_cfg').textContent='Saved';
+};
+document.getElementById('save_g').onclick=async ()=>{
+  const payload={}; document.querySelectorAll('.g').forEach(ch=>payload[ch.dataset.k]=ch.checked);
+  await fetch('/api/gates/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  document.getElementById('msg_g').textContent='Saved';
+};
+document.getElementById('check_ff').onclick=async()=>{ const j=await (await fetch('/api/tools/ffmpeg/info')).json().catch(()=>({})); document.getElementById('ffv').textContent = j.ok? (j.version): (j.error||'Not found'); };
+document.getElementById('check_7z').onclick=async()=>{ const j=await (await fetch('/api/tools/7zip/info')).json().catch(()=>({})); document.getElementById('zv').textContent = j.ok? (j.version): (j.error||'Not found'); };
+</script>
+
+<script>
+async function hlsStat(){ try{ const j=await (await fetch('/api/hls/status')).json(); document.getElementById('hls_stat').textContent = j.installed?('hls.js '+j.version):'hls.js not installed'; }catch(e){ document.getElementById('hls_stat').textContent='hls.js status error'; } }
+document.getElementById('hls_get').onclick=async ()=>{ document.getElementById('hls_stat').textContent='Downloading hls.js…'; const r=await fetch('/api/hls/fetch',{method:'POST'}); const j=await r.json(); document.getElementById('hls_stat').textContent = j.ok?('hls.js '+j.version):'Fetch failed'; };
+document.addEventListener('DOMContentLoaded', hlsStat);
+</script>
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+</body></html>

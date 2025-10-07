@@ -1,0 +1,68 @@
+<!doctype html><html><head><meta charset="utf-8"><title>UI — Polishes</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>UI — Polishes</strong>
+  <div class="card">
+    <h3>Hero & Rails</h3>
+    <div>Gradient Preset: 
+      <select id="grad"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select>
+    </div>
+    <div style="margin-top:6px">Card Density: 
+      <select id="dens"><option value="cozy">Cozy</option><option value="comfort">Comfort</option><option value="compact">Compact</option></select>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Hero Readability Overlay</h3>
+    <div>Opacity: <input id="op" type="range" min="0" max="0.9" step="0.05"> <span id="opv"></span></div>
+    <div>Angle: <input id="ang" type="number" value="180" style="width:120px"></div>
+  
+  <div class="card">
+    <h3>Hero & Rails</h3>
+    <div>Gradient Preset: 
+      <select id="grad"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select>
+    </div>
+    <div style="margin-top:6px">Card Density: 
+      <select id="dens"><option value="cozy">Cozy</option><option value="comfort">Comfort</option><option value="compact">Compact</option></select>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Skeletons</h3>
+    <label><input type="checkbox" id="sk"> Enable skeleton loaders</label>
+  </div>
+  <div><button id="save">Save</button> <span id="msg"></span></div>
+</div>
+<script>
+async function load(){
+  const c=await (await fetch('/api/config/get')).json();
+  const u=c.ui_polish||{};
+  op.value=u.hero_overlay_opacity??0.55; opv.textContent=op.value;
+  ang.value=u.hero_overlay_angle??180;
+  sk.checked=!!u.skeletons;
+}
+op.oninput=()=>{ opv.textContent=op.value; };
+save.onclick=async ()=>{
+  const c=await (await fetch('/api/config/get')).json(); c.ui_polish=c.ui_polish||{};
+  c.ui_polish.hero_overlay_opacity=parseFloat(op.value)||0.55;
+  c.ui_polish.hero_overlay_angle=parseInt(ang.value)||180;
+  c.ui_polish.skeletons=sk.checked;
+  const r=await (await fetch('/api/config/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)})).json();
+  msg.textContent=r.ok? 'Saved.' : 'Failed.';
+};
+
+async function loadRails(){
+  const r=await (await fetch('/api/ui/rails_config_get')).json();
+  grad.value=r.gradient_preset||'auto';
+  dens.value=r.density||'comfort';
+}
+save.onclick=async ()=>{
+  const c=await (await fetch('/api/config/get')).json(); c.ui_polish=c.ui_polish||{};
+  c.ui_polish.hero_overlay_opacity=parseFloat(op.value)||0.55;
+  c.ui_polish.hero_overlay_angle=parseInt(ang.value)||180;
+  c.ui_polish.skeletons=sk.checked;
+  await fetch('/api/config/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)});
+  await fetch('/api/ui/rails_config_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gradient_preset: grad.value, density: dens.value})});
+  msg.textContent='Saved.';
+};
+document.addEventListener('DOMContentLoaded', ()=>{ load(); loadRails(); });
+</script>
+</body></html>

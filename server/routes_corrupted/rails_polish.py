@@ -1,0 +1,142 @@
+from flask import Blueprint, jsonify, request
+import os, json, re, time
+
+rails_bp = Blueprint('rails_polish', __name__)
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+STO  = os.path.join(ROOT, 'storage')
+
+def _load_json(path, default):
+    try:
+        with open(path,'r',encoding='utf-8') as f: return json.load(f)
+    except Exception:
+        return default
+
+def _exists(p): 
+        try: return os.path.exists(p)
+        except: return False
+
+@rails_bp.route('/api/rails/polish')
+def rails_polish():
+    try:
+        # Heuristics from filenames and optional library index if present
+        lib_idx = _load_json(os.path.join(STO,'library_index.json'), [])
+        now=time.time()
+        rails=[]
+        # New in 30/90 days: use mtime from index if present
+        def _new_in(days):
+        cutoff= now - days*86400
+        items=[x for x in lib_idx if x.get('mtime',0)>=cutoff]
+        return [{"title": os.path.basename(it.get('path','')), "path": it.get('path','')} for it in items][:50]
+        if lib_idx:
+        rails.append({"id":"new_30","title":"New in 30 Days","items": _new_in(30)})
+        rails.append({"id":"new_90","title":"New in 90 Days","items": _new_in(90)})
+        # Language rails (folder or filename tokens like .AR., .EN. etc.)
+        langs=['AR','EN','FR','ES','JP','KO']
+        for L in langs:
+        toks=(f".{L}.", f"_{L}_", f"-{L}-", f"({L})")
+        items=[x for x in lib_idx if any(t in x.get('path','').upper() for t in toks)]
+        if items:
+        rails.append({"id":f"lang_{L.lower()}","title":f"By Language — {L}","items":[{"title":os.path.basename(it['path']),"path":it['path']} for it in items[:50]]})
+        # Runtime buckets (if metadata has 'runtime')
+        short=[x for x in lib_idx if (x.get('runtime') or 0)<=90]
+        med  =[x for x in lib_idx if 90< (x.get('runtime') or 0) <=120]
+        long =[x for x in lib_idx if (x.get('runtime') or 0)>120]
+        if short: rails.append({"id":"rt_short","title":"Runtime ≤ 90m","items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in short[:50]]})
+        if med:   rails.append({"id":"rt_med","title":"Runtime 90–120m","items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in med[:50]]})
+        if long:  rails.append({"id":"rt_long","title":"Runtime 120m+","items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in long[:50]]})
+        # Remasters/UHD/Extras via tokens
+        def tokrail(id, title, tokens):
+        items=[x for x in lib_idx if any(t.lower() in x.get('path','').lower() for t in tokens)]
+        if items: rails.append({"id":id,"title":title,"items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in items[:50]]})
+        tokrail("uhd","4K/UHD/HDR", ["2160p","UHD","4K","HDR"])
+        tokrail("dv","Dolby Vision", ["DV","Dolby.Vision","DoVi"])
+        tokrail("extras","Extras/Featurettes", ["Extras","Featurettes","Behind the Scenes"])
+        # Continue rails stub via progress.json
+        prog = _load_json(os.path.join(STO,'progress.json'), {})
+        cont_movies = [{"title":k, "path":v.get('path','')} for k,v in (prog.get('movies') or {}).items() if 0< v.get('pct',0) <100]
+        cont_books  = [{"title":k, "path":v.get('path','')} for k,v in (prog.get('books') or {}).items() if 0< v.get('pct',0) <100]
+        cont_audio  = [{"title":k, "path":v.get('path','')} for k,v in (prog.get('audio') or {}).items() if 0< v.get('pct',0) <100]
+        if cont_movies: rails.append({"id":"continue_movies","title":"Continue Watching","items":cont_movies[:50]})
+        if cont_books:  rails.append({"id":"continue_reading","title":"Continue Reading","items":cont_books[:50]})
+        if cont_audio:  rails.append({"id":"continue_listening","title":"Continue Listening","items":cont_audio[:50]})
+        return jsonify({"ok": True, "rails": rails})
+
+
+        # Extended rails — Movies (Atmos/Decade/Collections), TV (On-going/Mini-series/Anthology), Books (Series/Author/Audiobooks), Audio (Decade/Mood/Lossless/Hi-Res), Kids overlays
+        @rails_bp.route('/api/rails/polish_ext')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def rails_polish_ext():
+    try:
+        from flask import jsonify
+        lib_idx = _load_json(os.path.join(STO,'library_index.json'), [])
+        rails=[]
+        # Movies by Decade
+        def by_decade():
+        buckets={}
+        for x in lib_idx:
+        y=x.get('year')
+        if isinstance(y,int) and 1900<y<2100:
+        d=(y//10)*10; buckets.setdefault(d,[]).append(x)
+        out=[]
+        for d,items in sorted(buckets.items()):
+        out.append({"id":f"decade_{d}", "title": f"Movies — {d}s", "items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in items[:50]]})
+        return out
+        rails += by_decade()
+        # Atmos/DV/UHD already partly handled; ensure Atmos
+        tok = lambda toks: [{"title": os.path.basename(i['path']), "path": i['path']} for i in lib_idx if any(t.lower() in i.get('path','').lower() for t in toks)][:50]
+        rails.append({"id":"atmos","title":"Dolby Atmos","items": tok(["Atmos","EAC3.Atmos","TrueHD.Atmos"])})
+        # Collections via collections.json
+        coll = _load_json(os.path.join(STO,'collections.json'), {}).get('collections') or []
+        if coll:
+        for c in coll[:6]:
+        rules=c.get('rules') or []; # only surface the card; actual population is backend-dependent
+        rails.append({"id":"coll_"+ re.sub(r'\W+','_',c.get('name',''))[:24], "title": c.get('name','Collection'), "items": []})
+        # TV heuristics
+        rails.append({"id":"tv_ongoing","title":"On-going Series","items": tok(["S01E","S02E","S03E"])})
+        rails.append({"id":"tv_miniseries","title":"Mini-series","items": tok(["miniseries"])})
+        rails.append({"id":"tv_anthology","title":"Anthology","items": tok(["anthology"])})
+        # Books
+        rails.append({"id":"books_series","title":"Books — By Series","items": tok(["(Vol","Volume","Book 1","Book 2"])})
+        rails.append({"id":"books_author","title":"Books — By Author","items": tok(["by "] )})
+        rails.append({"id":"audiobooks","title":"Audiobooks","items": [i for i in tok([".m4b",".mp3","/Audiobooks/"])]})
+        # Audio
+        rails.append({"id":"audio_lossless","title":"Lossless/Hi-Res","items": tok([".flac",".alac",".wav","48k","96k"])})
+        rails.append({"id":"audio_soundtracks","title":"Soundtracks","items": tok(["OST","Score","Soundtrack"])})
+        rails.append({"id":"audio_live","title":"Live Albums","items": tok([" Live "])})
+        # Kids overlay (simple)
+        kids=[x for x in lib_idx if 'kids' in (x.get('path','').lower())]
+        if kids:
+        rails.append({"id":"kids_movies","title":"Kids — Movies","items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in kids if i.get('type')=='movie'][:50]})
+        rails.append({"id":"kids_tv","title":"Kids — TV","items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in kids if i.get('type') in ('series','episode')][:50]})
+        rails.append({"id":"kids_books","title":"Kids — Books/Comics/Manga","items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in kids if i.get('type') in ('ebook','comic','manga')][:50]})
+        rails.append({"id":"kids_audio","title":"Kids — Music/Audiobooks","items":[{"title":os.path.basename(i['path']),"path":i['path']} for i in kids if i.get('type') in ('audio','audiobook')][:50]})
+        return jsonify({"ok": True, "rails": rails})
+
+
+
+        @rails_bp.route('/api/rails/kids')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def rails_kids_age():
+    try:
+        from flask import jsonify
+        lib_idx = _load_json(os.path.join(STO,'library_index.json'), [])
+        def pick(pred): 
+        return [{"title": os.path.basename(i['path']), "path": i['path']} for i in lib_idx if pred(i)][:50]
+        def age_pred(i, lo, hi):
+        p=(i.get('path','')+' '+i.get('title','')).lower()
+        return any(t in p for t in [f'age {lo}', f'age {lo}-{hi}', f'{lo}-{hi}', f'{lo}–{hi}', f'{lo} — {hi}', f'{lo} to {hi}'])
+        rails=[
+        {"id":"kids_age_3_6","title":"Kids — Age 3–6","items": pick(lambda x: age_pred(x,3,6))},
+        {"id":"kids_age_7_9","title":"Kids — Age 7–9","items": pick(lambda x: age_pred(x,7,9))},
+        {"id":"kids_age_10_12","title":"Kids — Age 10–12","items": pick(lambda x: age_pred(x,10,12))},
+        {"id":"kids_franchise_disney","title":"Kids — Disney","items": pick(lambda x: 'disney' in (x.get('path','')+' '+x.get('title','')).lower())},
+        {"id":"kids_franchise_pixar","title":"Kids — Pixar","items": pick(lambda x: 'pixar' in (x.get('path','')+' '+x.get('title','')).lower())},
+        {"id":"kids_franchise_dreamworks","title":"Kids — DreamWorks","items": pick(lambda x: 'dreamworks' in (x.get('path','')+' '+x.get('title','')).lower())},
+        ]
+        return jsonify({"ok": True, "rails": rails})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

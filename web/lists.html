@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Lists</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Lists Directory</strong></div>
+  <div id="list"></div>
+  <div style='margin-top:12px'><button id='save_cfg'>Save Config</button> <span id='save_msg'></span></div>
+</div>
+<script>
+async function load(){ const j=await (await fetch('/api/toplists/dir')).json(); const root=document.getElementById('list'); root.innerHTML=''; (j.sources||[]).forEach(s=>{ const card=document.createElement('div'); card.className='card'; card.setAttribute('data-id', s.id); const last=(j.last_fetch||{})[s.id]; const lastStr= last? new Date(last*1000).toLocaleString(): 'never'; card.innerHTML = `<h3>${s.name}</h3><div class='type' style='opacity:.8'>${s.type}</div><div style='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px'><label>Enabled <input type='checkbox' class='en' ${s.enabled!==false?'checked':''}></label><label>Interval <input type='number' class='intv' value='${s.interval_h||24}' min='1' style='width:80px'> h</label><button data-id='${s.id}'>Refresh now</button><span style='opacity:.8'>Last: ${lastStr}</span></div>`; root.appendChild(card); }); root.addEventListener('click', async (e)=>{ const b=e.target.closest('button[data-id]'); if(!b) return; const id=b.getAttribute('data-id'); await fetch('/api/toplists/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); load(); }); }
+document.addEventListener('DOMContentLoaded', load);
+document.getElementById('save_cfg').addEventListener('click', async ()=>{ const rows=[...document.querySelectorAll('#list .card')].map(c=>({id:c.getAttribute('data-id'), name:c.querySelector('h3')?.textContent?.trim(), type:(c.querySelector('.type')?.textContent||'').trim(), enabled:c.querySelector('.en')?.checked ?? true, interval_h:parseInt(c.querySelector('.intv')?.value||'24')})); await fetch('/api/toplists/set_config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sources:rows})}); document.getElementById('save_msg').textContent='Saved'; });
+</script>
+<script src="assets/csrf.js"></script>
+</body></html>

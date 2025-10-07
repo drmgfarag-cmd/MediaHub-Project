@@ -1,0 +1,97 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Downloads</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/auth.js"></script>
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}</style>
+</head><body>
+<div class="wrap">
+  <a href="home.html">&larr; Home</a>
+  <h1>Downloads</h1>
+  <div class="card">
+    <h3>Add URL/Magnet</h3>
+    <input id="dl_url" type="text" placeholder="https://... or magnet:?xt=...">
+    <button onclick="add()">Add</button> <span id="msg"></span>
+  </div>
+  <div class="card">
+    <h3>Queue</h3>
+    <div id="q"></div>
+  
+</div>
+  <div class="card">
+    <h3>Real‑Debrid</h3>
+    <a href="rd.html">Open Real‑Debrid Manager</a>
+  </div>
+  <div class="card">
+    <h3>Download Engines</h3>
+    <a href="aria2.html">aria2</a> • <a href="qb.html">qBittorrent</a>
+  </div>
+  <div class="card">
+    <h3>LinkGrabber</h3>
+    <a href="linkgrabber.html">Open LinkGrabber</a>
+  </div>
+  <div class="card">
+    <h3>RSS Feeds</h3>
+    <a href="rss.html">Open Feeds Manager</a>
+  </div>
+  <div class="card">
+    <h3>Missing Episodes</h3>
+    <input id="m_name" type="text" placeholder="Series name">
+    <textarea id="m_have" placeholder="Have (S01E01 per line)" style="width:100%;min-height:80px"></textarea>
+    <button onclick="missing()">Find Missing</button>
+    <pre id="m_out"></pre>
+  </div>
+</div>
+<script>
+async function add(){
+  const url=document.getElementById('dl_url').value.trim(); if(!url) return;
+  const r=await fetch('/api/downloader/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+  document.getElementById('msg').textContent = r.ok ? 'Added' : 'Error';
+  await load();
+}
+async function load(){
+  const j=await (await fetch('/api/downloader/queue')).json();
+  const q=document.getElementById('q'); q.innerHTML='';
+  let arr=(j.items||[]).slice();
+        if(sortCol){
+          arr.sort((a,b)=>{
+            const A=(a[sortCol]??''); const B=(b[sortCol]??'');
+            const nA=Number(A), nB=Number(B);
+            const isNum = !isNaN(nA) && !isNaN(nB);
+            return isNum ? (nA-nB)*sortDir : String(A).localeCompare(String(B))*sortDir;
+          });
+        }
+        arr.forEach(it=>{
+    const row=document.createElement('div'); row.style='display:flex;gap:8px;align-items:center;margin:4px 0';
+    row.innerHTML=`<span>${it.title||it.url}</span> <code>${it.status||'queued'}</code>`;
+    const rm=document.createElement('button'); rm.textContent='Remove'; rm.onclick=async()=>{ await fetch('/api/downloader/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:it.id})}); await load(); };
+    row.appendChild(rm); q.appendChild(row);
+  });
+}
+async function missing(){
+  const name=document.getElementById('m_name').value.trim();
+  const have=(document.getElementById('m_have').value||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const r=await fetch('/api/missing/tv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,have})});
+  const j=await r.json(); document.getElementById('m_out').textContent = JSON.stringify(j,null,2);
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+
+<script>
+async function loadCloudPullCfg(){
+  try{
+    const j=await (await fetch('/api/rd/cloudpull/config')).json();
+    if(j.min_mb!=null) document.getElementById('cp_min').value=j.min_mb;
+    if(j.max_mb!=null) document.getElementById('cp_max').value=j.max_mb;
+  }catch(e){}
+}
+async function saveCloudPullCfg(){
+  const js={min_mb: parseFloat(document.getElementById('cp_min').value||'0'),
+            max_mb: parseFloat(document.getElementById('cp_max').value||'0')};
+  await fetch('/api/rd/cloudpull/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(js)});
+  document.getElementById('cp_msg').textContent='Saved';
+}
+document.getElementById('cp_save').onclick=saveCloudPullCfg;
+document.addEventListener('DOMContentLoaded', loadCloudPullCfg);
+</script>
+</body></html>

@@ -1,0 +1,17 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Now Playing — Audio</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.badge{border:1px solid #2e3547;border-radius:6px;padding:2px 6px;font-size:11px;margin-left:6px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Now Playing — Audio</strong></div>
+  <div class="card">
+    <div>Settings snapshot: <span id="snap">—</span></div>
+    <div style="margin-top:6px">Hi‑Res badge appears when extension is FLAC/ALAC/WAV or token 96k/192k in path.</div>
+  </div>
+</div>
+<script>
+(async function(){
+  const s=await (await fetch('/api/audio/settings_get')).json();
+  snap.textContent = JSON.stringify(s);
+})();
+</script>
+</body></html>

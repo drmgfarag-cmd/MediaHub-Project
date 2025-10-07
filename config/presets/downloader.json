@@ -1,0 +1,11 @@
+{
+  "limits": {
+    "global_speed_kbps": 0,
+    "connections_per_host": 4
+  },
+  "toggles": {
+    "auto_parse_links": true,
+    "auto_apply_rules": true,
+    "auto_add_to_queue": false
+  }
+}

@@ -1,0 +1,653 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Dashboard Settings - MediaHub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.settings-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.settings-header { margin-bottom: 30px; }
+.settings-header h1 { margin: 0 0 10px 0; font-size: 28px; color: #eee; }
+.settings-header p { margin: 0; color: #aaa; font-size: 14px; }
+
+.settings-tabs { display: flex; gap: 8px; margin-bottom: 30px; border-bottom: 1px solid #2e3547; padding-bottom: 2px; }
+.settings-tabs button { padding: 10px 20px; border: none; background: transparent; color: #aaa; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.settings-tabs button.active { color: #4f7cff; border-bottom-color: #4f7cff; }
+.settings-tabs button:hover { color: #eee; }
+
+.settings-panel { display: none; }
+.settings-panel.active { display: block; }
+
+.settings-section { background: #1b2130; border: 1px solid #2e3547; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.settings-section h3 { margin: 0 0 16px 0; font-size: 18px; color: #eee; }
+.settings-section p { margin: 0 0 16px 0; color: #aaa; font-size: 13px; }
+
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.card-item { background: #252d3f; border: 1px solid #2e3547; border-radius: 10px; padding: 16px; position: relative; transition: all 0.2s; }
+.card-item.disabled { opacity: 0.5; }
+.card-item:hover { border-color: #4f7cff; }
+.card-item .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.card-item .card-title { font-weight: 600; font-size: 15px; color: #eee; display: flex; align-items: center; gap: 8px; }
+.card-item .card-icon { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-size: 14px; }
+.card-item .toggle-btn { width: 40px; height: 22px; background: #3a4557; border-radius: 11px; position: relative; cursor: pointer; transition: all 0.2s; }
+.card-item .toggle-btn.active { background: #4f7cff; }
+.card-item .toggle-btn::after { content: ''; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: all 0.2s; }
+.card-item .toggle-btn.active::after { left: 20px; }
+.card-item .quick-links { margin-top: 12px; }
+.card-item .quick-link { display: block; padding: 6px 10px; background: #1b2130; border-radius: 6px; margin-bottom: 6px; font-size: 12px; color: #aaa; text-decoration: none; transition: all 0.2s; }
+.card-item .quick-link:hover { background: #2a3447; color: #eee; }
+.card-item .drag-handle { position: absolute; top: 8px; right: 8px; cursor: move; color: #666; font-size: 18px; }
+
+.layout-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.layout-option { background: #252d3f; border: 1px solid #2e3547; border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+.layout-option.selected { border-color: #4f7cff; background: #2a3447; }
+.layout-option:hover { border-color: #4f7cff; }
+.layout-option .option-title { font-weight: 600; font-size: 14px; color: #eee; margin-bottom: 6px; }
+.layout-option .option-desc { font-size: 12px; color: #aaa; }
+
+.tree-editor { background: #252d3f; border: 1px solid #2e3547; border-radius: 10px; padding: 16px; }
+.tree-node { padding: 8px 12px; margin-bottom: 4px; background: #1b2130; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+.tree-node:hover { background: #2a3447; }
+.tree-node.child { margin-left: 24px; }
+.tree-node.grandchild { margin-left: 48px; }
+.tree-node .node-label { font-size: 13px; color: #eee; display: flex; align-items: center; gap: 8px; }
+.tree-node .node-icon { font-size: 16px; }
+.tree-node .node-actions { display: flex; gap: 6px; }
+.tree-node .node-actions button { padding: 4px 8px; border: 1px solid #2e3547; background: #252d3f; color: #aaa; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.2s; }
+.tree-node .node-actions button:hover { background: #3a4557; color: #eee; }
+
+.add-node-form { margin-top: 16px; padding: 16px; background: #1b2130; border-radius: 8px; display: none; }
+.add-node-form.active { display: block; }
+.add-node-form input, .add-node-form select { width: 100%; padding: 10px; border: 1px solid #2e3547; background: #252d3f; color: #eee; border-radius: 6px; margin-bottom: 10px; font-size: 13px; }
+.add-node-form button { padding: 10px 16px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; margin-right: 8px; }
+.add-node-form button.cancel { background: #3a4557; border-color: #3a4557; }
+
+.save-bar { position: fixed; bottom: 20px; right: 20px; background: #1b2130; border: 1px solid #2e3547; border-radius: 10px; padding: 16px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: none; z-index: 1000; }
+.save-bar.active { display: block; }
+.save-bar button { padding: 10px 20px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; margin-right: 10px; }
+.save-bar button.discard { background: #3a4557; border-color: #3a4557; }
+
+@media (max-width: 768px) {
+  .cards-grid { grid-template-columns: 1fr; }
+  .layout-options { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Unified Top Nav -->
+<style>
+#topnav{position:sticky;top:0;z-index:1200;background:linear-gradient(180deg, rgba(8,12,20,.86), rgba(8,12,20,.38) 60%, rgba(8,12,20,0) 100%);backdrop-filter:saturate(140%) blur(8px);padding:8px 12px;display:flex;gap:12px;align-items:center}
+#topnav a{color:#e8ebf5;text-decoration:none;padding:6px 10px;border-radius:8px}
+#topnav a.cur{background:rgba(255,255,255,.06)}
+#navtoggle{position:fixed;left:12px;top:12px;z-index:1300;background:#0b1220;border:1px solid #1f2537;border-radius:10px;padding:6px 8px;cursor:pointer}
+</style>
+<div id="navtoggle">☰</div>
+<div id="topnav">
+  <a href="home.html" id="nav_home">MediaHub</a>
+  <a href="discovery.html" id="nav_disc">Discovery</a>
+  <a href="downloader.html" id="nav_dl">Downloader</a>
+  <a href="rd_manager.html" id="nav_rd">RD Manager</a>
+  <a href="editor_pro.html" id="nav_ed">Editor</a>
+  <span style="flex:1"></span>
+  <a href="tools.html">Tools</a>
+</div>
+
+<div class="settings-container">
+  <div class="settings-header">
+    <h1>Dashboard Settings</h1>
+    <p>Customize your MediaHub dashboard experience</p>
+  </div>
+
+  <div class="settings-tabs">
+    <button class="active" data-tab="cards">Pinned Cards</button>
+    <button data-tab="layout">Layout</button>
+    <button data-tab="tree">Tree Hierarchy</button>
+    <button data-tab="widgets">Widgets</button>
+  </div>
+
+  <!-- Pinned Cards Panel -->
+  <div class="settings-panel active" data-panel="cards">
+    <div class="settings-section">
+      <h3>Pinned Cards</h3>
+      <p>Customize which cards appear on your dashboard and their order. Drag to reorder.</p>
+      <div class="cards-grid" id="cards_grid"></div>
+    </div>
+  </div>
+
+  <!-- Layout Panel -->
+  <div class="settings-panel" data-panel="layout">
+    <div class="settings-section">
+      <h3>Card Size</h3>
+      <p>Choose the size of dashboard cards</p>
+      <div class="layout-options">
+        <div class="layout-option" data-option="card_size" data-value="small">
+          <div class="option-title">Small</div>
+          <div class="option-desc">Compact cards, more per row</div>
+        </div>
+        <div class="layout-option" data-option="card_size" data-value="medium">
+          <div class="option-title">Medium</div>
+          <div class="option-desc">Balanced size (default)</div>
+        </div>
+        <div class="layout-option" data-option="card_size" data-value="large">
+          <div class="option-title">Large</div>
+          <div class="option-desc">Spacious cards with more detail</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Cards Per Row</h3>
+      <p>Number of cards to display per row</p>
+      <div class="layout-options">
+        <div class="layout-option" data-option="cards_per_row" data-value="2">
+          <div class="option-title">2 Cards</div>
+          <div class="option-desc">Best for mobile/tablet</div>
+        </div>
+        <div class="layout-option" data-option="cards_per_row" data-value="3">
+          <div class="option-title">3 Cards</div>
+          <div class="option-desc">Balanced layout</div>
+        </div>
+        <div class="layout-option" data-option="cards_per_row" data-value="4">
+          <div class="option-title">4 Cards</div>
+          <div class="option-desc">Desktop optimized (default)</div>
+        </div>
+        <div class="layout-option" data-option="cards_per_row" data-value="5">
+          <div class="option-title">5 Cards</div>
+          <div class="option-desc">Wide screens</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Display Options</h3>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+          <input type="checkbox" id="show_stats" style="width: 18px; height: 18px;">
+          <span style="color: #eee; font-size: 14px;">Show statistics on cards</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+          <input type="checkbox" id="show_quick_links" style="width: 18px; height: 18px;">
+          <span style="color: #eee; font-size: 14px;">Show quick links on cards</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tree Hierarchy Panel -->
+  <div class="settings-panel" data-panel="tree">
+    <div class="settings-section">
+      <h3>Movies Tree</h3>
+      <p>Customize the hierarchical organization of your movies library</p>
+      <div class="tree-editor" id="tree_movies"></div>
+      <button id="add_movies_node" style="margin-top: 12px; padding: 8px 16px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 6px; cursor: pointer; font-size: 13px;">+ Add Node</button>
+      <div class="add-node-form" id="add_movies_form">
+        <input type="text" id="movies_node_label" placeholder="Node label">
+        <select id="movies_node_parent">
+          <option value="">Root level</option>
+        </select>
+        <select id="movies_node_type">
+          <option value="folder">Folder</option>
+          <option value="filter">Filter</option>
+          <option value="smart">Smart Collection</option>
+        </select>
+        <button id="save_movies_node">Save</button>
+        <button class="cancel" id="cancel_movies_node">Cancel</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>TV Shows Tree</h3>
+      <p>Customize the hierarchical organization of your TV shows library</p>
+      <div class="tree-editor" id="tree_tv"></div>
+      <button id="add_tv_node" style="margin-top: 12px; padding: 8px 16px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 6px; cursor: pointer; font-size: 13px;">+ Add Node</button>
+      <div class="add-node-form" id="add_tv_form">
+        <input type="text" id="tv_node_label" placeholder="Node label">
+        <select id="tv_node_parent">
+          <option value="">Root level</option>
+        </select>
+        <select id="tv_node_type">
+          <option value="folder">Folder</option>
+          <option value="filter">Filter</option>
+          <option value="smart">Smart Collection</option>
+        </select>
+        <button id="save_tv_node">Save</button>
+        <button class="cancel" id="cancel_tv_node">Cancel</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Books Tree</h3>
+      <p>Customize the hierarchical organization of your books library</p>
+      <div class="tree-editor" id="tree_books"></div>
+      <button id="add_books_node" style="margin-top: 12px; padding: 8px 16px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 6px; cursor: pointer; font-size: 13px;">+ Add Node</button>
+      <div class="add-node-form" id="add_books_form">
+        <input type="text" id="books_node_label" placeholder="Node label">
+        <select id="books_node_parent">
+          <option value="">Root level</option>
+        </select>
+        <select id="books_node_type">
+          <option value="folder">Folder</option>
+          <option value="filter">Filter</option>
+          <option value="smart">Smart Collection</option>
+        </select>
+        <button id="save_books_node">Save</button>
+        <button class="cancel" id="cancel_books_node">Cancel</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Audio Tree</h3>
+      <p>Customize the hierarchical organization of your audio library</p>
+      <div class="tree-editor" id="tree_audio"></div>
+      <button id="add_audio_node" style="margin-top: 12px; padding: 8px 16px; border: 1px solid #4f7cff; background: #4f7cff; color: #fff; border-radius: 6px; cursor: pointer; font-size: 13px;">+ Add Node</button>
+      <div class="add-node-form" id="add_audio_form">
+        <input type="text" id="audio_node_label" placeholder="Node label">
+        <select id="audio_node_parent">
+          <option value="">Root level</option>
+        </select>
+        <select id="audio_node_type">
+          <option value="folder">Folder</option>
+          <option value="filter">Filter</option>
+          <option value="smart">Smart Collection</option>
+        </select>
+        <button id="save_audio_node">Save</button>
+        <button class="cancel" id="cancel_audio_node">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Widgets Panel -->
+  <div class="settings-panel" data-panel="widgets">
+    <div class="settings-section">
+      <h3>Dashboard Widgets</h3>
+      <p>Coming soon: Add custom widgets to your dashboard</p>
+      <div style="padding: 40px; text-align: center; color: #666;">
+        <div style="font-size: 48px; margin-bottom: 16px;">🔧</div>
+        <div style="font-size: 16px;">Widget customization will be available in a future update</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Save Bar -->
+<div class="save-bar" id="save_bar">
+  <span style="color: #aaa; margin-right: 16px;">You have unsaved changes</span>
+  <button id="save_changes">Save Changes</button>
+  <button class="discard" id="discard_changes">Discard</button>
+</div>
+
+<script>
+// State management
+let config = null;
+let hasChanges = false;
+
+// Tab switching
+document.querySelectorAll('.settings-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    
+    // Update tabs
+    document.querySelectorAll('.settings-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Update panels
+    document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`[data-panel="${tab}"]`).classList.add('active');
+  });
+});
+
+// Load configuration
+async function loadConfig() {
+  try {
+    const response = await fetch('/api/dashboard/config');
+    const data = await response.json();
+    
+    if (data.ok) {
+      config = data.config;
+      renderPinnedCards();
+      renderLayoutOptions();
+      renderTreeHierarchies();
+    }
+  } catch (e) {
+    console.error('Error loading config:', e);
+    alert('Failed to load dashboard configuration');
+  }
+}
+
+// Render pinned cards
+function renderPinnedCards() {
+  const grid = document.getElementById('cards_grid');
+  const cards = config.pinned_cards || [];
+  
+  cards.sort((a, b) => a.position - b.position);
+  
+  grid.innerHTML = cards.map(card => `
+    <div class="card-item ${card.enabled ? '' : 'disabled'}" data-card-id="${card.id}">
+      <div class="drag-handle">⋮⋮</div>
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-icon" style="background: ${card.color};">${getIcon(card.icon)}</div>
+          ${card.title}
+        </div>
+        <div class="toggle-btn ${card.enabled ? 'active' : ''}" data-card-id="${card.id}"></div>
+      </div>
+      ${card.quick_links && card.quick_links.length > 0 ? `
+        <div class="quick-links">
+          ${card.quick_links.map(link => `
+            <a href="${link.path}" class="quick-link">${link.label}</a>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+  
+  // Attach toggle handlers
+  grid.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const cardId = btn.dataset.cardId;
+      await toggleCard(cardId);
+    });
+  });
+  
+  // Make cards draggable (simple implementation)
+  makeDraggable();
+}
+
+function getIcon(iconName) {
+  const icons = {
+    'film': '🎬',
+    'tv': '📺',
+    'book': '📚',
+    'music': '🎵'
+  };
+  return icons[iconName] || '📁';
+}
+
+async function toggleCard(cardId) {
+  try {
+    const response = await fetch(`/api/dashboard/pinned-cards/${cardId}/toggle`, {
+      method: 'POST'
+    });
+    const data = await response.json();
+    
+    if (data.ok) {
+      // Update local config
+      const card = config.pinned_cards.find(c => c.id === cardId);
+      if (card) {
+        card.enabled = data.card.enabled;
+      }
+      
+      renderPinnedCards();
+      markChanged();
+    }
+  } catch (e) {
+    console.error('Error toggling card:', e);
+  }
+}
+
+function makeDraggable() {
+  // Simple drag and drop implementation
+  const cards = document.querySelectorAll('.card-item');
+  let draggedCard = null;
+  
+  cards.forEach(card => {
+    const handle = card.querySelector('.drag-handle');
+    
+    handle.addEventListener('mousedown', () => {
+      draggedCard = card;
+      card.style.opacity = '0.5';
+    });
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (draggedCard) {
+      draggedCard.style.opacity = '1';
+      draggedCard = null;
+    }
+  });
+  
+  cards.forEach(card => {
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (draggedCard && draggedCard !== card) {
+        const grid = document.getElementById('cards_grid');
+        const allCards = [...grid.querySelectorAll('.card-item')];
+        const draggedIndex = allCards.indexOf(draggedCard);
+        const targetIndex = allCards.indexOf(card);
+        
+        if (draggedIndex < targetIndex) {
+          card.after(draggedCard);
+        } else {
+          card.before(draggedCard);
+        }
+      }
+    });
+  });
+}
+
+// Render layout options
+function renderLayoutOptions() {
+  const layout = config.layout_preferences || {};
+  
+  // Select current options
+  document.querySelectorAll('.layout-option').forEach(option => {
+    const optionType = option.dataset.option;
+    const optionValue = option.dataset.value;
+    
+    if (layout[optionType] == optionValue) {
+      option.classList.add('selected');
+    }
+    
+    option.addEventListener('click', () => {
+      // Deselect siblings
+      document.querySelectorAll(`[data-option="${optionType}"]`).forEach(o => o.classList.remove('selected'));
+      option.classList.add('selected');
+      
+      // Update config
+      config.layout_preferences[optionType] = optionValue;
+      markChanged();
+    });
+  });
+  
+  // Checkboxes
+  document.getElementById('show_stats').checked = layout.show_stats !== false;
+  document.getElementById('show_quick_links').checked = layout.show_quick_links !== false;
+  
+  document.getElementById('show_stats').addEventListener('change', (e) => {
+    config.layout_preferences.show_stats = e.target.checked;
+    markChanged();
+  });
+  
+  document.getElementById('show_quick_links').addEventListener('change', (e) => {
+    config.layout_preferences.show_quick_links = e.target.checked;
+    markChanged();
+  });
+}
+
+// Render tree hierarchies
+function renderTreeHierarchies() {
+  renderTree('movies');
+  renderTree('tv_shows', 'tv');
+  renderTree('books');
+  renderTree('audio');
+}
+
+function renderTree(category, displayName) {
+  const tree = config.tree_hierarchy[category];
+  if (!tree) return;
+  
+  const display = displayName || category;
+  const container = document.getElementById(`tree_${display}`);
+  const nodes = tree.nodes || [];
+  
+  // Build hierarchy
+  const rootNodes = nodes.filter(n => !n.parent);
+  
+  container.innerHTML = rootNodes.map(node => renderTreeNode(node, nodes, 0)).join('');
+  
+  // Populate parent select
+  const parentSelect = document.getElementById(`${display}_node_parent`);
+  parentSelect.innerHTML = '<option value="">Root level</option>' + 
+    nodes.map(n => `<option value="${n.id}">${n.label}</option>`).join('');
+  
+  // Add node button
+  document.getElementById(`add_${display}_node`).addEventListener('click', () => {
+    document.getElementById(`add_${display}_form`).classList.add('active');
+  });
+  
+  // Cancel button
+  document.getElementById(`cancel_${display}_node`).addEventListener('click', () => {
+    document.getElementById(`add_${display}_form`).classList.remove('active');
+  });
+  
+  // Save button
+  document.getElementById(`save_${display}_node`).addEventListener('click', async () => {
+    const label = document.getElementById(`${display}_node_label`).value;
+    const parent = document.getElementById(`${display}_node_parent`).value;
+    const type = document.getElementById(`${display}_node_type`).value;
+    
+    if (!label) {
+      alert('Please enter a node label');
+      return;
+    }
+    
+    const nodeId = `${display}_${Date.now()}`;
+    
+    try {
+      const response = await fetch(`/api/dashboard/tree/${category}/nodes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: nodeId,
+          label: label,
+          parent: parent || null,
+          type: type
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        // Update local config
+        config.tree_hierarchy[category].nodes.push(data.node);
+        renderTree(category, display);
+        document.getElementById(`add_${display}_form`).classList.remove('active');
+        document.getElementById(`${display}_node_label`).value = '';
+        markChanged();
+      }
+    } catch (e) {
+      console.error('Error adding node:', e);
+      alert('Failed to add node');
+    }
+  });
+}
+
+function renderTreeNode(node, allNodes, depth) {
+  const children = allNodes.filter(n => n.parent === node.id);
+  const depthClass = depth === 0 ? '' : (depth === 1 ? 'child' : 'grandchild');
+  
+  let html = `
+    <div class="tree-node ${depthClass}">
+      <div class="node-label">
+        <span class="node-icon">${getNodeIcon(node.type)}</span>
+        ${node.label}
+      </div>
+      <div class="node-actions">
+        <button onclick="editNode('${node.id}')">Edit</button>
+        <button onclick="deleteNode('${node.id}')">Delete</button>
+      </div>
+    </div>
+  `;
+  
+  children.forEach(child => {
+    html += renderTreeNode(child, allNodes, depth + 1);
+  });
+  
+  return html;
+}
+
+function getNodeIcon(type) {
+  const icons = {
+    'root': '📁',
+    'folder': '📂',
+    'filter': '🔍',
+    'smart': '⚡'
+  };
+  return icons[type] || '📄';
+}
+
+async function deleteNode(nodeId) {
+  if (!confirm('Delete this node and all its children?')) return;
+  
+  // Find which category this node belongs to
+  let category = null;
+  for (const [cat, tree] of Object.entries(config.tree_hierarchy)) {
+    if (tree.nodes.some(n => n.id === nodeId)) {
+      category = cat;
+      break;
+    }
+  }
+  
+  if (!category) return;
+  
+  try {
+    const response = await fetch(`/api/dashboard/tree/${category}/nodes/${nodeId}`, {
+      method: 'DELETE'
+    });
+    
+    const data = await response.json();
+    
+    if (data.ok) {
+      // Update local config
+      config.tree_hierarchy[category].nodes = config.tree_hierarchy[category].nodes.filter(n => n.id !== nodeId);
+      renderTreeHierarchies();
+      markChanged();
+    }
+  } catch (e) {
+    console.error('Error deleting node:', e);
+    alert('Failed to delete node');
+  }
+}
+
+// Change tracking
+function markChanged() {
+  hasChanges = true;
+  document.getElementById('save_bar').classList.add('active');
+}
+
+// Save changes
+document.getElementById('save_changes').addEventListener('click', async () => {
+  try {
+    const response = await fetch('/api/dashboard/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    
+    const data = await response.json();
+    
+    if (data.ok) {
+      hasChanges = false;
+      document.getElementById('save_bar').classList.remove('active');
+      alert('Dashboard settings saved successfully!');
+    }
+  } catch (e) {
+    console.error('Error saving config:', e);
+    alert('Failed to save dashboard settings');
+  }
+});
+
+// Discard changes
+document.getElementById('discard_changes').addEventListener('click', () => {
+  if (confirm('Discard all unsaved changes?')) {
+    hasChanges = false;
+    document.getElementById('save_bar').classList.remove('active');
+    loadConfig();
+  }
+});
+
+// Initial load
+document.addEventListener('DOMContentLoaded', loadConfig);
+</script>
+
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+</body></html>

@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Accounts</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0f1115;color:#e7ecf1}
+.card{background:#10141d;border:1px solid #222632;border-radius:12px;padding:12px;margin:12px}
+button,input{padding:6px 10px;border:1px solid #2a3040;border-radius:8px;background:#12151d;color:#e7ecf1}
+button:hover{background:#1b2330}
+table{border-collapse:collapse;width:100%} th,td{border-bottom:1px solid #222632;padding:6px;text-align:left}
+.badge{padding:2px 6px;border-radius:999px;border:1px solid #2a3040;background:#171a21;font-size:12px;margin-left:6px}
+</style></head><body>
+<div class="card">
+  <h2 style="margin:0 0 8px 0">Accounts</h2>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <input id="host" placeholder="host id (e.g., rd)"><input id="user" placeholder="username/email"><input id="secret" placeholder="password/token">
+    <button onclick="add()">Add</button>
+  </div>
+  <table><thead><tr><th>Host</th><th>User</th><th>Status</th><th>2FA</th><th>Traffic</th><th>Updated</th><th>Actions</th></tr></thead><tbody id="tb"></tbody></table>
+</div>
+<script>
+async function refresh(){
+  const r=await fetch('/api/accounts/list'); const j=await r.json();
+  const tb=document.getElementById('tb'); tb.innerHTML='';
+  (j.accounts||[]).forEach(a=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${a.host}</td><td>${a.user}</td><td>${a.status||'—'}</td><td>${a.twofa?'on':'off'}</td><td>${a.traffic_left||'—'}</td><td>${a.updated_ts? new Date(a.updated_ts*1000).toLocaleString():'—'}</td>
+    <td><button onclick="refreshAcct('${a.id}')">Refresh</button> <button onclick="editAcct('${a.id}')">Edit</button> <button onclick="removeAcct('${a.id}')">Remove</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+async function add(){
+  const host=document.getElementById('host').value||''; const user=document.getElementById('user').value||''; const secret=document.getElementById('secret').value||'';
+  await fetch('/api/accounts/add',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({host,user,secret})}); refresh();
+}
+async function refreshAcct(id){ await fetch('/api/accounts/refresh',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})}); refresh(); }
+async function removeAcct(id){ await fetch('/api/accounts/remove',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})}); refresh(); }
+async function editAcct(id){
+  const user=prompt('New username (leave blank to keep)')||undefined;
+  const secret=prompt('New password/token (leave blank to keep)')||undefined;
+  const twofa=confirm('Enable 2FA?');
+  const fields={}; if(user) fields.user=user; if(secret) fields.secret=secret; fields.twofa=twofa;
+  await fetch('/api/accounts/update',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, fields})}); refresh();
+}
+document.addEventListener('DOMContentLoaded', refresh);
+</script>
+</body></html>

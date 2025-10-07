@@ -1,0 +1,21 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Collections Tools</title>
+<link rel="stylesheet" href="/web/ui/common.css"><script src="/web/ui/common.js"></script></head>
+<body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header><div class="shell"><main class="content">
+<div class="card"><h3>Merge Collections</h3>
+<div>Category: <select id="cat"><option>movies</option><option>tv</option><option>books</option><option>audio</option></select></div>
+<select id="mode"><option value="name">Dedupe by Name</option><option value="hash">Dedupe by Hash</option></select>
+<div style="margin-top:6px"><button onclick="go()">Merge</button></div>
+<pre id="out"></pre>
+
+<div class="card"><h3>Merge Preview</h3>
+<div>Category: <select id="cat2"><option>movies</option><option>tv</option><option>books</option><option>audio</option></select></div>
+<div style="margin-top:6px"><button onclick="preview()">Preview</button></div>
+<pre id="pv"></pre>
+</div>
+</main></div>
+<script>
+async function preview(){ const j=await (await fetch('/api/collections/merge_preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:document.getElementById('cat2').value,sources:(document.getElementById('sources2').value||'').split(',').map(x=>x.trim()).filter(Boolean),dedupe_by:document.getElementById('mode2').value})})).json(); document.getElementById('pv').textContent=JSON.stringify(j,null,2); }
+async function resolve(){ const j=await (await fetch('/api/collections/resolve_conflicts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:document.getElementById('cat2').value,target:document.getElementById('target2').value||'Merged',winners:(document.getElementById('winners').value||'').split(',').map(x=>x.trim()).filter(Boolean)})})).json(); UI.toast('Resolved '+j.kept+' items'); }
+
+async function go(){ const j=await (await fetch('/api/collections/merge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:document.getElementById('cat').value,sources:(document.getElementById('sources').value||'').split(',').map(x=>x.trim()).filter(Boolean),target:document.getElementById('target').value||'Merged',dedupe_by:document.getElementById('mode').value})})).json(); document.getElementById('out').textContent=JSON.stringify(j,null,2); }
+</script><script defer src="../assets/ui_enhance.js'></script></body></html>

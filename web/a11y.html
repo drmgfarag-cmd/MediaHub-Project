@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Accessibility & Language</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body>
+<a href="#main" class="skip">Skip to content</a>
+<div class="wrap" id="main">
+  <div class="toolbar" role="navigation" aria-label="Toolbar"><a href="home.html">← Home</a> · <strong>Accessibility & Language</strong> <button id="save">Save</button></div>
+  <div class="card">
+    <h3>Display</h3>
+    <label><input type="checkbox" id="reduced"> Reduced motion</label><br>
+    <label><input type="checkbox" id="highc"> High contrast</label><br>
+    Font scale: <input type="range" id="fscale" min="85" max="140" step="5"> <span id="fsv"></span>
+  </div>
+  <div class="card">
+    <h3>Direction & Language</h3>
+    <label><input type="checkbox" id="rtl"> RTL layout</label><br>
+    Language: 
+    <select id="lang">
+      <option value="EN">English</option>
+      <option value="AR">العربية (beta)</option>
+      <option value="FR">Français (beta)</option>
+    </select>
+  </div>
+  <div class="card">
+    <h3>Keyboard</h3>
+    <div>Shortcuts: <code>/</code> Spotlight, <code>g d</code> Downloads, <code>g h</code> Home.</div>
+  </div>
+</div>
+<script>
+async function load(){ const c=await (await fetch('/api/config/get')).json(); const ui=c.ui||{}; 
+  document.getElementById('reduced').checked=!!ui.reduced_motion;
+  document.getElementById('highc').checked=!!ui.high_contrast;
+  document.getElementById('rtl').checked=!!ui.rtl;
+  const fs=ui.font_scale||100; document.getElementById('fscale').value=fs; document.getElementById('fsv').textContent=fs+'%';
+  document.getElementById('lang').value=(ui.language||'EN');
+}
+document.getElementById('fscale').oninput=(e)=> document.getElementById('fsv').textContent=e.target.value+'%';
+document.getElementById('save').onclick=async ()=>{
+  const c=await (await fetch('/api/config/get')).json();
+  c.ui=c.ui||{};
+  c.ui.reduced_motion=document.getElementById('reduced').checked;
+  c.ui.high_contrast=document.getElementById('highc').checked;
+  c.ui.rtl=document.getElementById('rtl').checked;
+  c.ui.font_scale=parseInt(document.getElementById('fscale').value||'100');
+  c.ui.language=document.getElementById('lang').value;
+  await fetch('/api/config/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)});
+  alert('Saved. Reloading to apply…'); location.reload();
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+</body></html>

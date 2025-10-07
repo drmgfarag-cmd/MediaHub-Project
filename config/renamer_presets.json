@@ -1,0 +1,7 @@
+{
+  "Simple.Movie": "{title}.{year}.{resolution}.{codec}.{group}",
+  "TV.MultiEp": "{title}.S{season:02d}.{seasonEpisodeRange}.{resolution}.{codec}.{group}",
+  "Anime": "{title}.{absolute:03d}.{source}.{codec}.{lang}-{group}",
+  "Music.Basic": "{artist}-{album}-{track}-{title}",
+  "IMDbID": "{title}.{year}.{imdbid}"
+}

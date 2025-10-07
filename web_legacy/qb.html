@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><title>qBittorrent</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:720px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}</style>
+</head><body><div class="wrap">
+  <a href="downloads.html">&larr; Downloads</a>
+  <h1>qBittorrent</h1>
+  <div class="card">
+    <label>WebUI Base URL <input id="url" style="width:100%" placeholder="http://127.0.0.1:8080"></label><br>
+    <label>Username <input id="user" style="width:100%" placeholder="admin"></label><br>
+    <label>Password <input id="pass" style="width:100%" type="password" placeholder="adminadmin"></label><br>
+    <button onclick="save()">Save</button> <button onclick="test()">Test</button> <span id="msg"></span>
+  </div>
+  <div class="card"><h3>All torrents</h3><pre id="out"></pre></div>
+</div>
+<script>
+async function load(){ const c=await (await fetch('/api/qb/config')).json(); url.value=c.url||''; user.value=c.username||''; pass.value=c.password||''; }
+async function save(){ await fetch('/api/qb/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url.value,username:user.value,password:pass.value})}); msg.textContent='Saved'; }
+async function test(){ const j=await (await fetch('/api/qb/list')).json(); out.textContent=JSON.stringify(j,null,2); }
+document.addEventListener('DOMContentLoaded', load);
+</script></body></html>

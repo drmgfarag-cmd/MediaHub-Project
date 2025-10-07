@@ -1,0 +1,8 @@
+{
+  "provider_priority": [
+    "imdb",
+    "tmdb",
+    "custom_json"
+  ],
+  "jobs": []
+}

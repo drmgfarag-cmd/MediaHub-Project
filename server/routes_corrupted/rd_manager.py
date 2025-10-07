@@ -1,0 +1,83 @@
+from flask import Blueprint, jsonify, request
+import os, json, re, math, time, hashlib
+rd_bp = Blueprint('rd', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+STO=os.path.join(ROOT,'storage')
+RDL=os.path.join(STO,'rd_links.json')
+QF =os.path.join(STO,'downloader_queue.json')
+
+def _load(path, default):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+        except Exception: return default
+def _save(path, obj):
+    tmp=path+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, path)
+
+TOKS = re.compile(r'(?i)\\b(2160p|UHD|4K|1080p|HDR|DV|Dolby\\.Vision|DoVi|Atmos|TrueHD|EAC3|FLAC)\\b')
+CLEAN = re.compile(r'(?i)[._]+')
+
+def _norm_title(t):
+    t=os.path.splitext(t)[0] if '.' in t else t
+    t=CLEAN.sub(' ', t)
+    t=re.sub(r'\\bS\\d{1,2}E\\d{1,2}\\b','', t, flags=re.I)
+    t=re.sub(TOKS, '', t)
+    t=re.sub(r'\\s+',' ', t).strip().lower()
+        return t
+
+def _tags(t):
+        return TOKS.findall(t)
+
+@rd_bp.route('/api/rd/groups')
+def groups():
+    try:
+        js={'tag': request.args.get('tag') or ''}
+        tag=js['tag'].strip().upper()
+        links=_load(RDL, {'links':[]}).get('links',[])
+        groups={}
+        for ln in links:
+        title=ln.get('title') or ''
+        base=_norm_title(title)
+        groups.setdefault(base, []).append(ln)
+        out=[]
+        for base, arr in groups.items():
+        sizes=[a.get('size_mb',0) for a in arr]
+        hist={'small':0,'mid':0,'large':0}
+        for s in sizes:
+        if s<2000: hist['small']+=1
+        elif s<8000: hist['mid']+=1
+        else: hist['large']+=1
+        variants=[{'name': a.get('title'), 'size_mb': a.get('size_mb',0), 'tags': _tags(a.get('title')), 'link': a.get('link')} for a in arr]
+        if tag and not any(tag in (t.upper() for t in v['tags']) for v in variants): 
+        continue
+        out.append({'group_title': base.title(), 'variants': variants, 'hist': hist})
+        return jsonify({'groups': out})
+
+
+        @rd_bp.route('/api/rd/pick_best', methods=['POST'])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def pick_best():
+    try:
+        js=request.get_json(silent=True) or {}
+        base=(js.get('group_title') or '').strip().lower()
+        links=_load(RDL, {'links':[]}).get('links',[])
+        cand=[ln for ln in links if _norm_title(ln.get('title',''))==base]
+        if not cand: return jsonify({'error':'group not found'}), 404
+        # score: DV>HDR>Atmos>4K>size
+        def score(ln):
+        t=' '+ln.get('title','')+' '
+        s=ln.get('size_mb',0)
+        sc = (10000 if re.search(r'(?i)\\b(DV|Dolby\\.Vision|DoVi)\\b', t) else 0) + \
+        (5000  if re.search(r'(?i)\\bHDR\\b', t) else 0) + \
+        (2000  if re.search(r'(?i)\\bAtmos\\b', t) else 0) + \
+        (1000  if re.search(r'(?i)\\b(2160p|UHD|4K)\\b', t) else 0) + s
+        return sc
+        best=max(cand, key=score)
+        # queue to downloader
+        q=_load(QF, {'packages':[]})
+        pid=hashlib.sha1((best.get('link','')+str(time.time())).encode('utf-8')).hexdigest()[:10]
+        q['packages'].append({'id': pid, 'name': best.get('title'), 'status':'Queued', 'progress':0, 'speed_kbps':0, 'eta_sec':0, 'added_ts': int(time.time()), 'files':[{'name': best.get('title'), 'size': int(best.get('size_mb',0))*1024, 'status':'Queued','speed_kbps':0,'eta_sec':0, 'hoster':'RD'}]})
+        _save(QF, q)
+        return jsonify({'ok':True, 'queued_id': pid, 'selected': best})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

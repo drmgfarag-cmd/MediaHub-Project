@@ -1,0 +1,63 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Collections</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Collections</strong></div>
+  <div id="cols" class="card"></div>
+  <div id="timeline" class="card"></div>
+</div>
+<script>
+async function loadCols(){
+  const j=await (await fetch('/api/collections/manage')).json();
+  const root=document.getElementById('cols'); root.innerHTML='';
+  (j.rules||[]).forEach((r,i)=>{
+    const b=document.createElement('button'); b.textContent=r.name||('Collection '+i);
+    b.onclick=()=>showTimeline(r.name||('Collection '+i));
+    root.appendChild(b);
+  });
+}
+async function showTimeline(name){
+  const j=await (await fetch('/api/collections/timeline?name='+encodeURIComponent(name))).json();
+  const root=document.getElementById('timeline'); root.innerHTML = `<h3>${name}</h3>`;
+  const wrap=document.createElement('div'); wrap.className='card';
+  (j.items||[]).forEach(async (it)=>{
+    const row=document.createElement('div'); row.style.padding='6px 8px; display:flex; align-items:center; gap:10px;';
+    let prev='';
+    if(it.path){ try{ const r=await fetch('/api/tools/thumbs/ensure?path='+encodeURIComponent(it.path)); const t=await r.json(); if(t.ok) prev = `<img src='${t.poster}' data-vtt='${t.vtt}' style='width:96px;height:54px;object-fit:cover;border-radius:6px'>`; }catch(e){} }
+    row.innerHTML = `${prev}<span class='badge'>${it.year||''}</span> <span>${it.title||''}</span>`;
+    root.appendChild(row);
+  });
+}
+document.addEventListener('DOMContentLoaded', ()=>{ loadCols(); });
+
+// Hover scrub using generated VTT
+async function loadVTT(url){
+  const txt = await (await fetch(url)).text();
+  const lines = txt.split(/\r?\n/).filter(Boolean);
+  const entries=[];
+  for (let i=0;i<lines.length;i++){
+    if(lines[i].includes('-->')){
+      const src = lines[i+1];
+      entries.push(src);
+      i++;
+    }
+  }
+  return entries;
+}
+document.addEventListener('mouseover', async (e)=>{
+  const img = e.target.closest('img[data-vtt]') || e.target.closest('img');
+  if(!img || !img.dataset.vtt) return;
+  const rect = img.getBoundingClientRect();
+  const vtt = await loadVTT(img.dataset.vtt);
+  const onMove = (ev)=>{
+    const x = Math.max(0, Math.min(rect.width, ev.clientX-rect.left));
+    const idx = Math.min(vtt.length-1, Math.floor((x/rect.width)*vtt.length));
+    img.src = vtt[idx];
+  };
+  const onOut = ()=>{ img.removeEventListener('mousemove', onMove); document.removeEventListener('mouseout', onOut); };
+  img.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseout', onOut, {once:true});
+});
+</script>
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+</body></html>

@@ -1,0 +1,14 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset="utf-8"><title>Media Hub — Accounts</title>
+<link rel="stylesheet" href="/web/ui/common.css"><script src="/web/ui/common.js"></script></head>
+<body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header><div class="shell"><main class="content">
+<div class="card"><h3>Account Manager</h3>
+<div id="acc_list" style="margin-top:8px"></div>
+</div>
+</main></div>
+<script>
+async function accLoad(){ const j=await (await fetch('/api/accounts')).json(); const box=document.getElementById('acc_list'); box.innerHTML=(j.accounts||[]).map(a=>`<div class='inline' style='gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px;margin:4px 0'><b>${a.host}</b><span>${a.user}</span><span style='opacity:.7'>${a.status||''}</span><button class='iconbtn' onclick='accDel("${a.host}","${a.user}")'>🗑</button></div>`).join(''); }
+async function accAdd(){ const host=acc_host.value, user=acc_user.value, status=acc_status.value; await fetch('/api/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account:{host,user,status}})}); accLoad(); }
+async function accDel(host,user){ await fetch('/api/accounts',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({host,user})}); accLoad(); }
+document.addEventListener('DOMContentLoaded', accLoad);
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

@@ -1,0 +1,11 @@
+1
+00:00:01,000 --> 00:00:04,000
+This is a sample subtitle file
+
+2
+00:00:05,000 --> 00:00:08,000
+Created for MediaHub Phase 1C testing
+
+3
+00:00:09,000 --> 00:00:12,000
+Demonstrates subtitle organization capabilities

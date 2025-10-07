@@ -1,0 +1,34 @@
+body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;color:#eee;background:#0b0e14}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.card{background:#121623;border:1px solid #1e2433;border-radius:14px;padding:12px;margin:8px 0}
+table{width:100%;border-collapse:collapse} th,td{padding:8px;border-bottom:1px solid #1e2433}
+button,select,input,textarea{background:#1b2130;border:1px solid #2e3547;color:#eee;border-radius:10px;padding:6px 10px}
+.hero{position:relative;height:360px;border-radius:18px;overflow:hidden;background:#151a28;margin-bottom:16px}
+.hero .over{position:absolute;inset:0;background:linear-gradient(90deg,#0b0e14 0%,rgba(11,14,20,.6) 40%,rgba(11,14,20,0) 70%)}
+.hero .txt{position:absolute;left:16px;bottom:16px;max-width:55%}
+.hero img{width:100%;height:100%;object-fit:cover;filter:brightness(.7)}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;background:#1e273b;border:1px solid #2e3550;margin-right:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.tile{background:#0f1320;border:1px solid #1b2233;border-radius:12px;overflow:hidden}
+.tile .cap{padding:8px;font-size:14px;opacity:.9}
+.bottombar{position:sticky;bottom:0;background:#0b0e14;border-top:1px solid #1e2433;padding:8px 12px;display:flex;gap:16px;align-items:center;justify-content:space-between}
+.tag{display:inline-block;padding:1px 6px;border:1px solid #2e3547;border-radius:8px;margin-right:6px}
+
+.st_downloading{color:#41d1ff}.st_queued,.st_waiting{color:#9aa4b2}.st_error,.st_failed{color:#ff6b6b}.st_paused{color:#ffd166}.st_complete,.st_seeding{color:#73d13d}
+
+/* A11y additions */
+:root{ --font-scale: 100%; }
+html{ font-size: var(--font-scale); }
+.skip{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
+.skip:focus{ position:fixed; left:10px; top:10px; background:#0b1020; color:#fff; padding:8px 12px; border-radius:8px; z-index:9999; }
+:focus-visible{ outline:2px solid #6aa2ff; outline-offset:2px; border-radius:6px; }
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important; }
+}
+body.reduce-motion *{ animation:none!important; transition:none!important; }
+body.hc{ filter: contrast(1.05) saturate(1.1); }
+body.hc .card{ border-color:#fff; }
+html[dir="rtl"]{ direction:rtl; }
+html[dir="rtl"] .toolbar{ text-align:right; }
+html[dir="rtl"] .wrap{ margin-left:auto; margin-right:auto; }

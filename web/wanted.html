@@ -1,0 +1,108 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Wanted Tracker</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.itm{margin:6px 0}.badge{margin-left:6px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Wanted Tracker</strong> <a class="btn" href="collections_browser.html">Collections</a> <a class="btn" href="downloader.html">Downloader</a></div>
+  <div class="card"><h3>Quick Filters</h3>
+  <div>Type <select id="ft"><option value="">All</option><option>movie</option><option>series</option><option>book</option><option>audio</option></select>
+      Status <select id="fs"><option value="">All</option><option>Wanted</option><option>Searching</option><option>Queued</option><option>Obtained</option></select>
+      Collection <input id="fc" placeholder="(optional)">
+      Sort <select id="so"><option value="recent">Recent</option><option value="az">A–Z</option></select>
+      <button id="rescan">Show Changes</button>
+      <button id="conf">Resolve Conflicts</button>
+  </div>
+  <div id="change" style="margin-top:6px;color:#9fd8ff">—</div>
+</div>
+<div class="grid">
+    <div class="card">
+      <h3>Add Wanted</h3>
+      <input id="wt" placeholder="Title"> <select id="ty"><option value="">(type)</option><option>movie</option><option>series</option><option>book</option><option>audio</option></select> <button id="add">Add</button>
+      <div style="margin-top:8px"><button id="scan">Refresh Status</button></div>
+      <div style="margin-top:8px">
+        <h4>Seed from Collection</h4>
+        <input id="col" placeholder="Collection name"> Max <input id="max" type="number" value="25" style="width:80px"> <button id="seed">Seed</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Wanted Items</h3>
+      <div id="list">—</div>
+    </div>
+  </div>
+</div>
+<script>
+let DATA=null;
+function group(items){
+  const t=ft.value, s=fs.value, c=fc.value.trim().toLowerCase();
+  let arr=[...(items||[])];
+  arr = arr.filter(i=> (!t || (i.type||'')===t) && (!s || (i.status||'')===s) && (!c || (i.collection||'').toLowerCase().includes(c)));
+  if(so.value==='az'){ arr.sort((a,b)=> (a.title||'').localeCompare(b.title||'')); }
+  return {Wanted: arr.filter(i=>i.status==='Wanted'), Searching: arr.filter(i=>i.status==='Searching'), Queued: arr.filter(i=>i.status==='Queued'), Obtained: arr.filter(i=>i.status==='Obtained')};
+} const g={Wanted:[],Searching:[],Queued:[],Obtained:[]}; (items||[]).forEach(i=>g[i.status||'Wanted'].push(i)); return g; }
+async function load(){ const j=await (await fetch('/api/wanted/get')).json(); DATA=j.items||[]; render(); }
+function render(){
+  const g=group(DATA);
+  function sec(name, arr){
+    return `<div style="margin:8px 0"><h3>${name} <span class="badge">${arr.length}</span></h3>`+
+    (arr.map(i=>`<div class="itm"><strong>${i.title}</strong> <span class="badge">${i.status||'Wanted'}</span>
+     <button class="srch" data-title="${encodeURIComponent(i.title)}">Search Task</button>
+     <button class="auto" data-title="${encodeURIComponent(i.title)}">Auto-Queue</button> <button class="why" data-title="${encodeURIComponent(i.title)}">Why?</button>
+     <button class="rm" data-id="${i.id}">Remove</button></div>`).join('') || 'None')+`</div>`;
+  }
+  list.innerHTML = sec('Wanted', g.Wanted)+sec('Searching', g.Searching)+sec('Queued', g.Queued)+sec('Obtained', g.Obtained);
+}
+add.onclick=async ()=>{ const t=wt.value.trim(); if(!t) return; await fetch('/api/wanted/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t, type: ty.value})}); wt.value=''; load(); };
+scan.onclick=load;
+seed.onclick=async ()=>{ const name=col.value.trim(); const maxn=parseInt(max.value)||25; if(!name) return; const j=await (await fetch('/api/wanted/seed_collection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, max: maxn})})).json(); if(j.ok){ load(); } };
+document.addEventListener('click', async (e)=>{
+  const y=e.target.closest('button.why'); if(y){ const t=decodeURIComponent(y.dataset.title); const r=await (await fetch('/api/auto/candidates_explain?q='+encodeURIComponent(t))).json(); alert(r.explain||'No data'); }
+  const r=e.target.closest('button.rm'); if(r){ await fetch('/api/wanted/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:r.dataset.id})}); load(); }
+  const s=e.target.closest('button.srch'); if(s){ const t=decodeURIComponent(s.dataset.title); await fetch('/api/wanted/search_task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t})}); load(); }
+  const a=e.target.closest('button.auto'); if(a){ const t=decodeURIComponent(a.dataset.title); const r=await (await fetch('/api/wanted/auto_queue_checked',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t})})).json(); 
+  if(r.ok){ load(); }
+  else if(r.conflict){ if(confirm(r.message)){ const r2=await (await fetch('/api/wanted/auto_queue_checked',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t, force:true})})).json(); if(r2.ok){ load(); } } }
+  else { alert(r.error||'No candidates.'); } }
+});
+document.addEventListener('DOMContentLoaded', load);
+
+rescan.onclick=async ()=>{
+  const j=await (await fetch('/api/wanted/refresh_config_get')).json();
+  const lr=j.last_report||{};
+  change.textContent = `Changed — Queued: ${lr.queued||0} · Search: ${lr.search_added||0} · Conflicts: ${lr.conflicts||0} · Status: ${lr.status_changed||0}`;
+};
+conf.onclick=async ()=>{
+  const act=prompt('Resolve conflicts: 1) Remove conflicted Wanted entries  2) Force queue best for conflicted','1');
+  if(!act) return;
+  const mode=(act==='2')? 'force_queue':'remove';
+  const r=await (await fetch('/api/wanted/resolve_batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode})})).json();
+  alert('Removed: '+(r.removed||0)+' · Forced: '+(r.forced||0)); load();
+};
+document.addEventListener('change', (e)=>{ if(['ft','fs','fc','so'].includes(e.target.id)) render(); });
+</script>
+
+<!-- Log Overlay + Accessibility Toggles + Virtualization hook -->
+<style>
+#logov{position:fixed;right:12px;bottom:12px;width:420px;max-height:40vh;overflow:auto;background:#0b1220;border:1px solid #1f2537;border-radius:12px;padding:6px 8px;z-index:9999;white-space:pre-wrap}
+.high-contrast #logov, body.high-contrast #logov{border-color:#cbd6f7}
+</style>
+<div id="logov" hidden>Log overlay…</div>
+<script>
+(async function(){
+  const cfg=await (await fetch('/api/config/get')).json();
+  if(cfg.accessibility&&cfg.accessibility.high_contrast){ document.body.classList.add('high-contrast'); }
+  if(cfg.accessibility&&cfg.accessibility.rtl_ui){ document.body.classList.add('rtl'); }
+  const always = cfg.sys_settings && cfg.sys_settings.always_log_overlay;
+  async function tick(){
+    if(!always){ logov.hidden=true; return; }
+    const j=await (await fetch('/api/sys/logs_tail?lines=120')).json();
+    logov.textContent=j.lines.join('\n'); logov.hidden=false;
+  }
+  setInterval(tick, 2000); tick();
+  // Alt+L toggles
+  document.addEventListener('keydown', (e)=>{ if(e.altKey && (e.key.toLowerCase()==='l')){ logov.hidden = !logov.hidden; } });
+  // '/' focuses search if present
+  document.addEventListener('keydown', (e)=>{ if(e.key==='/'){ const gs=document.getElementById('gsi'); if(gs){ e.preventDefault(); gs.focus(); } } });
+  // '?' opens keyboard map page
+  document.addEventListener('keydown', (e)=>{ if(e.key==='?'){ window.location.href='accessibility.html'; } });
+})();</script>
+
+</body></html>

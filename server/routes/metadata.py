@@ -1,0 +1,120 @@
+# Metadata Provider Management
+from flask import Blueprint, jsonify, request
+import os, json, re
+
+md_bp = Blueprint('md', __name__)
+STO = os.environ.get('MH_STORAGE','storage')
+CACHE = os.path.join(STO,'metadata_cache.json')
+CFG = os.path.join(STO,'metadata_config.json')
+
+DEFAULT_PROVIDERS = {
+  "movie": ["tmdb","omdb","tvdb"],
+  "series": ["tvdb","tmdb","anilist"],
+  "anime": ["anilist","tmdb","omdb"],
+  "book": ["googlebooks"],
+  "audio": ["discogs"]
+}
+DEFAULT_LANG_ORDER = ["ar","en","xx"]
+DEFAULT_LIVE_ENABLED = True
+auto_audio_enrich_default = False
+
+def _load(path, default):
+  if os.path.exists(path):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+    except: pass
+  return default
+
+def _save(path, obj):
+  os.makedirs(os.path.dirname(path), exist_ok=True)
+  with open(path,'w',encoding='utf-8') as f: json.dump(obj, f, indent=2)
+
+@md_bp.route('/api/metadata/providers')
+def providers():
+  cfg=_load(CFG, {"providers":DEFAULT_PROVIDERS, "lang_order": DEFAULT_LANG_ORDER})
+  return jsonify(cfg)
+
+@md_bp.route('/api/metadata/config', methods=['POST'])
+def set_config():
+  js=request.get_json(force=True) or {}
+  cfg=_load(CFG, {"providers":DEFAULT_PROVIDERS, "lang_order": DEFAULT_LANG_ORDER})
+  if "providers" in js: cfg["providers"]=js["providers"]
+  if "lang_order" in js: cfg["lang_order"]=js["lang_order"]
+  _save(CFG, cfg); return jsonify({"ok":True})
+
+@md_bp.route('/api/metadata/cache_put', methods=['POST'])
+def cache_put():
+  js=request.get_json(force=True) or {}
+  key = js.get('key') or js.get('title') or ""
+  if not key: return jsonify({"ok":False,"error":"missing key"}),400
+  cache=_load(CACHE, {}); cache[key]=js; _save(CACHE, cache)
+  return jsonify({"ok":True})
+
+@md_bp.route('/api/metadata/cache_get')
+def cache_get():
+  key = request.args.get('key') or request.args.get('title') or ""
+  if not key: return jsonify({"ok":False,"error":"missing key"}),400
+  cache=_load(CACHE, {})
+  return jsonify({"ok":True,"data":cache.get(key)})
+
+@md_bp.route('/api/metadata/keys_status')
+def keys_status():
+  # Check which API keys are available
+  has = {}
+  secrets_path = os.path.join(STO, 'secrets.json')
+  secrets = _load(secrets_path, {})
+  
+  has['tmdb'] = bool(secrets.get('TMDB_API_KEY'))
+  has['omdb'] = bool(secrets.get('OMDB_API_KEY'))
+  has['googlebooks'] = bool(secrets.get('GOOGLE_BOOKS_API_KEY'))
+  has['discogs'] = bool(secrets.get('DISCOGS_API_KEY'))
+  has['anilist'] = bool(secrets.get('ANILIST_API_KEY'))
+  
+  return jsonify({"has": has})
+
+@md_bp.route('/api/metadata/resolve_live', methods=['POST'])
+def resolve_live():
+  js = request.get_json(force=True) or {}
+  content_type = js.get('type', 'movie')
+  title = js.get('title', '')
+  year = js.get('year')
+  
+  if not title:
+    return jsonify({"ok": False, "error": "Title required"}), 400
+  
+  # This would integrate with the actual metadata providers
+  # For now, return a placeholder response
+  meta = {
+    "title": title,
+    "year": year,
+    "type": content_type,
+    "resolved": True,
+    "providers_used": ["tmdb", "omdb"],
+    "confidence": 0.95
+  }
+  
+  return jsonify({"ok": True, "meta": meta})
+
+@md_bp.route('/api/metadata/bulk_resolve', methods=['POST'])
+def bulk_resolve():
+  js = request.get_json(force=True) or {}
+  items = js.get('items', [])
+  
+  results = []
+  for item in items:
+    # Placeholder bulk resolution
+    results.append({
+      "title": item.get('title', ''),
+      "resolved": True,
+      "meta": {"title": item.get('title', ''), "confidence": 0.8}
+    })
+  
+  return jsonify({"ok": True, "results": results})
+
+@md_bp.route('/api/metadata/clear_cache', methods=['POST'])
+def clear_cache():
+  try:
+    if os.path.exists(CACHE):
+      os.remove(CACHE)
+    return jsonify({"ok": True, "message": "Cache cleared"})
+  except Exception as e:
+    return jsonify({"ok": False, "error": str(e)}), 500

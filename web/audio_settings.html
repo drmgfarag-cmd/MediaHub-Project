@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Audio Settings</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Audio Settings</strong> <button id="save">Save</button></div>
+  <div class="card">
+    <label><input type="checkbox" id="gapless"> Gapless playback</label>
+    <div style="margin-top:6px">Cross‑fade: <input type="number" id="fade" min="0" step="250" value="3000" style="width:120px"> ms</div>
+    <div style="margin-top:6px">ReplayGain: 
+      <select id="rg">
+        <option value="off">Off</option>
+        <option value="track">Track</option>
+        <option value="album">Album</option>
+      </select>
+      Preamp: <input type="number" id="pre" step="0.5" value="0.0" style="width:90px"> dB
+      <button id="scan">Scan</button>
+    </div>
+    <div style="margin-top:6px">Lyrics provider: 
+      <select id="prov">
+        <option value="local">Local / Manual</option>
+        <option value="url">From URL (paste)</option>
+        <option value="musixmatch">Musixmatch (needs key)</option>
+        <option value="genius">Genius (needs key)</option>
+        <option value="azlyrics">AZLyrics (parse)</option>
+      </select>
+    </div>
+  </div>
+  <div class="card" id="out">—</div>
+</div>
+<script>
+async function load(){
+  const s=await (await fetch('/api/audio/settings_get')).json();
+  gapless.checked=!!s.gapless; fade.value=s.crossfade_ms||3000; rg.value=s.replaygain_mode||'off'; pre.value = (s.preamp_db!=null?s.preamp_db:0.0); prov.value=s.lyrics_provider||'local';
+}
+save.onclick=async ()=>{
+  await fetch('/api/audio/settings_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gapless:gapless.checked,crossfade_ms:parseInt(fade.value)||0,replaygain_mode:rg.value,preamp_db:parseFloat(pre.value)||0,lyrics_provider:prov.value})});
+  out.textContent='Saved.';
+};
+scan.onclick=async ()=>{
+  const j=await (await fetch('/api/audio/rg/scan',{method:'POST'})).json();
+  out.textContent = j.ok? ('Scanned new: '+j.scanned_new+' (total '+j.total+')') : ('Error: '+(j.error||''));
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

@@ -1,0 +1,28 @@
+<html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Media Hub — Rss Filters</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+
+<h2>RSS Filters — Profiles & Checklists</h2>
+<button onclick="loadCat()">Load Catalog</button>
+<button onclick="saveProfile()">Save as Profile</button>
+<button onclick="applyProfile()">Apply Profile</button>
+<div id="rss"></div>
+<script>
+let lists={include_words:[],exclude_words:[],allow_ext:[],deny_ext:[],codecs:[],qualities:[],groups:[]};
+async function loadCat(){
+  const j = await (await fetch('/api/rss/filters/catalog')).json();
+  lists={include_words:j.include_examples,exclude_words:j.exclude_examples,allow_ext:j.allow_ext_examples,deny_ext:j.deny_ext_examples,codecs:j.codec_examples,qualities:j.quality_tiers,groups:j.group_examples};
+  document.getElementById('rss').textContent=JSON.stringify(lists,null,2);
+}
+async function saveProfile(){
+  const name = prompt('Profile name','UserDefined'); if(!name) return;
+  await fetch('/api/rss/filters/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(lists)});
+  await fetch('/api/rss/filters/apply_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, lists})});
+  alert('Saved '+name);
+}
+async function applyProfile(){
+  const name = prompt('Profile to apply','UserDefined'); if(!name) return;
+  await fetch('/api/rss/filters/apply_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, lists})});
+  alert('Applied '+name);
+}
+</script>
+
+<script defer src="../assets/ui_enhance.js'></script></body></html>

@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><title>RSS Feeder (gated)</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="downloader.html">← Downloader</a> · <strong>RSS Feeder</strong></div>
+  <div class="card"><div id="gate">Checking feature toggle…</div></div>
+  <div id="ui" hidden>
+    <div class="card">
+      <h3>Feeds</h3>
+      <div>Add: <input id="url" placeholder="https://example.com/rss"> Tag: <input id="tag" placeholder="Movies/Shows…"> <button id="add">Add</button> <button id="refresh">Refresh All</button></div>
+      <div id="feeds" style="margin-top:6px">—</div>
+    </div>
+  </div>
+</div>
+<script>
+async function gate(){
+  const f=await (await fetch('/api/features/get')).json();
+  if(!f.rss_feeder){ gate.innerHTML='RSS Feeder is <strong>disabled</strong>. Enable in Tools → Features.'; return; }
+  gate.textContent='Enabled'; ui.hidden=false; load();
+}
+async function load(){
+  const j=await (await fetch('/api/rss/feeds')).json();
+  feeds.innerHTML = (j.feeds||[]).map(f=>`<div>${f.url} <span class="badge">${f.tag||''}</span> <span class="badge">last ${f.last_refresh? new Date(f.last_refresh*1000).toLocaleString(): 'never'}</span> <button class="rm" data-url="${f.url}">Remove</button></div>`).join('') || 'None';
+}
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.rm'); if(b){ await fetch('/api/rss/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url: b.dataset.url})}); load(); }
+});
+add.onclick=async ()=>{ const u=url.value.trim(); if(!u) return; await fetch('/api/rss/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url: u, tag: tag.value.trim()})}); url.value=''; tag.value=''; load(); };
+refresh.onclick=async ()=>{ await fetch('/api/rss/refresh',{method:'POST'}); load(); };
+document.addEventListener('DOMContentLoaded', gate);
+</script>
+</body></html>

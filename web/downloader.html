@@ -1,0 +1,425 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Downloader</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.tbl{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px}
+.pkg{background:#0b1020}
+.tright{text-align:right}
+.bottom{position:sticky;bottom:0;background:#0b1020;border-top:1px solid #1f2537;padding:8px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+.badge{margin-left:6px}
+#props{position:fixed;right:8px;top:70px;width:300px;background:#0b1020;border:1px solid #1f2537;border-radius:8px;padding:8px;display:none;max-height:70vh;overflow:auto}
+.row:hover{background:#0e1530}
+</style></head>
+<style>
+.toast{position:fixed;right:16px;bottom:16px;background:#0b1220;color:#e8ebf5;padding:10px 12px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);transition:all .25s}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+<body>
+
+<!-- Unified Top Nav (hero-friendly) + Side Pillars + Context Menu -->
+<style>
+#topnav{position:sticky;top:0;z-index:1200;background:linear-gradient(180deg, rgba(8,12,20,.86), rgba(8,12,20,.38) 60%, rgba(8,12,20,0) 100%);backdrop-filter:saturate(140%) blur(8px);padding:8px 12px;display:flex;gap:12px;align-items:center}
+#topnav a{color:#e8ebf5;text-decoration:none;padding:6px 10px;border-radius:8px}
+#topnav a.cur{background:rgba(255,255,255,.06)}
+#sidenav{position:fixed;left:12px;top:60px;bottom:12px;width:190px;background:#0b1220cc;border:1px solid #1f2537;border-radius:12px;padding:8px;z-index:1100;display:none;overflow:auto}
+#sidenav .hdr{font-weight:600;margin:6px 0 8px 0;opacity:.85}
+#sidenav a{display:block;color:#e8ebf5;text-decoration:none;padding:6px 8px;border-radius:8px}
+#sidenav a:hover{background:#121a2d}
+#navtoggle{position:fixed;left:12px;top:12px;z-index:1300;background:#0b1220;border:1px solid #1f2537;border-radius:10px;padding:6px 8px;cursor:pointer}
+.context{position:fixed;background:#0b1220;border:1px solid #1f2537;border-radius:8px;display:none;z-index:2000;min-width:200px}
+.context .it{padding:8px 10px;cursor:pointer}
+.context .it:hover{background:#121a2d}
+.subbar{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap}
+.subbar .tab{padding:6px 10px;border:1px solid #1f2537;border-radius:999px;cursor:pointer;text-decoration:none;color:#e8ebf5}
+.subbar .tab.cur{background:#121a2d}
+@media (max-width: 1080px){ #sidenav{display:none!important} }
+</style>
+<div id="navtoggle">☰</div>
+<div id="topnav">
+  <a href="home.html" id="nav_home">MediaHub</a>
+  <a href="discovery.html" id="nav_disc">Discovery</a>
+  <a href="downloader.html" id="nav_dl">Downloader</a>
+  <a href="rd_manager.html" id="nav_rd">RD Manager</a>
+  <a href="editor_pro.html" id="nav_ed">Editor</a>
+  
+  <span style="flex:1"></span>
+  <a href="tools.html">Tools</a>
+</div>
+<div id="sidenav">
+  <div class="hdr">Pillars</div>
+  <a href="home.html">MediaHub</a>
+  <a href="downloader.html">Downloader</a>
+  <a href="rd_manager.html">RD Manager</a>
+  <a href="editor_pro.html">Editor</a>
+  
+  <div class="hdr">Library</div>
+  <a href="collections_import.html">Collections — Import</a>
+  <a href="timelines.html">Collections — Timelines</a>
+  <a href="publisher_pivots.html">Publishers</a>
+  <div class="hdr">System</div>
+  <a href="system_logs.html">System & Logs</a>
+  <a href="dependencies.html">Dependencies</a>
+  <a href="backup_restore.html">Backup & Restore</a>
+  <a href="accessibility.html">Accessibility</a>
+</div>
+<div id="ctx" class="context"></div>
+<script>
+(function(){
+  const cur = location.pathname.split('/').pop();
+  ({"home.html":"nav_home","discovery.html":"nav_disc","downloader.html":"nav_dl","rd_manager.html":"nav_rd","editor_pro.html":"nav_ed","kids.html":"nav_kids"})[cur] && document.getElementById({"home.html":"nav_home","discovery.html":"nav_disc","downloader.html":"nav_dl","rd_manager.html":"nav_rd","editor_pro.html":"nav_ed","kids.html":"nav_kids"}[cur]).classList.add('cur');
+  navtoggle.onclick=()=>{ const s=document.getElementById('sidenav'); s.style.display = s.style.display==='block'? 'none':'block'; };
+  // Context menu framework
+  const ctx=document.getElementById('ctx');
+  document.addEventListener('contextmenu',(e)=>{
+    const card=e.target.closest('.item,.row,li,tr');
+    if(!card){ return; }
+    e.preventDefault();
+    const kind = location.pathname.includes('downloader')? 'downloader' : (location.pathname.includes('rd_manager')? 'rd' : (location.pathname.includes('editor')? 'editor' : 'library'));
+    let html='';
+    if(kind==='library'){
+      html+=`<div class="it" data-a="pin">Pin to rail</div><div class="it" data-a="kids">Mark as Kids</div><div class="it" data-a="collection">Add to Collection</div>`;
+    }else if(kind==='downloader'){
+      html+=`<div class="it" data-a="pause">Pause</div><div class="it" data-a="resume">Resume</div><div class="it" data-a="force">Force Start</div><div class="it" data-a="dupe">Deduplicate…</div>`;
+    }else if(kind==='rd'){
+      html+=`<div class="it" data-a="pick">Pick Best</div><div class="it" data-a="dupe">Collapse Duplicates</div>`;
+    }else if(kind==='editor'){
+      html+=`<div class="it" data-a="find">Find…</div><div class="it" data-a="replace">Replace…</div>`;
+    }
+    ctx.innerHTML=html; ctx.style.left=(e.pageX+2)+'px'; ctx.style.top=(e.pageY+2)+'px'; ctx.style.display='block';
+  });
+  document.addEventListener('click', async (e)=>{
+    if(!e.target.closest('#ctx')){ ctx.style.display='none'; return; }
+    const a=e.target.dataset.a;
+    if(a==='dupe' && location.pathname.includes('downloader')){
+      const mode=prompt('Deduplicate: 1) Mark duplicates  2) Remove smaller','1'); if(!mode) return;
+      const md= mode==='2'? 'remove':'mark';
+      const r=await (await fetch('/api/dedupe/downloader',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode: md})})).json();
+      alert('Duplicates processed. Removed: '+(r.removed||0));
+      location.reload();
+    }
+    if(a==='dupe' && location.pathname.includes('rd_manager')){
+      const mode=prompt('RD Dedupe: 1) Collapse view  2) Remove smaller variants','1'); if(!mode) return;
+      const md= mode==='2'? 'remove_smaller':'collapse';
+      const r=await (await fetch('/api/dedupe/rd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode: md})})).json();
+      alert('RD dedupe removed: '+(r.removed||0));
+      location.reload();
+    }
+    if(a==='pick'){ /* RD pick best — use buttons in the UI for specifics */ }
+    if(a==='find'){ const b=document.getElementById('fr'); if(b) b.click(); }
+  });
+})();</script>
+<div class="wrap" style="margin-top:8px">
+
+<!-- Downloader Enhanced Table -->
+<style>
+.tbl{width:100%;border-collapse:collapse;margin-top:8px}
+.tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px;text-align:left}
+.pbar{height:8px;background:#0e1630;border-radius:6px;overflow:hidden}
+.pbar>span{display:block;height:100%;background:#3a86ff;width:0%}
+.st-Queued{color:#89a6ff} .st-Completed{color:#53d769} .st-Running{color:#ffd166} .st-Error{color:#ff6b6b}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#0b1220;border-top:1px solid #1f2537;padding:8px 12px;color:#b9c2d8;display:flex;gap:16px;align-items:center;z-index:50}
+.badge{background:#18203a;color:#cbd6f7;padding:2px 8px;border-radius:999px;font-size:12px}
+</style>
+<div id="dlx_card" class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h3>Downloader — Enhanced <span style="opacity:.7">·</span> <strong>Pro Tools</strong></h3>
+    <div>Speed limit:
+      <button class="lim" data-kbps="0">No cap</button>
+      <button class="lim" data-kbps="5120">5 MB/s</button>
+      <button class="lim" data-kbps="10240">10 MB/s</button>
+      <button class="lim" data-kbps="20480">20 MB/s</button>
+    </div>
+  </div>
+  
+<div style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+  <button id="selAll">Select All</button>
+  <button data-op="pause" class="op">Pause</button>
+  <button data-op="resume" class="op">Resume</button>
+  <button data-op="force_start" class="op">Force Start</button>
+  <button data-op="move_up" class="op">Move Up</button>
+  <button data-op="move_down" class="op">Move Down</button>
+  <button data-op="delete" class="op">Delete</button>
+  <span style="margin-left:12px">Retry Policy:</span>
+  <button id="rp">Edit…</button>
+  <span style="margin-left:12px">Columns Preset:</span>
+  <button id="savePreset">Save</button> <button id="applyPreset">Apply…</button>
+</div>
+<table class="tbl">
+    <thead><tr><th></th><th>Name</th><th>Size</th><th>Progress</th><th>Speed</th><th>ETA</th><th>Source</th><th>Added</th><th>Save To</th></tr></thead>
+    <tbody id="rows"></tbody><tfoot><tr><td colspan="9"><button id="more">Load more</button></td></tr></tfoot>
+  </table>
+</div>
+<div id="dlbar" class="bar">Totals: <span id="tot_pkg" class="badge">0 pkgs</span> <span id="tot_act" class="badge">0 active</span> <span id="tot_spd" class="badge">0 KB/s</span> <span id="tot_eta" class="badge">ETA —</span></div>
+<script>
+function fmtETA(sec){ if(!sec||sec<=0) return '—'; const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60); const s=sec%60; return (h? h+'h ':'')+(m? m+'m ':'')+(h? '' : (s? s+'s':'')); }
+function fmtSize(s){ if(!s||s==='—') return '—'; if(typeof s==='number'){ if(s>=1024*1024) return (s/1024/1024).toFixed(1)+' GB'; if(s>=1024) return (s/1024).toFixed(1)+' MB'; return s+' KB'; } return s; }
+async function loadQ(){
+  const cfg=await (await fetch('/api/downloader/settings_get')).json();
+  const lim=cfg.speed_limit_kbps||0;
+  const j=await (await fetch('/api/downloader/queue_get')).json(); const cfg=await (await fetch('/api/config/get')).json(); const max=(cfg.virtualization&&cfg.virtualization.downloader_max_rows)||200;
+  const pkgs=j.packages||[];
+  let tot=0, active=0, eta=0;
+  let shown=pkgs.slice(0, window._dlcount||max); rows.innerHTML = shown.map(p=>{
+    const f=(p.files&&p.files[0])||{};
+    const prog=Math.max(0, Math.min(100, p.progress||f.progress||0));
+    let spd=(p.speed_kbps||f.speed_kbps||0);
+    if(lim>0) spd=Math.min(spd, lim);
+    const st=p.status||f.status||'Queued';
+    if(st!=='Completed' && spd>0){ active++; }
+    tot += spd;
+    const etaSec = p.eta_sec||f.eta_sec||0;
+    eta = Math.max(eta, etaSec);
+    const added = p.added_ts? new Date(p.added_ts*1000).toLocaleString(): '—';
+    const host=f.hoster||'—'; const save=f.save_to||p.save_to||'—';
+    const nm=p.name||f.name||'—';
+    return `<tr draggable="true" data-id="${p.id}">
+      <td><input type="checkbox" class="sel" data-id="${p.id}"></td><td class="drag">↕ ${nm}</td>
+      <td>${fmtSize(f.size||'—')}</td>
+      <td><div class="pbar"><span style="width:${prog}%"></span></div> ${prog}% <span class="st-${st}">${st}</span></td>
+      <td>${(spd>1024? (spd/1024).toFixed(1)+' MB/s' : spd+' KB/s')}</td>
+      <td>${fmtETA(etaSec)}</td>
+      <td>${host}</td>
+      <td>${added}</td>
+      <td>${save}</td>
+    </tr>`;
+  }).join('');
+  tot_pkg.textContent = pkgs.length+' pkgs (showing '+(window._dlcount||max)+')';
+  tot_act.textContent = active+' active';
+  tot_spd.textContent = (tot>1024? (tot/1024).toFixed(1)+' MB/s' : tot+' KB/s');
+  tot_eta.textContent = 'ETA '+fmtETA(eta);
+}
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.lim'); if(!b) return;
+  const kbps=parseInt(b.dataset.kbps)||0;
+  await fetch('/api/downloader/settings_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({speed_limit_kbps: kbps})});
+  loadQ();
+});
+document.addEventListener('DOMContentLoaded', ()=>{ window._dlcount=0; more.click(); });
+
+async function selectedIds(){ return [...document.querySelectorAll('.sel:checked')].map(x=>x.dataset.id); }
+document.getElementById('selAll').onclick=()=>{ const boxes=[...document.querySelectorAll('.sel')]; const allChecked=boxes.every(b=>b.checked); boxes.forEach(b=>b.checked=!allChecked); };
+
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.op'); if(b){ const ids=await selectedIds(); if(!ids.length){ alert('Select rows first'); return; }
+    const op=b.dataset.op; await fetch('/api/downloader/queue_ops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op, ids})}); loadQ(); }
+  if(e.target.id==='rp'){ const cur=await (await fetch('/api/downloader/retry_policy_get')).json(); const m=prompt('Max retries,Backoff seconds', (cur.max_retries||3)+','+(cur.backoff_sec||60)); if(m){ const [mr,bo]=m.split(','); await fetch('/api/downloader/retry_policy_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_retries: parseInt(mr)||3, backoff_sec: parseInt(bo)||60})}); } }
+  if(e.target.id==='savePreset'){ const name=prompt('Preset name','My Columns'); if(!name) return; const cols=[...document.querySelectorAll('.tbl thead th')].slice(1).map(th=>th.textContent.trim()); await fetch('/api/downloader/presets_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, columns: cols})}); alert('Saved & Applied'); }
+  if(e.target.id==='applyPreset'){ const p=await (await fetch('/api/downloader/presets_get')).json(); const keys=Object.keys(p.presets||{}); if(!keys.length){ alert('No presets'); return; } const name=prompt('Choose preset: '+keys.join(', '), keys[0]); if(!name||!p.presets[name]) return; await fetch('/api/downloader/settings_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({columns: p.presets[name]})}); alert('Applied'); loadQ(); }
+});
+
+// Drag reorder
+let dragRow=null;
+document.addEventListener('dragstart',(e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr){ dragRow=tr; e.dataTransfer.setData('text/plain', tr.dataset.id);} });
+document.addEventListener('dragover',(e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr && dragRow && tr!==dragRow){ e.preventDefault(); } });
+document.addEventListener('drop', async (e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr && dragRow && tr!==dragRow){ e.preventDefault(); tr.parentNode.insertBefore(dragRow, tr.nextSibling); const order=[...document.querySelectorAll('tr[draggable]')].map(x=>x.dataset.id); await fetch('/api/downloader/queue_ops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'reorder', order})}); } });
+
+// Status bar: add disk free + session downloaded
+async function stats(){ const s=await (await fetch('/api/system/stats')).json(); const df = s.disk_free_kb; const sd = s.session_downloaded_kb; const fmt=(kb)=> kb>1024*1024? (kb/1024/1024).toFixed(1)+' GB' : (kb>1024? (kb/1024).toFixed(1)+' MB' : kb+' KB'); 
+  tot_eta.textContent += ' · Disk free '+fmt(df)+' · Session '+fmt(sd); }
+document.addEventListener('DOMContentLoaded', stats);
+
+more.onclick=()=>{ window._dlcount=(window._dlcount||0)+((window._dlstep)||100); loadQ(); };
+window._dlstep=100;
+</script>
+
+  <div class="toolbar"><div class="subbar"><a class="tab cur" href="downloader.html">Queue</a><a class="tab" href="downloader.html#presets">Presets</a><a class="tab" href="downloader.html#retry">Retry Policy</a><a class="tab" href="rss_feeder.html">RSS Feeder</a><a class="tab" href="downloader.html#dedupe">Dedup</a></div><a href="home.html">← Home</a> · <strong>Downloader</strong> <a class="btn" href="downloader_columns.html">Columns</a></div>
+  <div class="card">
+    <table class="tbl" id="t"><thead id="th"></thead><tbody id="tb"></tbody></table>
+  </div>
+  <div class="bottom">
+    <div>Active: <span id="act">0</span> · Speed: <span id="spd">0</span> KB/s <span class="badge" id="limb">(unlimited)</span></div>
+    <div>Limit: <input id="lim" type="number" min="0" step="100" style="width:120px"> KB/s <button id="setlim">Apply</button></div>
+  </div>
+</div>
+<div id="props">
+  <h3>Properties</h3>
+  <div>Name: <input id="pname" style="width:100%"></div>
+  <div style="margin-top:6px">Save To: <input id="psave" style="width:100%"></div>
+  <div style="margin-top:6px">Priority: 
+    <select id="ppri"><option>Low</option><option selected>Normal</option><option>High</option></select>
+  </div>
+  <div style="margin-top:8px"><button id="psavebtn">Save</button> <button id="pclose">Close</button></div>
+</div>
+<script>
+let columns=["Name","Size","Progress","Speed","ETA","Status","Save To","Added","Priority","Attempts"];
+let hidden=[];
+let state=null; let selected={pkg:null,file:null};
+
+function fmtETA(s){ if(!s) return '—'; const h=Math.floor(s/3600), m=Math.floor((s%3600)/60); return (h? h+'h ':'') + m+'m'; }
+function fmtProg(x){ return (x!=null? x:0)+'%'; }
+async function loadCols(){
+  const j=await (await fetch('/api/dl/columns_get')).json();
+  columns=j.order||columns; hidden=j.hidden||[];
+}
+async function load(){
+  await loadCols();
+  const q=await (await fetch('/api/dl/queue_get')).json(); state=q;
+  // header
+  th.innerHTML='<tr>'+columns.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  // body
+  tb.innerHTML='';
+  (q.packages||[]).forEach(p=>{
+    const prow=document.createElement('tr'); prow.className='row pkg'; prow.dataset.pkg=p.id;
+    const added=new Date((p.added_ts||0)*1000).toLocaleString();
+    const cells={
+      "Name": `<strong>📦 ${p.name}</strong>`,
+      "Size": "",
+      "Progress": fmtProg(p.progress),
+      "Speed": (p.speed_kbps||0),
+      "ETA": fmtETA(p.eta_sec),
+      "Status": p.status||'',
+      "Save To": p.save_to||'',
+      "Added": added,
+      "Priority": p.priority||'',
+      "Attempts": ""
+    };
+    prow.innerHTML = columns.map(c=>`<td>${cells[c]||''}</td>`).join('');
+    tb.appendChild(prow);
+    // files
+    (p.files||[]).forEach(f=>{
+      const frow=document.createElement('tr'); frow.className='row'; frow.dataset.pkg=p.id; frow.dataset.file=f.id;
+      const cellsf={
+        "Name": `↳ ${f.name}`,
+        "Size": f.size||'',
+        "Progress": fmtProg(f.progress),
+        "Speed": (f.speed_kbps||0),
+        "ETA": fmtETA(f.eta_sec),
+        "Status": f.status||'',
+        "Save To": f.save_to||'',
+        "Added": "",
+        "Priority": p.priority||'',
+        "Attempts": f.attempts||0
+      };
+      frow.innerHTML = columns.map(c=>`<td>${cellsf[c]||''}</td>`).join('');
+      tb.appendChild(frow);
+    });
+  });
+  // bind row click -> properties
+  document.querySelectorAll('#t .row').forEach(r=>{
+    r.addEventListener('click', ()=>{
+      selected.pkg=r.dataset.pkg; selected.file=r.dataset.file||null;
+      const p=(state.packages||[]).find(x=>x.id===selected.pkg);
+      let name=p? p.name:''; let save=p? p.save_to:''; let pri=p? (p.priority||'Normal'):'Normal';
+      if(selected.file){
+        const f=(p.files||[]).find(x=>x.id===selected.file);
+        name=f? f.name:name; save=f? f.save_to:save;
+      }
+      pname.value=name; psave.value=save; ppri.value=pri; props.style.display='block';
+    });
+  });
+  // stats
+  const s=await (await fetch('/api/dl/stats')).json();
+  act.textContent=s.active||0; spd.textContent=s.speed_kbps||0;
+  limb.textContent = s.limit_kbps>0? ('limit '+s.limit_kbps+' KB/s') : '(unlimited)';
+  // limiter value
+  const lim=await (await fetch('/api/dl/limits_get')).json(); lim.value = lim.max_kbps||0;
+}
+setlim.onclick=async ()=>{
+  await fetch('/api/dl/limits_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_kbps: parseInt(lim.value)||0})});
+  load();
+};
+psavebtn.onclick=async ()=>{
+  if(!selected.pkg){ props.style.display='none'; return; }
+  if(selected.file){
+    await fetch('/api/dl/file_update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pkg_id:selected.pkg,file_id:selected.file,name:pname.value,save_to:psave.value})});
+  }else{
+    await fetch('/api/dl/queue_update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:selected.pkg,name:pname.value,save_to:psave.value,priority:ppri.value})});
+  }
+  props.style.display='none'; load();
+};
+pclose.onclick=()=> props.style.display='none';
+document.addEventListener('DOMContentLoaded', load);
+
+async function selectedIds(){ return [...document.querySelectorAll('.sel:checked')].map(x=>x.dataset.id); }
+document.getElementById('selAll').onclick=()=>{ const boxes=[...document.querySelectorAll('.sel')]; const allChecked=boxes.every(b=>b.checked); boxes.forEach(b=>b.checked=!allChecked); };
+
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.op'); if(b){ const ids=await selectedIds(); if(!ids.length){ alert('Select rows first'); return; }
+    const op=b.dataset.op; await fetch('/api/downloader/queue_ops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op, ids})}); loadQ(); }
+  if(e.target.id==='rp'){ const cur=await (await fetch('/api/downloader/retry_policy_get')).json(); const m=prompt('Max retries,Backoff seconds', (cur.max_retries||3)+','+(cur.backoff_sec||60)); if(m){ const [mr,bo]=m.split(','); await fetch('/api/downloader/retry_policy_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_retries: parseInt(mr)||3, backoff_sec: parseInt(bo)||60})}); } }
+  if(e.target.id==='savePreset'){ const name=prompt('Preset name','My Columns'); if(!name) return; const cols=[...document.querySelectorAll('.tbl thead th')].slice(1).map(th=>th.textContent.trim()); await fetch('/api/downloader/presets_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, columns: cols})}); alert('Saved & Applied'); }
+  if(e.target.id==='applyPreset'){ const p=await (await fetch('/api/downloader/presets_get')).json(); const keys=Object.keys(p.presets||{}); if(!keys.length){ alert('No presets'); return; } const name=prompt('Choose preset: '+keys.join(', '), keys[0]); if(!name||!p.presets[name]) return; await fetch('/api/downloader/settings_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({columns: p.presets[name]})}); alert('Applied'); loadQ(); }
+});
+
+// Drag reorder
+let dragRow=null;
+document.addEventListener('dragstart',(e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr){ dragRow=tr; e.dataTransfer.setData('text/plain', tr.dataset.id);} });
+document.addEventListener('dragover',(e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr && dragRow && tr!==dragRow){ e.preventDefault(); } });
+document.addEventListener('drop', async (e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr && dragRow && tr!==dragRow){ e.preventDefault(); tr.parentNode.insertBefore(dragRow, tr.nextSibling); const order=[...document.querySelectorAll('tr[draggable]')].map(x=>x.dataset.id); await fetch('/api/downloader/queue_ops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'reorder', order})}); } });
+
+// Status bar: add disk free + session downloaded
+async function stats(){ const s=await (await fetch('/api/system/stats')).json(); const df = s.disk_free_kb; const sd = s.session_downloaded_kb; const fmt=(kb)=> kb>1024*1024? (kb/1024/1024).toFixed(1)+' GB' : (kb>1024? (kb/1024).toFixed(1)+' MB' : kb+' KB'); 
+  tot_eta.textContent += ' · Disk free '+fmt(df)+' · Session '+fmt(sd); }
+document.addEventListener('DOMContentLoaded', stats);
+
+more.onclick=()=>{ window._dlcount=(window._dlcount||0)+((window._dlstep)||100); loadQ(); };
+window._dlstep=100;
+</script>
+
+<div id="toast" class="toast">Done</div>
+<script>
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg||'Done'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.runh'); if(!b) return;
+  const id=b.dataset.id;
+  await fetch('/api/downloader/mark_complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  const r=await (await fetch('/api/hooks/run_for_package',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})).json();
+  if(r.ok){ showToast('Moved to '+r.dest); } else if(r.skipped){ showToast('Hooks disabled'); } else { showToast('No change'); }
+});
+
+async function selectedIds(){ return [...document.querySelectorAll('.sel:checked')].map(x=>x.dataset.id); }
+document.getElementById('selAll').onclick=()=>{ const boxes=[...document.querySelectorAll('.sel')]; const allChecked=boxes.every(b=>b.checked); boxes.forEach(b=>b.checked=!allChecked); };
+
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.op'); if(b){ const ids=await selectedIds(); if(!ids.length){ alert('Select rows first'); return; }
+    const op=b.dataset.op; await fetch('/api/downloader/queue_ops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op, ids})}); loadQ(); }
+  if(e.target.id==='rp'){ const cur=await (await fetch('/api/downloader/retry_policy_get')).json(); const m=prompt('Max retries,Backoff seconds', (cur.max_retries||3)+','+(cur.backoff_sec||60)); if(m){ const [mr,bo]=m.split(','); await fetch('/api/downloader/retry_policy_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_retries: parseInt(mr)||3, backoff_sec: parseInt(bo)||60})}); } }
+  if(e.target.id==='savePreset'){ const name=prompt('Preset name','My Columns'); if(!name) return; const cols=[...document.querySelectorAll('.tbl thead th')].slice(1).map(th=>th.textContent.trim()); await fetch('/api/downloader/presets_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, columns: cols})}); alert('Saved & Applied'); }
+  if(e.target.id==='applyPreset'){ const p=await (await fetch('/api/downloader/presets_get')).json(); const keys=Object.keys(p.presets||{}); if(!keys.length){ alert('No presets'); return; } const name=prompt('Choose preset: '+keys.join(', '), keys[0]); if(!name||!p.presets[name]) return; await fetch('/api/downloader/settings_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({columns: p.presets[name]})}); alert('Applied'); loadQ(); }
+});
+
+// Drag reorder
+let dragRow=null;
+document.addEventListener('dragstart',(e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr){ dragRow=tr; e.dataTransfer.setData('text/plain', tr.dataset.id);} });
+document.addEventListener('dragover',(e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr && dragRow && tr!==dragRow){ e.preventDefault(); } });
+document.addEventListener('drop', async (e)=>{ const tr=e.target.closest('tr[draggable]'); if(tr && dragRow && tr!==dragRow){ e.preventDefault(); tr.parentNode.insertBefore(dragRow, tr.nextSibling); const order=[...document.querySelectorAll('tr[draggable]')].map(x=>x.dataset.id); await fetch('/api/downloader/queue_ops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'reorder', order})}); } });
+
+// Status bar: add disk free + session downloaded
+async function stats(){ const s=await (await fetch('/api/system/stats')).json(); const df = s.disk_free_kb; const sd = s.session_downloaded_kb; const fmt=(kb)=> kb>1024*1024? (kb/1024/1024).toFixed(1)+' GB' : (kb>1024? (kb/1024).toFixed(1)+' MB' : kb+' KB'); 
+  tot_eta.textContent += ' · Disk free '+fmt(df)+' · Session '+fmt(sd); }
+document.addEventListener('DOMContentLoaded', stats);
+
+more.onclick=()=>{ window._dlcount=(window._dlcount||0)+((window._dlstep)||100); loadQ(); };
+window._dlstep=100;
+</script>
+
+<!-- Log Overlay + Accessibility Toggles + Virtualization hook -->
+<style>
+#logov{position:fixed;right:12px;bottom:12px;width:420px;max-height:40vh;overflow:auto;background:#0b1220;border:1px solid #1f2537;border-radius:12px;padding:6px 8px;z-index:9999;white-space:pre-wrap}
+.high-contrast #logov, body.high-contrast #logov{border-color:#cbd6f7}
+</style>
+<div id="logov" hidden>Log overlay…</div>
+<script>
+(async function(){
+  const cfg=await (await fetch('/api/config/get')).json();
+  if(cfg.accessibility&&cfg.accessibility.high_contrast){ document.body.classList.add('high-contrast'); }
+  if(cfg.accessibility&&cfg.accessibility.rtl_ui){ document.body.classList.add('rtl'); }
+  const always = cfg.sys_settings && cfg.sys_settings.always_log_overlay;
+  async function tick(){
+    if(!always){ logov.hidden=true; return; }
+    const j=await (await fetch('/api/sys/logs_tail?lines=120')).json();
+    logov.textContent=j.lines.join('\n'); logov.hidden=false;
+  }
+  setInterval(tick, 2000); tick();
+  // Alt+L toggles
+  document.addEventListener('keydown', (e)=>{ if(e.altKey && (e.key.toLowerCase()==='l')){ logov.hidden = !logov.hidden; } });
+  // '/' focuses search if present
+  document.addEventListener('keydown', (e)=>{ if(e.key==='/'){ const gs=document.getElementById('gsi'); if(gs){ e.preventDefault(); gs.focus(); } } });
+  // '?' opens keyboard map page
+  document.addEventListener('keydown', (e)=>{ if(e.key==='?'){ window.location.href='accessibility.html'; } });
+})();
+more.onclick=()=>{ window._dlcount=(window._dlcount||0)+((window._dlstep)||100); loadQ(); };
+window._dlstep=100;
+</script>
+
+</body></html>

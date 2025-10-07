@@ -1,0 +1,53 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Completion Hooks — Settings</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Completion Hooks — Settings</strong> <a class="btn" href="downloader.html">Downloader</a></div>
+  <div class="card">
+    <label><input type="checkbox" id="en"> Enable completion hooks</label>
+  </div>
+  <div class="card">
+    <h3>Destinations</h3>
+    Movies: <input id="dmv" style="width:60%"><br>
+    Series: <input id="dtv" style="width:60%"><br>
+    Books: <input id="dbk" style="width:60%"><br>
+    Audio: <input id="dau" style="width:60%"><br>
+  </div>
+  <div class="card">
+    <h3>Rename Patterns</h3>
+    <textarea id="pat" class="mono" style="width:100%;height:140px" placeholder='JSON {"movie":"...","series":"...","book":"...","audio":"..."}'></textarea>
+  </div>
+  <div class="card">
+    <h3>Artwork & Rescan</h3>
+    <label><input type="checkbox" id="aw"> Create placeholder poster.jpg</label><br>
+    <label><input type="checkbox" id="rs"> Rescan library after move</label>
+  </div>
+  <div><button id="save">Save</button> <span id="msg"></span></div>
+</div>
+<script>
+async function load(){
+  const c=await (await fetch('/api/hooks/config_get')).json();
+  en.checked=!!c.enabled;
+  dmv.value=(c.dest&&c.dest.movie)||'Library/Movies';
+  dtv.value=(c.dest&&c.dest.series)||'Library/TV';
+  dbk.value=(c.dest&&c.dest.book)||'Library/Books';
+  dau.value=(c.dest&&c.dest.audio)||'Library/Audio';
+  pat.value=JSON.stringify(c.rename||{}, null, 2);
+  aw.checked=!!(c.artwork&&c.artwork.enabled);
+  rs.checked=!!c.rescan_library;
+}
+save.onclick=async ()=>{
+  const js={
+    enabled: en.checked,
+    dest:{movie:dmv.value, series:dtv.value, book:dbk.value, audio:dau.value},
+    rename: (()=>{ try{return JSON.parse(pat.value||'{}')}catch(e){ alert('Invalid JSON in patterns'); return null; }})(),
+    rescan_library: rs.checked,
+    artwork:{enabled: aw.checked}
+  };
+  if(!js.rename) return;
+  const r=await (await fetch('/api/hooks/config_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(js)})).json();
+  msg.textContent = r.ok? 'Saved.' : 'Failed.';
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

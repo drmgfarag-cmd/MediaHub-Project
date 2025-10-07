@@ -1,0 +1,16 @@
+{
+  "segments": {
+    "default_size_kb": 512,
+    "min_kb": 128,
+    "max_kb": 2048
+  },
+  "connections": {
+    "per_file": 4,
+    "per_host": 4,
+    "global": 8
+  },
+  "retry": {
+    "max": 5,
+    "backoff_ms": 800
+  }
+}

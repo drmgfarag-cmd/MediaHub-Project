@@ -1,0 +1,21 @@
+{
+  "format": "kodi",
+  "artwork_types": [
+    "poster",
+    "fanart",
+    "banner",
+    "clearlogo",
+    "thumb",
+    "clearart",
+    "landscape",
+    "discart"
+  ],
+  "download_artwork": true,
+  "artwork_format": "jpg",
+  "artwork_quality": 95,
+  "create_nfo": true,
+  "offline_mode": false,
+  "cache_duration_days": 30,
+  "nfo_encoding": "utf-8",
+  "pretty_print_nfo": true
+}

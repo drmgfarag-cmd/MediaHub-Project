@@ -1,0 +1,48 @@
+from .security import require_api_key
+from flask import Blueprint, request, jsonify
+import os, json, time
+
+pins_bp = Blueprint('home_pins', __name__)
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+STO  = os.path.join(ROOT, "storage")
+PINS = os.path.join(STO, "home_rails.json")
+
+def _load():
+    try:
+        with open(PINS,"r",encoding="utf-8") as f: return json.load(f)
+    except Exception: return {"order": [], "pinned": []}
+
+def _save(d):
+    os.makedirs(STO, exist_ok=True)
+    with open(PINS,"w",encoding="utf-8") as f: json.dump(d,f,indent=2)
+
+@pins_bp.route("/api/home/rails/order", methods=["GET"])
+def get_order():
+    return jsonify(_load())
+
+# DUPLICATE REMOVED: @pins_bp.route("/api/home/rails/order", methods=["POST"])
+def create_rails_order():
+    """Create Order"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        return jsonify({'success': True, 'message': 'Created', 'data': data}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+def create_rails_order():
+    """Create Order"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        return jsonify({'success': True, 'message': 'Created', 'data': data}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+# DUPLICATE REMOVED: @require_api_key
+# DUPLICATE REMOVED: def set_order():
+    data = request.get_json(silent=True) or {}
+    order = data.get("order") or []
+    pinned = data.get("pinned") or []
+    d=_load(); d["order"]=order; d["pinned"]=pinned; d["updated_ts"]=int(time.time()); _save(d)
+    return jsonify({"ok": True, "state": d})

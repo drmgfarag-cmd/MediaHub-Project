@@ -1,0 +1,54 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Smart Rails Settings</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="smart_rails.html">← Smart Rails</a> · <strong>Settings</strong> <button id="save">Save</button></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Enabled Rails</h3>
+      <div id="rails">Loading…</div>
+    </div>
+    <div class="card">
+      <h3>Tokens & Thresholds</h3>
+      <div>Minimum items per rail: <input id="min" type="number" value="6" min="1" style="width:80px"></div>
+      <div style="margin-top:6px">4K tokens (CSV): <input id="t4k" style="width:90%"></div>
+      <div>HDR tokens (CSV): <input id="thdr" style="width:90%"></div>
+      <div>Dolby Vision tokens (CSV): <input id="tdv" style="width:90%"></div>
+      <div>Atmos tokens (CSV): <input id="tatm" style="width:90%"></div>
+      <div>Lossless extensions (CSV): <input id="tll" style="width:90%"></div>
+      <div>Soundtrack tokens (CSV): <input id="tost" style="width:90%"></div>
+    </div>
+  </div>
+</div>
+<script>
+let conf=null;
+function chk(name, on){ return `<label style="display:block"><input type="checkbox" data-rail="${name}" ${on?'checked':''}> ${name}</label>`; }
+async function load(){
+  conf=await (await fetch('/api/smart_rails/config_get')).json();
+  const en=conf.enabled_rails||{};
+  const keys=Object.keys(en);
+  rails.innerHTML = keys.sort().map(k=>chk(k, !!en[k])).join('');
+  min.value = conf.min_items||6;
+  t4k.value=(conf.tokens?.["4k"]||[]).join(', ');
+  thdr.value=(conf.tokens?.hdr||[]).join(', ');
+  tdv.value=(conf.tokens?.dv||[]).join(', ');
+  tatm.value=(conf.tokens?.atmos||[]).join(', ');
+  tll.value=(conf.tokens?.lossless_ext||[]).join(', ');
+  tost.value=(conf.tokens?.soundtrack||[]).join(', ');
+}
+save.onclick=async ()=>{
+  const en={}; document.querySelectorAll('[data-rail]').forEach(i=> en[i.getAttribute('data-rail')] = i.checked);
+  conf.enabled_rails=en; conf.min_items=parseInt(min.value)||6;
+  conf.tokens=conf.tokens||{};
+  conf.tokens["4k"]=t4k.value.split(',').map(s=>s.trim()).filter(Boolean);
+  conf.tokens.hdr=thdr.value.split(',').map(s=>s.trim()).filter(Boolean);
+  conf.tokens.dv=tdv.value.split(',').map(s=>s.trim()).filter(Boolean);
+  conf.tokens.atmos=tatm.value.split(',').map(s=>s.trim()).filter(Boolean);
+  conf.tokens.lossless_ext=tll.value.split(',').map(s=>s.trim()).filter(Boolean);
+  conf.tokens.soundtrack=tost.value.split(',').map(s=>s.trim()).filter(Boolean);
+  await fetch('/api/smart_rails/config_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(conf)});
+  alert('Saved. Consider queuing a refresh.');
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

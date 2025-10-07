@@ -1,0 +1,162 @@
+from .security import require_api_key, rate_limited
+from flask import Blueprint, jsonify, request
+import os, json, time, threading, logging
+from .collections_import import run_import
+from .integrations import _load as _load_integ
+
+presets_bp = Blueprint('presets', __name__)
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+STO  = os.path.join(ROOT, "storage")
+PRE  = os.path.join(STO, "collections_presets.json")
+
+DEFAULT_PRESETS = {
+  "presets": [
+    {"id":"tmdb_top_movies","name":"Top Movies — TMDb Top Rated","source":"tmdb_top_rated_movies","n":50,"refresh_days":7,"enabled":True},
+    {"id":"tmdb_top_tv","name":"Top TV — TMDb Top Rated","source":"tmdb_top_rated_tv","n":50,"refresh_days":7,"enabled":True},
+    {"id":"tmdb_pop_movies","name":"Popular Movies — TMDb","source":"tmdb_popular_movies","n":50,"refresh_days":1,"enabled":False},
+    {"id":"tmdb_pop_tv","name":"Popular TV — TMDb","source":"tmdb_popular_tv","n":50,"refresh_days":1,"enabled":False},
+    {"id":"trakt_pop_movies","name":"Popular Movies — Trakt","source":"trakt_popular_movies","n":50,"refresh_days":1,"enabled":False},
+    {"id":"trakt_pop_shows","name":"Popular TV — Trakt","source":"trakt_popular_shows","n":50,"refresh_days":1,"enabled":False},
+    {"id":"trakt_trend_movies","name":"Trending Movies — Trakt","source":"trakt_trending_movies","n":50,"refresh_days":1,"enabled":False},
+    {"id":"trakt_trend_shows","name":"Trending TV — Trakt","source":"trakt_trending_shows","n":50,"refresh_days":1,"enabled":False}
+  ]
+}
+
+def _load():
+    try:
+        with open(PRE,"r",encoding="utf-8") as f: return json.load(f)
+    except Exception:
+        return DEFAULT_PRESETS
+
+def _atomic_write(path, data):
+    tmp=path+".tmp";
+    with open(tmp,"w",encoding="utf-8") as f: json.dump(data,f,indent=2)
+    os.replace(tmp, path)
+
+def _save(d):
+    os.makedirs(STO, exist_ok=True)
+    _atomic_write(PRE, d)
+
+@presets_bp.route("/api/presets", methods=["GET"])
+def get_presets():
+        return jsonify(_load())
+
+# DUPLICATE REMOVED: @presets_bp.route("/api/presets", methods=["POST"])\n@require_api_key
+# DUPLICATE REMOVED: @rate_limited
+# DUPLICATE REMOVED: def set_presets():
+# DUPLICATE REMOVED:     data = request.get_json(silent=True) or {}
+# DUPLICATE REMOVED:     _save(data); return jsonify({"ok":True})
+# DUPLICATE REMOVED: 
+# DUPLICATE REMOVED: @presets_bp.route("/api/presets/run", methods=["POST"])\n@require_api_key
+# DUPLICATE REMOVED: @rate_limited
+# DUPLICATE REMOVED: def run_preset():
+    data = request.get_json(silent=True) or {}
+    pid = data.get("id"); cfg=_load(); pre = next((p for p in cfg.get("presets",[]) if p.get("id")==pid), None)
+    if not pre: return jsonify({"error":"unknown preset"}), 404
+    integ=_load_integ()
+    args={"n": pre.get("n",50), "preset_id": pid}
+    if pre["source"].startswith("tmdb"): args["api_key"]=integ.get("tmdb_api_key","")
+    if pre["source"].startswith("trakt"): args["client_id"]=integ.get("trakt_client_id","")
+    res = run_import(pre["source"], args)
+    # persist last status/count
+    try:
+        st={}
+        if os.path.exists(STATE):
+            st=json.load(open(STATE,'r',encoding='utf-8')) or {}
+        st.setdefault('last_status',{})[pid] = 'ok' if (isinstance(res, dict) and res.get('ok')) else 'error'
+        cnt = len((res or {}).get('created') or (res or {}).get('would_create') or [])
+        st.setdefault('last_count',{})[pid] = cnt
+        tmp=STATE+'.tmp'
+        json.dump(st, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, STATE)
+    except Exception:
+        pass
+        return jsonify(res)
+
+# Simple background scheduler
+_last_run = {}
+def _thread():
+    while True:
+        if os.path.exists(PAUSED_FILE):
+            time.sleep(300); continue
+        try:
+            cfg=_load(); integ=_load_integ(); now=time.time()
+            # naive file lock to avoid overlap
+            busy=False
+            if os.path.exists(LOCKF):
+                try:
+                    if (now - os.path.getmtime(LOCKF)) < 2400: busy=True  # 40 min
+                except Exception: pass
+            if busy:
+                time.sleep(300); continue
+            open(LOCKF,"w").close()
+            try:
+                for p in cfg.get("presets",[]):
+                    if not p.get("enabled"): continue
+                    days = int(p.get("refresh_days") or 7)
+                    key=p.get("id")
+                    lr=_last_run.get(key, 0.0)
+                    if now - lr >= days*86400:
+                        args={\"n\": p.get(\"n\",50)}
+                        if p[\"source\"].startswith(\"tmdb\"): args[\"api_key\"]=integ.get(\"tmdb_api_key\",\"")
+                        if p[\"source\"].startswith(\"trakt\"): args[\"client_id\"]=integ.get(\"trakt_client_id\",\"")
+                        try:
+                            run_import(p[\"source\"], args)
+                            _last_run[key]=now
+                            # persist state
+                            try:
+                                st={\"last_run\": _last_run, \"ts\": now}
+                                tmp=STATE+\".tmp\"
+                                with open(tmp,\"w\",encoding=\"utf-8\") as f: json.dump(st,f,indent=2)
+                                os.replace(tmp, STATE)
+                            except Exception as e:
+                                log.warning(\"state persist error: %s\", e)
+                        except Exception as e:
+                            log.error(\"preset run failed: %s\", e)
+            finally:
+                try: os.remove(LOCKF)
+                except Exception: pass
+        except Exception as e:
+            log.error(\"scheduler error: %s\", e)
+        time.sleep(300)  # check every 5 min
+
+def _start_once():
+    t=threading.Thread(target=_thread, daemon=True); t.start()
+
+_start_once()
+
+log = logging.getLogger('presets')
+STATE = os.path.join(STO, 'presets_state.json')
+PAUSED_FILE = os.path.join(STO, 'presets_paused.flag')
+LOCKF = os.path.join(STO, 'presets.lock')
+
+@presets_bp.route('/api/presets/state')
+def presets_state():
+    try:
+        import json, os, time
+        last_run={}; progress={}; last_status={}; last_count={}
+        if os.path.exists(STATE):
+            st=json.load(open(STATE,'r',encoding='utf-8')) or {}
+            last_run=st.get('last_run',{})
+            progress=st.get('progress',{})
+            last_status=st.get('last_status',{})
+            last_count=st.get('last_count',{})
+        paused = os.path.exists(PAUSED_FILE)
+        return jsonify({"ok":True,"paused":paused,"last_run":last_run,"progress":progress,"last_status":last_status,"last_count":last_count})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+@presets_bp.route('/api/presets/pause', methods=['POST'])
+@require_api_key
+@rate_limited
+def presets_pause():
+    import os
+    js = (request.get_json(silent=True) or {})
+    paused = bool(js.get('paused', True))
+    try:
+        if paused:
+            open(PAUSED_FILE,'w').close()
+        else:
+            if os.path.exists(PAUSED_FILE): os.remove(PAUSED_FILE)
+        return jsonify({"ok":True,"paused":paused})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaHub - Subtitle Policy</title>
+    <link rel="stylesheet" href="../assets/normalize.css">
+    <link rel="stylesheet" href="../assets/ui.css">
+    <style>
+        .policy-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .policy-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .policy-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .policy-item:last-child {
+            border-bottom: none;
+        }
+        
+        .policy-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .policy-control {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .language-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .language-tag {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .language-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0;
+            margin: 0;
+        }
+        
+        select, input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        .save-button {
+            background: #4CAF50;
+            padding: 12px 30px;
+            font-size: 1rem;
+            margin-top: 20px;
+        }
+        
+        .save-button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="policy-container">
+        <h1>📝 Subtitle Download Policy</h1>
+        <p>Configure automatic subtitle download preferences and language priority</p>
+        
+        <div class="policy-section">
+            <h2>Auto-Download Settings</h2>
+            <div class="policy-item">
+                <span class="policy-label">Enable Auto-Download</span>
+                <div class="policy-control">
+                    <input type="checkbox" id="autoDownload" checked>
+                </div>
+            </div>
+            <div class="policy-item">
+                <span class="policy-label">Download on Media Add</span>
+                <div class="policy-control">
+                    <input type="checkbox" id="downloadOnAdd" checked>
+                </div>
+            </div>
+            <div class="policy-item">
+                <span class="policy-label">Download on Media Scan</span>
+                <div class="policy-control">
+                    <input type="checkbox" id="downloadOnScan">
+                </div>
+            </div>
+        </div>
+        
+        <div class="policy-section">
+            <h2>Language Priority</h2>
+            <p style="color: #666; font-size: 0.9rem;">Drag to reorder. First language has highest priority.</p>
+            <div class="policy-item">
+                <span class="policy-label">Add Language</span>
+                <div class="policy-control">
+                    <select id="languageSelect">
+                        <option value="ar">Arabic (ar)</option>
+                        <option value="en">English (en)</option>
+                        <option value="es">Spanish (es)</option>
+                        <option value="fr">French (fr)</option>
+                        <option value="de">German (de)</option>
+                        <option value="it">Italian (it)</option>
+                        <option value="ja">Japanese (ja)</option>
+                        <option value="ko">Korean (ko)</option>
+                        <option value="zh">Chinese (zh)</option>
+                        <option value="ru">Russian (ru)</option>
+                    </select>
+                    <button onclick="addLanguage()">+ Add</button>
+                </div>
+            </div>
+            <div id="languageList" class="language-list"></div>
+        </div>
+        
+        <div class="policy-section">
+            <h2>Quality Preferences</h2>
+            <div class="policy-item">
+                <span class="policy-label">Prefer Hearing Impaired</span>
+                <div class="policy-control">
+                    <input type="checkbox" id="preferHI">
+                </div>
+            </div>
+            <div class="policy-item">
+                <span class="policy-label">Minimum Match Score (%)</span>
+                <div class="policy-control">
+                    <input type="number" id="minScore" value="80" min="0" max="100">
+                </div>
+            </div>
+        </div>
+        
+        <button class="save-button" onclick="savePolicy()">💾 Save Policy</button>
+    </div>
+    
+    <script>
+        let languages = ['ar', 'en'];
+        
+        async function loadPolicy() {
+            try {
+                const response = await fetch('/api/subs/policy');
+                if (response.ok) {
+                    const data = await response.json();
+                    const policy = data.policy || {};
+                    
+                    document.getElementById('autoDownload').checked = policy.auto_download !== false;
+                    document.getElementById('downloadOnAdd').checked = policy.download_on_add !== false;
+                    document.getElementById('downloadOnScan').checked = policy.download_on_scan || false;
+                    document.getElementById('preferHI').checked = policy.prefer_hearing_impaired || false;
+                    document.getElementById('minScore').value = policy.min_score || 80;
+                    
+                    languages = policy.language_priority || ['ar', 'en'];
+                    renderLanguages();
+                }
+            } catch (error) {
+                console.error('Error loading policy:', error);
+            }
+        }
+        
+        function renderLanguages() {
+            const container = document.getElementById('languageList');
+            container.innerHTML = languages.map((lang, index) => `
+                <div class="language-tag">
+                    <span>${index + 1}. ${lang.toUpperCase()}</span>
+                    <button onclick="removeLanguage(${index})">×</button>
+                </div>
+            `).join('');
+        }
+        
+        function addLanguage() {
+            const select = document.getElementById('languageSelect');
+            const lang = select.value;
+            if (!languages.includes(lang)) {
+                languages.push(lang);
+                renderLanguages();
+            }
+        }
+        
+        function removeLanguage(index) {
+            languages.splice(index, 1);
+            renderLanguages();
+        }
+        
+        async function savePolicy() {
+            const policy = {
+                auto_download: document.getElementById('autoDownload').checked,
+                download_on_add: document.getElementById('downloadOnAdd').checked,
+                download_on_scan: document.getElementById('downloadOnScan').checked,
+                language_priority: languages,
+                prefer_hearing_impaired: document.getElementById('preferHI').checked,
+                min_score: parseInt(document.getElementById('minScore').value)
+            };
+            
+            try {
+                const response = await fetch('/api/subs/policy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(policy)
+                });
+                
+                if (response.ok) {
+                    alert('✓ Subtitle policy saved successfully!');
+                } else {
+                    alert('✗ Error saving policy');
+                }
+            } catch (error) {
+                alert('✗ Network error: ' + error.message);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPolicy();
+            renderLanguages();
+        });
+    </script>
+</body>
+</html>

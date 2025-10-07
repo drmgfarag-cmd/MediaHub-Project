@@ -1,0 +1,7 @@
+<!doctype html><html><head><link rel='icon' href="../assets/favicon.svg'><link rel='stylesheet' href="../assets/ui.css'><link rel='stylesheet' href="../assets/normalize.css'><meta name='viewport' content='width=device-width, initial-scale=1'><meta charset='utf-8'><title>Media Hub — Rules Audit</title></head><body><header class='appbar'><div class='title'>Media Hub</div><div class='subtitle'>Unified Library • RD • Downloader • Editor</div></header>
+<h2>Rules Audit</h2>
+<pre id="out"></pre>
+<script>
+(async()=>{ out.textContent = JSON.stringify(await (await fetch('/api/rules_audit')).json(), null, 2); })();
+</script>
+<script defer src="../assets/ui_enhance.js'></script></body></html>

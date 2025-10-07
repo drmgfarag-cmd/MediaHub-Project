@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Auto Picks — Settings</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Auto Picks — Settings</strong> <a class="btn" href="auto_select.html">Smart Auto‑Select</a></div>
+  <div class="card">
+    <div>Title: <input id="ttl" style="width:60%"></div>
+    <div style="margin-top:6px">Mode: 
+      <select id="mode"><option value="tasks">Tasks (best per search task)</option><option value="recent">Recent/Top (all sources)</option></select>
+    </div>
+    <div style="margin-top:6px">Max items: <input id="max" type="number" min="3" max="50" step="1" style="width:120px"></div>
+    <div style="margin-top:6px"><label><input type="checkbox" id="home"> Show on Home</label> · <label><input type="checkbox" id="disc"> Show on Discovery</label></div>
+    <div style="margin-top:6px"><label><input type="checkbox" id="sync"> Sync into Smart Rails (as <code>auto_best</code>)</label></div>
+    <div style="margin-top:8px"><button id="save">Save</button> <button id="refresh">Refresh Rail Now</button></div>
+    <div id="msg" style="margin-top:6px">—</div>
+  </div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/autorails/get')).json();
+  ttl.value=j.title||'Auto Picks'; mode.value=j.mode||'tasks'; max.value=j.max_items||12; home.checked=!!j.show_on_home; disc.checked=!!j.show_on_discovery; sync.checked=!!j.sync_to_smart_rails;
+}
+save.onclick=async ()=>{
+  const js={title: ttl.value, mode: mode.value, max_items: parseInt(max.value)||12, show_on_home: home.checked, show_on_discovery: disc.checked, sync_to_smart_rails: sync.checked};
+  const r=await (await fetch('/api/autorails/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(js)})).json();
+  msg.textContent = r.ok? 'Saved.' : 'Save failed.';
+};
+refresh.onclick=async ()=>{
+  const r=await (await fetch('/api/auto/rails_refresh',{method:'POST'})).json();
+  msg.textContent = r.ok? ('Refreshed '+r.rail+' with '+r.count+' items.') : 'Refresh failed.';
+};
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

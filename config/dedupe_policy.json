@@ -1,0 +1,11 @@
+{
+  "never_remove": [
+    "ctrlhd"
+  ],
+  "conditional": [
+    {
+      "remove": "cytsunee",
+      "only_if_present": "ctrlhd"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Rail</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="smart_rails.html">← Smart Rails</a> · <strong id="ttl">Rail</strong></div>
+  <div id="grid" class="card">—</div>
+</div>
+<script>
+function qp(k){ const u=new URL(location.href); return u.searchParams.get(k)||''; }
+async function load(){
+  const name=qp('name'); ttl.textContent=name;
+  const j=await (await fetch('/api/smart_rails/get?name='+encodeURIComponent(name))).json();
+  grid.innerHTML = (j.items||[]).slice(0,240).map(x=>`<div style="margin:6px 0"><strong>${x.title||''}</strong><div style="opacity:.8">${x.type||''} · ${x.year||''}</div><div class="text-clip">${x.path||''}</div></div>`).join('') || 'No items.';
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

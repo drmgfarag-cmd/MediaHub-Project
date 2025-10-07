@@ -1,0 +1,11 @@
+{
+  "patterns": {
+    "movies": "{title} ({year}) [{resolution} {codec}]",
+    "tv": "{title}.S{season:02}E{episode:02}.{resolution}.{codec}",
+    "anime": "{title}.{absolute:03}.{resolution}.{codec}",
+    "books": "{title} - {year}",
+    "audio": "{title} - {year}",
+    "comics": "{title} (#{issue}) [{year}]"
+  },
+  "preserve_structure": false
+}

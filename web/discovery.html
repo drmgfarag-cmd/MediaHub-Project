@@ -1,0 +1,478 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Discovery</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.rail{margin:14px 0}
+.rail h3{margin:6px 0 8px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.card .badges{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:11px;padding:2px 6px;border:1px solid #2e3547;border-radius:6px;opacity:.9}
+.badge.fmt{border-color:#4f7cff} .badge.awd{border-color:#e0b34c}
+</style>
+</head>
+<body>
+
+<!-- Unified Top Nav (hero-friendly) + Side Pillars + Context Menu -->
+<style>
+#topnav{position:sticky;top:0;z-index:1200;background:linear-gradient(180deg, rgba(8,12,20,.86), rgba(8,12,20,.38) 60%, rgba(8,12,20,0) 100%);backdrop-filter:saturate(140%) blur(8px);padding:8px 12px;display:flex;gap:12px;align-items:center}
+#topnav a{color:#e8ebf5;text-decoration:none;padding:6px 10px;border-radius:8px}
+#topnav a.cur{background:rgba(255,255,255,.06)}
+#sidenav{position:fixed;left:12px;top:60px;bottom:12px;width:190px;background:#0b1220cc;border:1px solid #1f2537;border-radius:12px;padding:8px;z-index:1100;display:none;overflow:auto}
+#sidenav .hdr{font-weight:600;margin:6px 0 8px 0;opacity:.85}
+#sidenav a{display:block;color:#e8ebf5;text-decoration:none;padding:6px 8px;border-radius:8px}
+#sidenav a:hover{background:#121a2d}
+#navtoggle{position:fixed;left:12px;top:12px;z-index:1300;background:#0b1220;border:1px solid #1f2537;border-radius:10px;padding:6px 8px;cursor:pointer}
+.context{position:fixed;background:#0b1220;border:1px solid #1f2537;border-radius:8px;display:none;z-index:2000;min-width:200px}
+.context .it{padding:8px 10px;cursor:pointer}
+.context .it:hover{background:#121a2d}
+.subbar{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap}
+.subbar .tab{padding:6px 10px;border:1px solid #1f2537;border-radius:999px;cursor:pointer;text-decoration:none;color:#e8ebf5}
+.subbar .tab.cur{background:#121a2d}
+@media (max-width: 1080px){ #sidenav{display:none!important} }
+</style>
+<div id="navtoggle">☰</div>
+<div id="topnav">
+  <a href="home.html" id="nav_home">MediaHub</a>
+  <a href="discovery.html" id="nav_disc">Discovery</a>
+  <a href="downloader.html" id="nav_dl">Downloader</a>
+  <a href="rd_manager.html" id="nav_rd">RD Manager</a>
+  <a href="editor_pro.html" id="nav_ed">Editor</a>
+  
+  <span style="flex:1"></span>
+  <a href="tools.html">Tools</a>
+</div>
+<div id="sidenav">
+  <div class="hdr">Pillars</div>
+  <a href="home.html">MediaHub</a>
+  <a href="downloader.html">Downloader</a>
+  <a href="rd_manager.html">RD Manager</a>
+  <a href="editor_pro.html">Editor</a>
+  
+  <div class="hdr">Library</div>
+  <a href="collections_import.html">Collections — Import</a>
+  <a href="timelines.html">Collections — Timelines</a>
+  <a href="publisher_pivots.html">Publishers</a>
+  <div class="hdr">System</div>
+  <a href="system_logs.html">System & Logs</a>
+  <a href="dependencies.html">Dependencies</a>
+  <a href="backup_restore.html">Backup & Restore</a>
+  <a href="accessibility.html">Accessibility</a>
+</div>
+<div id="ctx" class="context"></div>
+<script>
+(function(){
+  const cur = location.pathname.split('/').pop();
+  ({"home.html":"nav_home","discovery.html":"nav_disc","downloader.html":"nav_dl","rd_manager.html":"nav_rd","editor_pro.html":"nav_ed","kids.html":"nav_kids"})[cur] && document.getElementById({"home.html":"nav_home","discovery.html":"nav_disc","downloader.html":"nav_dl","rd_manager.html":"nav_rd","editor_pro.html":"nav_ed","kids.html":"nav_kids"}[cur]).classList.add('cur');
+  navtoggle.onclick=()=>{ const s=document.getElementById('sidenav'); s.style.display = s.style.display==='block'? 'none':'block'; };
+  // Context menu framework
+  const ctx=document.getElementById('ctx');
+  document.addEventListener('contextmenu',(e)=>{
+    const card=e.target.closest('.item,.row,li,tr');
+    if(!card){ return; }
+    e.preventDefault();
+    const kind = location.pathname.includes('downloader')? 'downloader' : (location.pathname.includes('rd_manager')? 'rd' : (location.pathname.includes('editor')? 'editor' : 'library'));
+    let html='';
+    if(kind==='library'){
+      html+=`<div class="it" data-a="pin">Pin to rail</div><div class="it" data-a="kids">Mark as Kids</div><div class="it" data-a="collection">Add to Collection</div>`;
+    }else if(kind==='downloader'){
+      html+=`<div class="it" data-a="pause">Pause</div><div class="it" data-a="resume">Resume</div><div class="it" data-a="force">Force Start</div><div class="it" data-a="dupe">Deduplicate…</div>`;
+    }else if(kind==='rd'){
+      html+=`<div class="it" data-a="pick">Pick Best</div><div class="it" data-a="dupe">Collapse Duplicates</div>`;
+    }else if(kind==='editor'){
+      html+=`<div class="it" data-a="find">Find…</div><div class="it" data-a="replace">Replace…</div>`;
+    }
+    ctx.innerHTML=html; ctx.style.left=(e.pageX+2)+'px'; ctx.style.top=(e.pageY+2)+'px'; ctx.style.display='block';
+  });
+  document.addEventListener('click', async (e)=>{
+    if(!e.target.closest('#ctx')){ ctx.style.display='none'; return; }
+    const a=e.target.dataset.a;
+    if(a==='dupe' && location.pathname.includes('downloader')){
+      const mode=prompt('Deduplicate: 1) Mark duplicates  2) Remove smaller','1'); if(!mode) return;
+      const md= mode==='2'? 'remove':'mark';
+      const r=await (await fetch('/api/dedupe/downloader',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode: md})})).json();
+      alert('Duplicates processed. Removed: '+(r.removed||0));
+      location.reload();
+    }
+    if(a==='dupe' && location.pathname.includes('rd_manager')){
+      const mode=prompt('RD Dedupe: 1) Collapse view  2) Remove smaller variants','1'); if(!mode) return;
+      const md= mode==='2'? 'remove_smaller':'collapse';
+      const r=await (await fetch('/api/dedupe/rd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode: md})})).json();
+      alert('RD dedupe removed: '+(r.removed||0));
+      location.reload();
+    }
+    if(a==='pick'){ /* RD pick best — use buttons in the UI for specifics */ }
+    if(a==='find'){ const b=document.getElementById('fr'); if(b) b.click(); }
+  });
+})();</script>
+<div class="wrap" style="margin-top:8px">
+
+<!-- Continue Reading / Listening Rails -->
+<div class="subbar"><a class="tab" href="mediahub_movies.html">Movies</a><a class="tab" href="mediahub_tv.html">TV</a><a class="tab" href="mediahub_books.html">Books</a><a class="tab" href="mediahub_audio.html">Audio</a><a class="tab" href="mediahub_kids.html">Kids</a></div>
+  <div class="card"><h3>Continue Reading</h3><div id="cr">—</div></div>
+<div class="card"><h3>Continue Listening</h3><div id="cl">—</div></div>
+<script>
+async function loadCR(){
+  const j=await (await fetch('/api/continue/get')).json();
+  cr.innerHTML = (j.reading||[]).slice(0,12).map(x=>`<div>${x.title||x.path} <span class="badge">${x.pos?('p.'+x.pos):''}</span></div>`).join('') || 'Nothing yet';
+  cl.innerHTML = (j.listening||[]).slice(0,12).map(x=>`<div>${x.title||x.path} <span class="badge">${Math.round((x.pos_sec||0)/60)}m</span></div>`).join('') || 'Nothing yet';
+}
+document.addEventListener('DOMContentLoaded', loadCR);
+</script>
+
+  <div class="toolbar"><div class="subbar"><a class="tab cur" href="home.html">Home</a><a class="tab" href="discovery.html">Discovery</a><a class="tab" href="collections_import.html">Collections</a><a class="tab" href="timelines.html">Timelines</a><a class="tab" href="publisher_pivots.html">Publishers</a></div><a href="home.html">← Home</a> · <strong>Discovery</strong> <a class="btn" href="discovery_settings.html">Settings</a></div>
+  <div id="root"></div>
+</div>
+<script>
+async function load(){
+  const j=await (await fetch('/api/discovery/rails')).json();
+  const root=document.getElementById('root'); root.innerHTML='';
+  (j.rails||[]).forEach(r=>{
+    const sec=document.createElement('div'); sec.className='rail';
+    sec.innerHTML='<h3>'+r.name+'</h3>';
+    const grid=document.createElement('div'); grid.className='grid';
+    (r.items||[]).forEach(it=>{
+      const c=document.createElement('div'); c.className='card';
+      c.innerHTML='<div><strong>'+(it.title||it.path||'')+'</strong><div style="opacity:.8">'+(it.type||'')+' · '+(it.year||'')+'</div></div>';
+      const badges=(it.ui&&it.ui.badges)||[];
+      if(badges.length){ const row=document.createElement('div'); row.className='badges'; badges.forEach(b=>{ const s=document.createElement('span'); s.className='badge '+(b.match(/Oscar|Globe|BAFTA|Cannes|Venice|Berlin/i)?'awd':'fmt'); s.textContent=b; row.appendChild(s); }); c.appendChild(row); }
+      grid.appendChild(c);
+    });
+    sec.appendChild(grid); root.appendChild(sec);
+  });
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+
+<script>
+(async function(){
+  try{
+    const c=await (await fetch('/api/config/get')).json();
+    if(c.smart_rails && c.smart_rails.live_on_discovery){
+      const s=await (await fetch('/api/smart_rails/state')).json();
+      const host=document.querySelector('.wrap') || document.body;
+      const box=document.createElement('div'); box.className='card';
+      box.innerHTML='<h3>Live Smart Rails</h3>' + (s.rails||[]).slice(0,6).map(r=>`<div><a href="smart_rails_view.html?name=${encodeURIComponent(r.name)}">${r.name}</a> <span class="badge">${r.count}</span></div>`).join('');
+      host.insertBefore(box, host.firstChild);
+    }
+  }catch(e){}
+})();</script>
+
+<!-- Pinboard Row -->
+<script>
+(async function(){
+  try{
+    const cfg=await (await fetch('/api/config/get')).json();
+    const on = (location.pathname.endsWith('home.html')? (cfg.pinboard && cfg.pinboard.show_on_home): (cfg.pinboard && cfg.pinboard.show_on_discovery));
+    if(!on) return;
+    const host=document.querySelector('.wrap')||document.body;
+    const card=document.createElement('div'); card.className='card'; card.innerHTML='<h3>Pinboard</h3><div id="pins_row">Loading…</div><div style="margin-top:6px"><a class="btn" href="pinboard_settings.html">Manage</a></div>';
+    host.insertBefore(card, host.firstChild);
+    const pins=await (await fetch('/api/pin/get')).json();
+    const row=document.getElementById('pins_row');
+    if(!(pins.pins||[]).length){ row.textContent='No pins yet.'; return; }
+    let html='';
+    for(const p of pins.pins){
+      const r=await (await fetch('/api/pin/resolve?kind='+encodeURIComponent(p.kind)+'&name='+encodeURIComponent(p.name))).json();
+      html += `<div style="margin:6px 0"><strong>${p.kind}: ${p.name}</strong> <span class="badge">${(r.items||[]).length}</span></div>`;
+    }
+    row.innerHTML=html;
+  }catch(e){}
+})();</script>
+
+<!-- Auto Picks Rail -->
+<script>
+(async function(){
+  try{
+    const cfg=await (await fetch('/api/autorails/get')).json();
+    const on = (location.pathname.endsWith('home.html')? !!cfg.show_on_home : !!cfg.show_on_discovery);
+    if(!on) return;
+    const res=await (await fetch('/api/auto/rails?mode='+encodeURIComponent(cfg.mode||'tasks')+'&max='+(cfg.max_items||12))).json();
+    const items=res.items||[]; if(!items.length) return;
+    const host=document.querySelector('.wrap')||document.body;
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML='<h3>'+ (cfg.title||'Auto Picks') +'</h3><div id="auto_picks"></div>';
+    host.insertBefore(card, host.firstChild);
+    const row=document.getElementById('auto_picks');
+    row.innerHTML = items.map(i=>`<div style="margin:6px 0"><strong>${i.title||i.q||''}</strong> <span class="badge">${i.kind||''}</span> <button class="qb" data-q="${encodeURIComponent(i.q||i.title||'')}">Queue Best</button></div>`).join('');
+    row.addEventListener('click', async (e)=>{
+      const b=e.target.closest('button.qb'); if(!b) return;
+      const rq=decodeURIComponent(b.dataset.q);
+      const r=await (await fetch('/api/auto/queue_best',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:rq})})).json();
+      if(r.ok){ alert('Queued '+(r.selected&&r.selected.title||rq)); }
+    });
+    if(cfg.sync_to_smart_rails){ await fetch('/api/auto/rails_refresh',{method:'POST'}); }
+  }catch(e){ /* silent */ }
+})();</script>
+
+
+<!-- Wanted Badge Overlay (legend) -->
+<script>
+(async function(){
+  try{
+    const r=await (await fetch('/api/config/get')).json();
+    if(!(r.wanted && r.wanted.badge_overlay)) return;
+    const host=document.querySelector('.wrap')||document.body;
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML='<h3>Badges</h3><div>Wanted · Searching · Queued · Obtained — manage in <a href="wanted.html">Wanted Tracker</a></div>';
+    host.appendChild(card);
+  }catch(e){}
+})();</script>
+
+
+<!-- Wanted Scheduled Refresh (UI tick) -->
+<script>
+(async function(){
+  try{
+    const cfg=await (await fetch('/api/wanted/refresh_config_get')).json();
+    if(!cfg.enabled) return;
+    const now=Math.floor(Date.now()/1000);
+    if((cfg.next_run||0) && now >= cfg.next_run){
+      await fetch('/api/wanted/refresh_now',{method:'POST'});
+    }
+  }catch(e){}
+})();
+</script>
+
+
+<!-- Hero Overlay & Skeletons -->
+<style>
+.hero-overlay{position:absolute;inset:0;pointer-events:none;background:linear-gradient(VARANG, rgba(11,18,32,0) 0%, rgba(11,18,32,VAROP) 60%, rgba(11,18,32,VAROP) 100%)}
+.skel{background:linear-gradient(90deg,#182035,#1f2a4a 40%,#182035 80%);background-size:200% 100%;animation:shimmer 1.2s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+<script>
+(async function(){
+  try{
+    const cfg=await (await fetch('/api/config/get')).json();
+    const ui=(cfg.ui_polish||{});
+    // Hero overlay
+    const op=Math.max(0, Math.min(0.9, ui.hero_overlay_opacity ?? 0.55));
+    const ang=parseInt(ui.hero_overlay_angle ?? 180);
+    const ov=document.createElement('div'); ov.className='hero-overlay';
+    ov.style.background = 'linear-gradient('+ang+'deg, rgba(11,18,32,0) 0%, rgba(11,18,32,'+op+') 60%, rgba(11,18,32,'+op+') 100%)';
+    const host=document.querySelector('.hero, .hero-wrap, .wrap');
+    if(host){ host.style.position='relative'; host.appendChild(ov); }
+    // Skeletons (simple: render a few placeholder rows/cards, remove after fetch tick)
+    if(ui.skeletons){
+      const cont=document.querySelector('.wrap');
+      if(cont){
+        const sk=document.createElement('div'); sk.className='card';
+        sk.innerHTML='<div class="skel" style="height:18px;width:40%;margin:8px 0;border-radius:8px"></div>'+
+                     '<div class="skel" style="height:140px;border-radius:14px"></div>';
+        cont.insertBefore(sk, cont.firstChild);
+        setTimeout(()=>{ sk.remove(); }, 1200);
+      }
+    }
+  }catch(e){}
+})();</script>
+
+
+<!-- Global Search + Command Palette + Rail Menus + Breadcrumbs + Micro-badges -->
+<style>
+#globalsearch{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:60%;z-index:1000}
+#globalsearch input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #1f2537;background:#0b1220;color:#e8ebf5}
+#gs_results{position:absolute;top:44px;left:0;right:0;background:#0b1220;border:1px solid #1f2537;border-radius:12px;max-height:360px;overflow:auto;display:none}
+#gs_results .itm{padding:8px 12px;cursor:pointer;border-bottom:1px solid #16203a}
+#gs_results .itm:hover{background:#121a2d}
+#cmdpal{position:fixed;top:20%;left:50%;transform:translateX(-50%);width:640px;background:#0b1220;border:1px solid #1f2537;border-radius:12px;display:none;z-index:1001}
+#cmdpal input{width:100%;padding:10px 12px;border:0;background:transparent;color:#e8ebf5;border-bottom:1px solid #1f2537}
+#cmd_results{max-height:320px;overflow:auto}
+#cmd_results .itm{padding:8px 12px;border-bottom:1px solid #16203a;cursor:pointer}
+.badge{background:#18203a;color:#cbd6f7;padding:2px 6px;border-radius:999px;font-size:11px;margin-left:6px}
+.rail-menu{float:right}
+.density-cozy .card{padding:18px}
+.density-comfort .card{padding:12px}
+.density-compact .card{padding:8px}
+.breadcrumbs{margin:8px 0;opacity:.85}
+.tapplay{position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,.45);color:#fff;padding:6px 10px;border-radius:999px;font-size:12px}
+.microbadges{margin-left:8px}
+</style>
+<div id="globalsearch"><input id="gsi" placeholder="Search titles, series, authors, artists… (Ctrl/Cmd+K: palette)"><div id="gs_results"></div></div>
+<div id="cmdpal"><input id="cmi" placeholder="Type a command…"><div id="cmd_results"></div></div>
+<script>
+(function(){
+  // Breadcrumbs
+  const bc=document.createElement('div'); bc.className='breadcrumbs'; 
+  const loc = location.pathname.includes('discovery')? 'Discovery' : (location.pathname.includes('downloader')? 'Downloader' : (location.pathname.includes('wanted')? 'Wanted' : 'Home'));
+  bc.textContent = 'Home' + (loc!=='Home'? ' › '+loc : '');
+  const wrap=document.querySelector('.wrap'); if(wrap){ wrap.insertBefore(bc, wrap.firstChild); }
+
+  // Density
+  fetch('/api/ui/rails_config_get').then(r=>r.json()).then(c=>{
+    const d=c.density || 'comfort';
+    document.body.classList.remove('density-cozy','density-comfort','density-compact');
+    document.body.classList.add('density-'+d);
+  });
+
+  // Rail menus: attach to every .card>h3
+  function attachRailMenus(){
+    document.querySelectorAll('.card>h3').forEach(h=>{
+      if(h.querySelector('.rail-menu')) return;
+      const t = (h.textContent||'').trim();
+      const btn=document.createElement('span'); btn.className='rail-menu'; btn.innerHTML='⋯';
+      btn.style.cursor='pointer';
+      btn.title='Rail options';
+      btn.onclick = async (e)=>{
+        e.stopPropagation();
+        const c=await (await fetch('/api/ui/rails_config_get')).json();
+        const pinned=new Set(c.pinned||[]), hidden=new Set(c.hidden||[]);
+        const act = prompt('Rail: '+t+'\n1) Pin/Unpin\n2) Hide/Show\n3) Rename\n4) Refresh','1');
+        if(!act) return;
+        if(act==='1'){ if(pinned.has(t)) pinned.delete(t); else pinned.add(t); c.pinned=[...pinned]; }
+        if(act==='2'){ if(hidden.has(t)) hidden.delete(t); else hidden.add(t); c.hidden=[...hidden]; }
+        if(act==='3'){ const nn=prompt('New title', t); if(nn){ h.textContent=nn; } }
+        if(act==='4'){ try{ await fetch('/api/auto/rails_refresh',{method:'POST'});}catch(_){} }
+        await fetch('/api/ui/rails_config_set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)});
+      };
+      h.appendChild(btn);
+    });
+    // Hide rails by config
+    fetch('/api/ui/rails_config_get').then(r=>r.json()).then(c=>{
+      const hidden=new Set(c.hidden||[]);
+      document.querySelectorAll('.card').forEach(card=>{
+        const h=card.querySelector('h3'); if(!h) return;
+        const t=(h.textContent||'').trim();
+        if(hidden.has(t)){ card.style.display='none'; }
+      });
+      // Pin: move to top
+      const pinned=new Set((c.pinned||[]).reverse());
+      pinned.forEach(pt=>{
+        const target=[...document.querySelectorAll('.card')].find(cd=> (cd.querySelector('h3')||{}).textContent && cd.querySelector('h3').textContent.trim()===pt);
+        if(target && target.parentNode){ target.parentNode.insertBefore(target, target.parentNode.firstChild); }
+      });
+    });
+  }
+  setTimeout(attachRailMenus, 200);
+
+  // Micro-badges: infer from text content tokens
+  function addMicroBadges(){
+    const TOK=/\b(4K|2160p|UHD|HDR|DV|DoVi|Dolby\.?Vision|Atmos|TrueHD|FLAC|Hi-Res)\b/i;
+    document.querySelectorAll('.card .item, .card .row, .card .grid .cell, .card li, .card a').forEach(n=>{
+      if(n._badged) return;
+      const txt=(n.textContent||'').trim();
+      const m=txt.match(TOK);
+      if(m){
+        const b=document.createElement('span'); b.className='microbadges badge'; b.textContent=m[1].replace(/DoVi/i,'DV');
+        n.appendChild(b); n._badged=true;
+      }
+    });
+  }
+  setInterval(addMicroBadges, 1000);
+
+  // Hero trailer UX
+  const hv=document.querySelector('.hero video, .hero-video'); 
+  if(hv){
+    const hint=document.createElement('div'); hint.className='tapplay'; hint.textContent='Tap to play / Mute';
+    hv.parentNode.style.position='relative'; hv.parentNode.appendChild(hint);
+    hv.muted = true;
+    hv.addEventListener('mouseenter', ()=>{ hv.muted=false; });
+    hv.addEventListener('mouseleave', ()=>{ hv.muted=true; });
+    hv.addEventListener('click', ()=>{ hv.paused? hv.play(): hv.pause(); });
+  }
+
+  // Gradient preset
+  fetch('/api/ui/rails_config_get').then(r=>r.json()).then(c=>{
+    const preset=c.gradient_preset||'auto';
+    const ov=document.querySelector('.hero-overlay');
+    if(ov){
+      if(preset==='light'){ ov.style.background = 'linear-gradient(180deg, rgba(11,18,32,0) 0%, rgba(11,18,32,0.35) 60%, rgba(11,18,32,0.35) 100%)'; }
+      if(preset==='dark'){ ov.style.background = 'linear-gradient(180deg, rgba(11,18,32,0) 0%, rgba(11,18,32,0.70) 60%, rgba(11,18,32,0.70) 100%)'; }
+      // auto uses existing from config.ui_polish
+    }
+  });
+
+  // Global search
+  const box=document.getElementById('globalsearch'); const gsi=document.getElementById('gsi'); const res=document.getElementById('gs_results');
+  async function doSearch(){
+    const q=gsi.value.trim(); if(!q){ res.style.display='none'; return; }
+    const j=await (await fetch('/api/ui/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q, limit:50})})).json();
+    res.innerHTML=(j.items||[]).map(it=>`<div class="itm" data-path="${it.path}"><strong>${it.title}</strong> <span class="badge">${it.type}</span> <span class="badge">${it.year||''}</span></div>`).join('') || '<div class="itm">No results</div>';
+    res.style.display='block';
+  }
+  gsi.addEventListener('input', ()=>{ clearTimeout(gsi._t); gsi._t=setTimeout(doSearch, 150); });
+  res.addEventListener('click', (e)=>{ const it=e.target.closest('.itm'); if(!it) return; alert('Open: '+it.dataset.path); res.style.display='none'; });
+
+  // Command palette (Ctrl/Cmd+K)
+  const cpal=document.getElementById('cmdpal'); const cmi=document.getElementById('cmi'); const cr=document.getElementById('cmd_results');
+  async function openPal(){
+    const cmds=await (await fetch('/api/ui/palette_get')).json();
+    cr.innerHTML=(cmds.commands||[]).map(c=>`<div class="itm" data-href="${c.href||''}" data-id="${c.id}" data-method="${c.method||'GET'}">${c.label}</div>`).join('');
+    cpal.style.display='block'; cmi.focus();
+  }
+  function closePal(){ cpal.style.display='none'; }
+  cmi.addEventListener('input', ()=>{
+    const q=cmi.value.toLowerCase();
+    [...cr.children].forEach(n=>{ n.style.display = n.textContent.toLowerCase().includes(q)? 'block':'none'; });
+  });
+  cr.addEventListener('click', async (e)=>{
+    const it=e.target.closest('.itm'); if(!it) return;
+    const href=it.dataset.href; const method=it.dataset.method||'GET';
+    if(href.startsWith('/api/')){ await fetch(href,{method}); closePal(); alert('Done'); }
+    else if(href){ location.href=href; }
+  });
+  document.addEventListener('keydown', (e)=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openPal(); }
+    if(e.key==='Escape'){ closePal(); document.getElementById('gs_results').style.display='none'; }
+  });
+})();</script>
+
+
+<!-- Audio Mini-Player -->
+<style>
+#mini{position:fixed;left:12px;right:12px;bottom:12px;background:#0b1220;border:1px solid #1f2537;border-radius:12px;padding:8px 12px;display:flex;gap:10px;align-items:center;z-index:1000}
+#mini .btn{padding:4px 8px}
+</style>
+<div id="mini" hidden>
+  <div id="minititle" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+  <button id="aprev" class="btn">⏮</button>
+  <button id="aplay" class="btn">▶</button>
+  <button id="anext" class="btn">⏭</button>
+  <button id="alike" class="btn">❤</button>
+  <select id="arepeat"><option value="off">↻ Off</option><option value="one">↻ One</option><option value="all">↻ All</option></select>
+  <label style="margin-left:6px"><input id="ashuf" type="checkbox"> Shuffle</label>
+</div>
+<script>
+(async function(){
+  async function refresh(){
+    const s=await (await fetch('/api/audio/state')).json();
+    if(s.now){ mini.hidden=false; minititle.textContent = (s.now.title||'') + (s.now.artist? ' — '+s.now.artist : ''); }
+    arepeat.value=(s.prefs&&s.prefs.repeat)||'off'; ashuf.checked=!!(s.prefs&&s.prefs.shuffle);
+  }
+  aprev.onclick=async ()=>{ /* no-op previous in simple demo */ };
+  aplay.onclick=async ()=>{ await fetch('/api/audio/play',{method:'POST'}); refresh(); };
+  anext.onclick=async ()=>{ await fetch('/api/audio/next',{method:'POST'}); refresh(); };
+  alike.onclick=async ()=>{ await fetch('/api/audio/like',{method:'POST'}); };
+  arepeat.onchange=async ()=>{ await fetch('/api/audio/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repeat: arepeat.value})}); };
+  ashuf.onchange=async ()=>{ await fetch('/api/audio/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shuffle: ashuf.checked})}); };
+  setInterval(refresh, 1500); refresh();
+})();</script>
+
+
+<!-- Log Overlay + Accessibility Toggles + Virtualization hook -->
+<style>
+#logov{position:fixed;right:12px;bottom:12px;width:420px;max-height:40vh;overflow:auto;background:#0b1220;border:1px solid #1f2537;border-radius:12px;padding:6px 8px;z-index:9999;white-space:pre-wrap}
+.high-contrast #logov, body.high-contrast #logov{border-color:#cbd6f7}
+</style>
+<div id="logov" hidden>Log overlay…</div>
+<script>
+(async function(){
+  const cfg=await (await fetch('/api/config/get')).json();
+  if(cfg.accessibility&&cfg.accessibility.high_contrast){ document.body.classList.add('high-contrast'); }
+  if(cfg.accessibility&&cfg.accessibility.rtl_ui){ document.body.classList.add('rtl'); }
+  const always = cfg.sys_settings && cfg.sys_settings.always_log_overlay;
+  async function tick(){
+    if(!always){ logov.hidden=true; return; }
+    const j=await (await fetch('/api/sys/logs_tail?lines=120')).json();
+    logov.textContent=j.lines.join('\n'); logov.hidden=false;
+  }
+  setInterval(tick, 2000); tick();
+  // Alt+L toggles
+  document.addEventListener('keydown', (e)=>{ if(e.altKey && (e.key.toLowerCase()==='l')){ logov.hidden = !logov.hidden; } });
+  // '/' focuses search if present
+  document.addEventListener('keydown', (e)=>{ if(e.key==='/'){ const gs=document.getElementById('gsi'); if(gs){ e.preventDefault(); gs.focus(); } } });
+  // '?' opens keyboard map page
+  document.addEventListener('keydown', (e)=>{ if(e.key==='?'){ window.location.href='accessibility.html'; } });
+})();</script>
+
+</body></html>

@@ -1,0 +1,30 @@
+{
+  "auto_download": true,
+  "download_on_add": true,
+  "download_on_scan": false,
+  "language_priority": ["ar", "en"],
+  "prefer_hearing_impaired": false,
+  "min_score": 80,
+  "providers": {
+    "opensubtitles": {
+      "enabled": true,
+      "priority": 1
+    },
+    "subscene": {
+      "enabled": true,
+      "priority": 2
+    },
+    "podnapisi": {
+      "enabled": false,
+      "priority": 3
+    }
+  },
+  "naming": {
+    "format": "{title}.{language}.{extension}",
+    "include_language_code": true
+  },
+  "filters": {
+    "exclude_keywords": [],
+    "preferred_release_groups": []
+  }
+}

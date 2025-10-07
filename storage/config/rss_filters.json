@@ -1,0 +1,17 @@
+{
+    "global_filters": {
+        "keywords_include": [],
+        "keywords_exclude": ["CAM", "TS", "HDCAM"],
+        "min_size_mb": 100,
+        "max_size_mb": 50000
+    },
+    "series_filters": {
+        "The Mandalorian": {
+            "quality": "1080p",
+            "exclude_repacks": true
+        }
+    },
+    "movie_filters": {
+        "exclude_cam": true
+    }
+}

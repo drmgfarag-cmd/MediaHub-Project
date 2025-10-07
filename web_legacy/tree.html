@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Library Tree</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.node{margin-left:16px}</style>
+</head><body><div class="wrap">
+  <a href="tools.html">&larr; Tools</a><h1>Library Tree</h1>
+  <div id="tree"></div>
+</div>
+<script>
+function render(obj, parent){
+  Object.entries(obj).forEach(([k,v])=>{
+    if(k.startsWith('_')) return;
+    const div=document.createElement('div'); div.className='node'; div.textContent=k+' ('+(v._count||0)+')';
+    parent.appendChild(div);
+    render(v._children||{}, div);
+  });
+}
+async function load(){ const j=await (await fetch('/api/tree')).json(); const root=document.getElementById('tree'); root.innerHTML=''; render(j, root); }
+document.addEventListener('DOMContentLoaded', load);
+</script></body></html>

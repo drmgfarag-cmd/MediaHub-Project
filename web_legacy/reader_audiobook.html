@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Audiobook</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.wrap{max-width:920px;margin:0 auto;padding:16px}.card{display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:center;border:1px solid rgba(148,163,184,.15);border-radius:16px;background:#101827;padding:16px}.cover{width:240px;height:240px;border-radius:12px;overflow:hidden;border:1px solid rgba(148,163,184,.15)}.cover img{width:100%;height:100%;object-fit:cover}</style>
+</head><body>
+<div class="wrap">
+  <a href="home.html">← Home</a>
+  <div class="card">
+    <div class="cover"><img id="img" alt=""></div>
+    <div>
+      <h1 id="t"></h1>
+      <div class="meta" id="m"></div>
+      <audio id="aud" controls preload="metadata" style="width:100%"></audio>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="rate(0.9)">- speed</button>
+        <button onclick="rate(1.0)">1×</button>
+        <button onclick="rate(1.2)">+ speed</button>
+        <button onclick="sleep()">Sleep 15m</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const Q=new URLSearchParams(location.search); const ID=Q.get('id'); let ITEM=null; let timer=0;
+function rate(x){ document.getElementById('aud').playbackRate=x; }
+function sleep(){ clearTimeout(timer); timer=setTimeout(()=>document.getElementById('aud').pause(), 15*60*1000); alert('Sleep in 15 minutes'); }
+async function load(){ const r=await fetch('/api/library/item/'+encodeURIComponent(ID)); ITEM=await r.json(); document.getElementById('img').src=ITEM.cover||ITEM.poster||'sample/poster.jpg'; document.getElementById('t').textContent=ITEM.title||''; document.getElementById('m').textContent=[ITEM.artist, ITEM.year].filter(Boolean).join(' • '); document.getElementById('aud').src = ITEM.stream||ITEM.path||''; }
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

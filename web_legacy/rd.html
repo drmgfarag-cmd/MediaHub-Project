@@ -1,0 +1,86 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Real‑Debrid</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/auth.js"></script>
+<style>body{background:#0b1220;color:#cbd5e1;font:14px/1.5 system-ui}.wrap{max-width:980px;margin:0 auto;padding:16px}.card{border:1px solid #334155;background:#0f172a;border-radius:12px;margin:10px 0;padding:12px}</style>
+</head><body>
+<div class="wrap">
+  <a href="downloads.html">&larr; Downloads</a>
+  <h1>Real‑Debrid</h1>
+  <div class="card">
+    <h3>Account</h3>
+    <input id="rd_token" type="text" placeholder="API token">
+    <button onclick="save()">Save</button>
+    <button onclick="me()">Check</button> <span id="msg"></span>
+    <pre id="me_out"></pre>
+  </div>
+  <div class="card">
+    <h3>Add Magnet</h3>
+    <input id="magnet" type="text" placeholder="magnet:?xt=...">
+    <button onclick="addMagnet()">Add</button> <span id="add_msg"></span>
+  
+</div>
+  <div class="card">
+    <h3>Advanced preferences</h3>
+    <label>Hoster priority (comma-separated): <input id="hp" placeholder="gdrive,1fichier,rapidgator"></label><br>
+    <label>Rename rules (JSON array): <input id="rr" placeholder='[{"find":"1080p","replace":""}]'></label><br>
+    <label>Save-path map (JSON array): <input id="spm" placeholder='[{"match":"Marvel","path":"/media/Movies/Marvel"}]'></label><br>
+    <label><input type="checkbox" id="cloudpull"> Cloud → Local (auto)</label><br>
+    <button onclick="saveAdv()">Save advanced</button> <span id="adv_msg"></span>
+  </div>
+  <div class="card">
+    <h3>Unrestrict Link</h3>
+    <input id="link" type="text" placeholder="https://host/file">
+    <button onclick="unrestrict()">Unrestrict</button> <span id="un_msg"></span>
+    <pre id="un_out"></pre>
+  </div>
+  <div class="card">
+    <h3>Torrents</h3>
+    <button onclick="load()">Refresh</button>
+    <div id="list"></div>
+  </div>
+</div>
+<script>
+async function save(){
+  const token=document.getElementById('rd_token').value.trim();
+  const r=await fetch('/api/rd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
+  document.getElementById('msg').textContent = r.ok ? 'Saved' : 'Error';
+}
+async function me(){
+  const r=await fetch('/api/rd/user'); const j=await r.json(); document.getElementById('me_out').textContent=JSON.stringify(j,null,2);
+}
+async function addMagnet(){
+  const magnet=document.getElementById('magnet').value.trim();
+  const r=await fetch('/api/rd/torrent/addMagnet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet})});
+  document.getElementById('add_msg').textContent = r.ok?'Added':'Error';
+  await load();
+}
+async function unrestrict(){
+  const link=document.getElementById('link').value.trim();
+  const r=await fetch('/api/rd/unrestrict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link})});
+  const j=await r.json(); document.getElementById('un_out').textContent=JSON.stringify(j,null,2);
+  document.getElementById('un_msg').textContent = r.ok?'OK':'Error';
+}
+async function load(){
+  const j=await (await fetch('/api/rd/torrents')).json();
+  const div=document.getElementById('list'); div.innerHTML='';
+  (j.torrents||[]).forEach(t=>{
+    const row=document.createElement('div'); row.style='margin:4px 0;padding:6px;border:1px solid #334155;border-radius:8px';
+    row.textContent=`${t.filename||t.id} — ${t.status||''}`;
+    div.appendChild(row);
+  });
+}
+
+async function saveAdv(){
+  const prefs={
+    hoster_priority: (document.getElementById('hp').value||'').split(',').map(x=>x.trim()).filter(Boolean),
+    rename_rules: JSON.parse(document.getElementById('rr').value||'[]'),
+    save_path_map: JSON.parse(document.getElementById('spm').value||'[]')
+  };
+  await fetch('/api/rd/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefs})});
+  document.getElementById('adv_msg').textContent='Saved';
+}
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

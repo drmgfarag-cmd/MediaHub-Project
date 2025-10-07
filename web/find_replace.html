@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Find & Replace (Project‑wide)</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Find & Replace</strong> <button id="preview">Preview</button> <button id="apply">Apply</button> <button id="undo">Undo</button></div>
+  <div class="grid">
+    <div class="card">
+      <div>Find: <input id="find" style="width:70%"></div>
+      <div>Replace: <input id="repl" style="width:70%"></div>
+      <div style="margin-top:6px">
+        <label><input type="checkbox" id="regex"> Regex</label>
+        <label><input type="checkbox" id="ic"> Ignore case</label>
+        <label><input type="checkbox" id="ww"> Whole word</label>
+      </div>
+      <div style="margin-top:6px">Include globs (CSV): <input id="inc" style="width:70%" placeholder="**/*.srt, **/*.nfo"></div>
+      <div>Exclude globs (CSV): <input id="exc" style="width:70%" placeholder="**/cache/**"></div>
+      <div style="margin-top:6px"><label><input type="checkbox" id="dry"> Dry run</label></div>
+    </div>
+    <div class="card"><div id="out">–</div></div>
+  </div>
+</div>
+<script>
+async function doPreview(){
+  const body={find: f.value, replace: r.value, flags:{regex:rg.checked, ignore_case:ic.checked, whole_word:ww.checked}, include: inc.value.split(',').map(s=>s.trim()).filter(Boolean), exclude: exc.value.split(',').map(s=>s.trim()).filter(Boolean)};
+  const j=await (await fetch('/api/findreplace/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  out.innerHTML = j.ok? ('<div><strong>'+j.total+'</strong> replacements in '+(j.files||[]).length+' files</div>'+ (j.files||[]).slice(0,200).map(x=>`<div>${x.path} <span class="badge">${x.count}</span></div>`).join('')) : ('Error: '+(j.error||''));
+}
+async function doApply(){
+  const body={find: f.value, replace: r.value, flags:{regex:rg.checked, ignore_case:ic.checked, whole_word:ww.checked}, include: inc.value.split(',').map(s=>s.trim()).filter(Boolean), exclude: exc.value.split(',').map(s=>s.trim()).filter(Boolean), dry: dry.checked};
+  const j=await (await fetch('/api/findreplace/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  out.innerHTML = j.ok? ('Applied to '+j.applied_files+' files, total replacements '+j.total_replacements + (j.undo_log?'<div>Undo log saved.</div>':'')) : ('Error: '+(j.error||''));
+}
+async function doUndo(){
+  const j=await (await fetch('/api/findreplace/undo',{method:'POST'})).json();
+  out.innerHTML = j.ok? ('Restored files: '+j.restored_files) : ('Error: '+(j.error||''));
+}
+const f=document.getElementById('find'), r=document.getElementById('repl'), rg=document.getElementById('regex'), ic=document.getElementById('ic'), ww=document.getElementById('ww'), inc=document.getElementById('inc'), exc=document.getElementById('exc'), dry=document.getElementById('dry'), out=document.getElementById('out');
+document.getElementById('preview').onclick=doPreview;
+document.getElementById('apply').onclick=doApply;
+document.getElementById('undo').onclick=doUndo;
+</script>
+</body></html>

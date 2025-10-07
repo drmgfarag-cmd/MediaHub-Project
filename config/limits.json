@@ -1,0 +1,7 @@
+{
+  "global_speed_kbps": 0,
+  "connections_per_host": 4,
+  "global_connections": 6,
+  "per_host": {},
+  "mode": "soft"
+}

@@ -1,0 +1,35 @@
+from flask import Blueprint, jsonify, request
+import os, json, re, time
+rails_bp = Blueprint('rails', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..')); STO=os.path.join(ROOT,'storage'); LIB=os.path.join(STO,'library_index.json')
+def _lib():
+    try: return json.load(open(LIB,'r',encoding='utf-8'))
+    except: return []
+TOKENS={ 'hdr': re.compile(r'(2160p|UHD|4K|HDR)',re.I), 'dv': re.compile(r'(DV|Dolby\.Vision|DoVi)',re.I), 'atmos': re.compile(r'(Atmos|EAC3\.Atmos|TrueHD\.Atmos)',re.I), 'manga': re.compile(r'\bmanga\b',re.I) }
+@rails_bp.route('/api/rails')
+def rails():
+    try:
+        items=_lib(); now=int(time.time())
+        def has(tok, s): return bool(tok.search(s or ''))
+        movies=[it for it in items if it.get('type')=='movie']
+        tv=[it for it in items if it.get('type')=='series']
+        books=[it for it in items if it.get('type') in ('ebook','comic','manga','audiobook')]
+        audio=[it for it in items if it.get('type')=='audio']
+
+        def by_tokens(tok): return [it for it in movies if has(TOKENS[tok], (it.get('path') or '') + ' ' + ' '.join(it.get('badges',[])) )]
+        rails={
+        'movies_4k_hdr': by_tokens('hdr')[:50],
+        'movies_dv': by_tokens('dv')[:50],
+        'movies_atmos': by_tokens('atmos')[:50],
+        'tv_ongoing': [it for it in tv if now - int(it.get('added_ts',0)) <= 90*86400][:50],
+        'books_ebooks': [it for it in books if it.get('type')=='ebook'][:50],
+        'books_comics': [it for it in books if it.get('type')=='comic'][:50],
+        'books_manga':  [it for it in books if it.get('type')=='manga'][:50],
+        'books_audiobooks':[it for it in books if it.get('type')=='audiobook'][:50],
+        'audio_albums': audio[:50],
+        'kids_movies': [it for it in movies if it.get('is_kids')] [:50],
+        'kids_tv': [it for it in tv if it.get('is_kids')] [:50]
+        }
+        return jsonify({'ok': True, 'rails': rails})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

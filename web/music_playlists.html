@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Music — Mixes & Radios</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Music — Mixes & Radios</strong> <button id="auto">Auto (by Mood)</button> <button id="refresh">Refresh List</button></div>
+  <div class="card">
+    <h3>Create a Radio</h3>
+    <div>Artist/Album/Token: <input id="q" style="width:50%">
+      <button id="mk_radio">Start Radio</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>My Mixes</h3>
+    <div id="list">—</div>
+  </div>
+</div>
+<script>
+async function render(){
+  const j=await (await fetch('/api/audio/mixes/list')).json();
+  list.innerHTML = (j.mixes||[]).map(m=>`<div>${m.name} <span class="badge">${m.count||0}</span> <button class="del" data-name="${m.name}">Delete</button></div>`).join('') || 'No mixes yet.';
+}
+document.getElementById('auto').onclick=async ()=>{
+  const j=await (await fetch('/api/audio/mixes/auto')).json();
+  for(const m of (j.mixes||[])){ await fetch('/api/audio/mixes/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:m.name})}); }
+  render();
+};
+document.getElementById('mk_radio').onclick=async ()=>{
+  const name='Radio — '+q.value.trim();
+  await fetch('/api/audio/mixes/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, type:'radio', query:q.value.trim()})});
+  render();
+};
+document.getElementById('refresh').onclick=render;
+document.addEventListener('click', async (e)=>{
+  const b=e.target.closest('button.del'); if(!b) return;
+  await fetch('/api/audio/mixes/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:b.dataset.name})}); render();
+});
+document.addEventListener('DOMContentLoaded', render);
+</script>
+</body></html>

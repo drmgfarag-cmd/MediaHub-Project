@@ -1,0 +1,30 @@
+from flask import Blueprint, jsonify, request
+import os, json, time
+
+dlx_bp = Blueprint('dlx', __name__)
+ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
+QF=os.path.join(ROOT,'storage','downloader_queue.json')
+
+def _load(path, default):
+    try: return json.load(open(path,'r',encoding='utf-8'))
+    except Exception: return default
+
+def _save(path, obj):
+    tmp=path+'.tmp'; json.dump(obj, open(tmp,'w',encoding='utf-8'), indent=2); os.replace(tmp, path)
+
+@dlx_bp.route('/api/downloader/mark_complete', methods=['POST'])
+def mark_complete():
+    js=request.get_json(silent=True) or {}
+    pid=(js.get('id') or '').strip()
+    if not pid: return jsonify({'error':'id required'}), 400
+    dat=_load(QF, {'packages':[]})
+    pk=None
+    for p in dat.get('packages',[]):
+        if p.get('id')==pid:
+            pk=p; break
+    if not pk: return jsonify({'error':'not found'}), 404
+    pk['status']='Completed'; pk['progress']=100; pk['eta_sec']=0
+    for f in pk.get('files',[]) or []:
+        f['status']='Completed'; f['progress']=100; f['eta_sec']=0
+    _save(QF, dat)
+    return jsonify({'ok':True,'package': pk})

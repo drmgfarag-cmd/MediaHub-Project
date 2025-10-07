@@ -1,0 +1,103 @@
+from .security import require_api_key
+from flask import Blueprint, request, jsonify
+import os, json, time, re, hashlib
+
+pkg_bp = Blueprint('packages', __name__)
+def _root(): return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+def _qfile(): return os.path.join(_root(), "data", "downloader_queue.json")
+def _pfile(): return os.path.join(_root(), "storage", "downloader_packages.json")
+def _stagefile(): return os.path.join(_root(), "storage", "linkgrabber_stage.json")
+def _rulesfile(): return os.path.join(_root(), "storage", "linkgrabber_rules.json")
+
+def _load(p, d):
+    try:
+        with open(p,"r",encoding="utf-8") as f: return json.load(f)
+    except Exception: return d
+def _save(p, d):
+    with open(p,"w",encoding="utf-8") as f: json.dump(d,f,indent=2,ensure_ascii=False)
+
+def _id(prefix):
+    s=f"{time.time()}|{prefix}"; return prefix + "_" + hashlib.sha1(s.encode()).hexdigest()[:10]
+
+@pkg_bp.route("/api/downloader/queue_grouped", methods=["GET"])
+def queue_grouped():
+    try:
+        qdb = _load(_qfile(), {"grabber":[], "downloads":[], "finished":[]})
+        pdb = _load(_pfile(), {"packages":[]})
+        by_pkg = {p["id"]: {**p, "items": []} for p in pdb.get("packages",[])}
+        items = (qdb.get("downloads") or []) + (qdb.get("grabber") or [])
+        for it in items:
+        pid = it.get("package_id") or ("PK_"+hashlib.sha1((it.get("title","")+it.get("link","")).encode()).hexdigest()[:8])
+        it["package_id"]=pid
+        by_pkg.setdefault(pid, {"id":pid,"name":it.get("title") or "Package","save_to":it.get("save_to",""),"items":[]})
+        by_pkg[pid]["items"].append(it)
+        totals={"packages":len(by_pkg),"items":sum(len(v["items"]) for v in by_pkg.values())}
+        return jsonify({"packages": list(by_pkg.values()), "totals": totals})
+
+        @pkg_bp.route("/api/downloader/package/create", methods=["POST"])
+        @require_api_key
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def package_create():
+    data=request.get_json(silent=True) or {}
+    pk = {
+        "id": _id("PK"), "name": data.get("name") or "Package", "save_to": data.get("save_to",""),
+        "comment": data.get("comment",""), "password": data.get("password",""),
+        "auto_extract": bool(data.get("auto_extract", False)), "priority": int(data.get("priority",0)),
+        "created_ts": int(time.time()), "last_try_ts": None, "referrer": data.get("referrer",""),
+        "hoster": data.get("hoster",""), "description": data.get("description","")
+    }
+    pdb=_load(_pfile(),{"packages":[]}); pdb["packages"].append(pk); _save(_pfile(), pdb)
+    return jsonify({"ok":True,"package":pk})
+
+@pkg_bp.route("/api/downloader/package/update", methods=["POST"])
+@require_api_key
+def package_update():
+    data=request.get_json(silent=True) or {}; pid=data.get("id"); fields=data.get("fields",{})
+    pdb=_load(_pfile(),{"packages":[]})
+    for p in pdb.get("packages",[]):
+        if p.get("id")==pid:
+            for k in ("name","save_to","comment","password","auto_extract","priority","referrer","hoster","description"):
+                if k in fields: p[k]=fields[k]
+            p["last_try_ts"]=int(time.time()); _save(_pfile(), pdb); return jsonify({"ok":True,"package":p})
+    return jsonify({"error":"id not found"}), 404
+
+@pkg_bp.route("/api/downloader/package/delete", methods=["POST"])
+@require_api_key
+def package_delete():
+    data=request.get_json(silent=True) or {}; pid=data.get("id")
+    pdb=_load(_pfile(),{"packages":[]}); pdb["packages"]=[p for p in pdb.get("packages",[]) if p.get("id")!=pid]; _save(_pfile(), pdb)
+    return jsonify({"ok":True})
+
+@pkg_bp.route("/api/downloader/clipboard/ingest", methods=["POST"])
+@require_api_key
+def clipboard_ingest():
+    data=request.get_json(silent=True) or {}; text=data.get("text","")
+    links = re.findall(r"https?://\S+", text, flags=re.IGNORECASE)
+    st=_load(_stagefile(), {"items":[]}); added=[]
+    for u in links:
+        it={"id":_id("ST"), "link":u, "title":u.split("/")[-1][:80]}
+        st["items"].append(it); added.append(it)
+    _save(_stagefile(), st)
+    return jsonify({"ok":True,"added":len(added),"items":added})
+
+@pkg_bp.route("/api/linkgrabber/rules/test", methods=["POST"])
+@require_api_key
+def rules_test():
+    data=request.get_json(silent=True) or {}; text=data.get("text",""); rules=data.get("rules",[]); out=[]
+    for r in rules:
+        pat=r.get("pattern",""); name_tpl=r.get("package_name","Package")
+        try:
+            for m in re.finditer(pat, text, flags=re.MULTILINE|re.IGNORECASE):
+                link=m.group(0); pkg=name_tpl
+                for i, g in enumerate(m.groups(), start=1): pkg=pkg.replace("${%d}"%i, g or "")
+                out.append({"link":link,"package":pkg})
+        except Exception: pass
+    return jsonify({"items": out})
+
+@pkg_bp.route("/api/linkgrabber/rules/apply", methods=["POST"])
+@require_api_key
+def rules_apply():
+    data=request.get_json(silent=True) or {}; rules=data.get("rules",[])
+    _save(_rulesfile(), {"rules":rules}); return jsonify({"ok":True})

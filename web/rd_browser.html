@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><title>RD Browser</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border-bottom:1px solid #1f2537;padding:6px 8px} .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}</style></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="rd_manager.html">← RD</a> · <strong>RD Browser</strong> <a class="btn" href="rd_dedupe.html">De‑dup</a> <a class="btn" href="downloader.html">Downloader</a></div>
+  <div class="card">
+    <div>Search: <input id="q" placeholder="title/link token" style="width:40%"> <button id="go">Go</button> <button id="more">Load more</button></div>
+    <table class="tbl" style="margin-top:8px">
+      <thead><tr><th>Title</th><th>Kind</th><th>Size</th><th>Added</th><th></th></tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+let offset=0, limit=100, lastQ='';
+function fmtMB(x){ return x? (x>=1024? (Math.round(x/102.4)/10+' GB') : (x+' MB')) : '—'; }
+async function load(reset){
+  if(reset){ offset=0; tb.innerHTML=''; }
+  const qv=(q.value||'').trim(); lastQ=qv;
+  const j=await (await fetch('/api/rd/list?offset='+offset+'&limit='+limit+'&q='+encodeURIComponent(qv))).json();
+  (j.items||[]).forEach(it=>{
+    const tr=document.createElement('tr');
+    const dt=it.added_ts? new Date(it.added_ts*1000).toLocaleString() : '—';
+    tr.innerHTML=`<td>${it.title||''}</td><td>${it.kind||''}</td><td>${fmtMB(it.size_mb)}</td><td>${dt}</td><td><button class="q" data-id="${it.id}">Queue</button> <button class="del" data-id="${it.id}">Delete</button></td>`;
+    tb.appendChild(tr);
+  });
+  offset += (j.items||[]).length;
+}
+go.onclick=()=>load(true);
+more.onclick=()=>load(false);
+document.addEventListener('click', async (e)=>{
+  const q=e.target.closest('button.q'); if(q){ await fetch('/api/rd/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:q.dataset.id})}); alert('Queued.'); return; }
+  const d=e.target.closest('button.del'); if(d){ await fetch('/api/rd/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:[d.dataset.id]})}); load(true); return; }
+});
+document.addEventListener('DOMContentLoaded', ()=>load(true));
+</script>
+</body></html>

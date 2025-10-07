@@ -1,0 +1,7 @@
+Optional upgrades included in v66.4.26
+--------------------------------------
+• HLS start_plus: audio normalization (soft/strong) and optional thumbnails/VTT.
+• Editor: Find-in-files across a folder; macro recording (server-side step recorder); column ruler toggle.
+• Library: Left tree endpoint; card context menu for add/remove to collections; Organizer preview/apply.
+• UI: Column chooser (right-click table header) with per-session visibility.
+All features follow behavior-first and menu/overlay patterns; no panel bloat.

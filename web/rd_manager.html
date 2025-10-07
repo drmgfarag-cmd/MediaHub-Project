@@ -1,0 +1,145 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Real‑Debrid — Manager</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css">
+<style>
+.grp{border-bottom:1px solid #1f2537;padding:8px 0}
+.hist .bar{display:inline-block;height:10px;margin-right:6px;background:#3a86ff}
+.badge{background:#18203a;color:#cbd6f7;padding:2px 8px;border-radius:999px;font-size:12px;margin-left:6px}
+</style></head>
+<body>
+
+<!-- Unified Top Nav (hero-friendly) + Side Pillars + Context Menu -->
+<style>
+#topnav{position:sticky;top:0;z-index:1200;background:linear-gradient(180deg, rgba(8,12,20,.86), rgba(8,12,20,.38) 60%, rgba(8,12,20,0) 100%);backdrop-filter:saturate(140%) blur(8px);padding:8px 12px;display:flex;gap:12px;align-items:center}
+#topnav a{color:#e8ebf5;text-decoration:none;padding:6px 10px;border-radius:8px}
+#topnav a.cur{background:rgba(255,255,255,.06)}
+#sidenav{position:fixed;left:12px;top:60px;bottom:12px;width:190px;background:#0b1220cc;border:1px solid #1f2537;border-radius:12px;padding:8px;z-index:1100;display:none;overflow:auto}
+#sidenav .hdr{font-weight:600;margin:6px 0 8px 0;opacity:.85}
+#sidenav a{display:block;color:#e8ebf5;text-decoration:none;padding:6px 8px;border-radius:8px}
+#sidenav a:hover{background:#121a2d}
+#navtoggle{position:fixed;left:12px;top:12px;z-index:1300;background:#0b1220;border:1px solid #1f2537;border-radius:10px;padding:6px 8px;cursor:pointer}
+.context{position:fixed;background:#0b1220;border:1px solid #1f2537;border-radius:8px;display:none;z-index:2000;min-width:200px}
+.context .it{padding:8px 10px;cursor:pointer}
+.context .it:hover{background:#121a2d}
+.subbar{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap}
+.subbar .tab{padding:6px 10px;border:1px solid #1f2537;border-radius:999px;cursor:pointer;text-decoration:none;color:#e8ebf5}
+.subbar .tab.cur{background:#121a2d}
+@media (max-width: 1080px){ #sidenav{display:none!important} }
+</style>
+<div id="navtoggle">☰</div>
+<div id="topnav">
+  <a href="home.html" id="nav_home">MediaHub</a>
+  <a href="discovery.html" id="nav_disc">Discovery</a>
+  <a href="downloader.html" id="nav_dl">Downloader</a>
+  <a href="rd_manager.html" id="nav_rd">RD Manager</a>
+  <a href="editor_pro.html" id="nav_ed">Editor</a>
+  
+  <span style="flex:1"></span>
+  <a href="tools.html">Tools</a>
+</div>
+<div id="sidenav">
+  <div class="hdr">Pillars</div>
+  <a href="home.html">MediaHub</a>
+  <a href="downloader.html">Downloader</a>
+  <a href="rd_manager.html">RD Manager</a>
+  <a href="editor_pro.html">Editor</a>
+  
+  <div class="hdr">Library</div>
+  <a href="collections_import.html">Collections — Import</a>
+  <a href="timelines.html">Collections — Timelines</a>
+  <a href="publisher_pivots.html">Publishers</a>
+  <div class="hdr">System</div>
+  <a href="system_logs.html">System & Logs</a>
+  <a href="dependencies.html">Dependencies</a>
+  <a href="backup_restore.html">Backup & Restore</a>
+  <a href="accessibility.html">Accessibility</a>
+</div>
+<div id="ctx" class="context"></div>
+<script>
+(function(){
+  const cur = location.pathname.split('/').pop();
+  ({"home.html":"nav_home","discovery.html":"nav_disc","downloader.html":"nav_dl","rd_manager.html":"nav_rd","editor_pro.html":"nav_ed","kids.html":"nav_kids"})[cur] && document.getElementById({"home.html":"nav_home","discovery.html":"nav_disc","downloader.html":"nav_dl","rd_manager.html":"nav_rd","editor_pro.html":"nav_ed","kids.html":"nav_kids"}[cur]).classList.add('cur');
+  navtoggle.onclick=()=>{ const s=document.getElementById('sidenav'); s.style.display = s.style.display==='block'? 'none':'block'; };
+  // Context menu framework
+  const ctx=document.getElementById('ctx');
+  document.addEventListener('contextmenu',(e)=>{
+    const card=e.target.closest('.item,.row,li,tr');
+    if(!card){ return; }
+    e.preventDefault();
+    const kind = location.pathname.includes('downloader')? 'downloader' : (location.pathname.includes('rd_manager')? 'rd' : (location.pathname.includes('editor')? 'editor' : 'library'));
+    let html='';
+    if(kind==='library'){
+      html+=`<div class="it" data-a="pin">Pin to rail</div><div class="it" data-a="kids">Mark as Kids</div><div class="it" data-a="collection">Add to Collection</div>`;
+    }else if(kind==='downloader'){
+      html+=`<div class="it" data-a="pause">Pause</div><div class="it" data-a="resume">Resume</div><div class="it" data-a="force">Force Start</div><div class="it" data-a="dupe">Deduplicate…</div>`;
+    }else if(kind==='rd'){
+      html+=`<div class="it" data-a="pick">Pick Best</div><div class="it" data-a="dupe">Collapse Duplicates</div>`;
+    }else if(kind==='editor'){
+      html+=`<div class="it" data-a="find">Find…</div><div class="it" data-a="replace">Replace…</div>`;
+    }
+    ctx.innerHTML=html; ctx.style.left=(e.pageX+2)+'px'; ctx.style.top=(e.pageY+2)+'px'; ctx.style.display='block';
+  });
+  document.addEventListener('click', async (e)=>{
+    if(!e.target.closest('#ctx')){ ctx.style.display='none'; return; }
+    const a=e.target.dataset.a;
+    if(a==='dupe' && location.pathname.includes('downloader')){
+      const mode=prompt('Deduplicate: 1) Mark duplicates  2) Remove smaller','1'); if(!mode) return;
+      const md= mode==='2'? 'remove':'mark';
+      const r=await (await fetch('/api/dedupe/downloader',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode: md})})).json();
+      alert('Duplicates processed. Removed: '+(r.removed||0));
+      location.reload();
+    }
+    if(a==='dupe' && location.pathname.includes('rd_manager')){
+      const mode=prompt('RD Dedupe: 1) Collapse view  2) Remove smaller variants','1'); if(!mode) return;
+      const md= mode==='2'? 'remove_smaller':'collapse';
+      const r=await (await fetch('/api/dedupe/rd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode: md})})).json();
+      alert('RD dedupe removed: '+(r.removed||0));
+      location.reload();
+    }
+    if(a==='pick'){ /* RD pick best — use buttons in the UI for specifics */ }
+    if(a==='find'){ const b=document.getElementById('fr'); if(b) b.click(); }
+  });
+})();</script>
+<div class="wrap" style="margin-top:8px">
+  <div class="toolbar"><div class="subbar"><a class="tab cur" href="rd_manager.html">Groups</a><a class="tab" href="rd_add_browse.html">Add/Browse</a><a class="tab" href="rd_analyze.html">Analyze</a><a class="tab" href="rd_manager.html#filters">Filters</a><a class="tab" href="rd_manager.html#dedupe">Dedup</a><a class="tab" href="rd_manager.html#accounts">Accounts</a></div><a href="home.html">← Home</a> · <strong>Real‑Debrid — Manager</strong> <a class="btn" href="downloader.html">Downloader</a></div>
+  <div class="card">
+    <h3>Filters</h3>
+    <div>
+      <button class="tag" data-tag="">All</button>
+      <button class="tag" data-tag="4K">4K</button>
+      <button class="tag" data-tag="HDR">HDR</button>
+      <button class="tag" data-tag="DV">DV</button>
+      <button class="tag" data-tag="ATMOS">Atmos</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Groups</h3>
+    <div id="list">—</div>
+  </div>
+</div>
+<script>
+let curTag='';
+async function load(){
+  const j=await (await fetch('/api/rd/groups?tag='+encodeURIComponent(curTag))).json();
+  list.innerHTML = (j.groups||[]).map(g=>{
+    const hist=g.hist||{}; const sum=(hist.small||0)+(hist.mid||0)+(hist.large||0);
+    function bar(n){ const w = sum? Math.round(n/sum*120) : 0; return `<span class="bar" style="width:${w}px"></span>`; }
+    return `<div class="grp">
+      <div><strong>${g.group_title}</strong> <span class="badge">${(g.variants||[]).length} variants</span>
+      <span class="hist"> ${bar(hist.small)} ${bar(hist.mid)} ${bar(hist.large)} </span>
+      <button class="pick" data-title="${encodeURIComponent(g.group_title)}">Pick Best</button></div>
+      <div style="margin-top:4px">`+ (g.variants||[]).map(v=>{
+        const mb=(v.size_mb||0); const gb=(mb/1024).toFixed(2)+' GB';
+        const tags=(v.tags||[]).join(' · ');
+        return `<div style="opacity:.9">${v.name} <span class="badge">${gb}</span> <span class="badge">${tags}</span></div>`;
+      }).join('') +`</div></div>`;
+  }).join('') || 'None';
+}
+document.addEventListener('click',(e)=>{
+  const t=e.target.closest('button.tag'); if(t){ curTag=t.dataset.tag||''; load(); }
+});
+document.addEventListener('click', async (e)=>{
+  const p=e.target.closest('button.pick'); if(p){ const name=decodeURIComponent(p.dataset.title); const r=await (await fetch('/api/rd/pick_best',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group_title: name})})).json(); alert(r.ok? ('Queued '+(r.selected&&r.selected.title||'')) : 'No selection'); }
+});
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body></html>

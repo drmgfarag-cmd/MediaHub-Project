@@ -1,0 +1,25 @@
+{
+  "use_sidecar": true,
+  "install_url": "",
+  "local": {
+    "host": "127.0.0.1",
+    "cnl2_port": 9666
+  },
+  "enabled": false,
+  "reconnect_cmd": "",
+  "captcha": {
+    "provider": "",
+    "api_key": "",
+    "test_url": ""
+  },
+  "remote": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 10025
+  },
+  "myjd": {
+    "email": "",
+    "password": "",
+    "remember": false
+  }
+}

@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Spotlight</title>
+<link rel="stylesheet" href="assets/normalize.css"><link rel="stylesheet" href="assets/ui.css"></head>
+<body><div class="wrap">
+  <div class="toolbar"><a href="home.html">← Home</a> · <strong>Spotlight Search</strong></div>
+  <div class="card"><input id="q" placeholder="Search title or path" style="width:70%"><select id="t"><option value="">(any)</option><option>movie</option><option>series</option><option>ebook</option><option>comic</option><option>manga</option><option>audiobook</option><option>audio</option></select><button id="go">Go</button></div>
+  <div id="out"></div>
+</div>
+<script>
+async function run(){ const q=document.getElementById('q').value; const t=document.getElementById('t').value; const j=await (await fetch('/api/library/search?q='+encodeURIComponent(q)+'&type='+encodeURIComponent(t)+'&n=200')).json(); const out=document.getElementById('out'); out.innerHTML=''; const via=j.via||''; const head=document.createElement('div'); head.className='card'; head.textContent = 'Results ('+ (j.items||[]).length +') via '+via; out.appendChild(head); (j.items||[]).forEach(it=>{ const d=document.createElement('div'); d.className='card'; d.textContent = it.type+' · '+(it.year||'')+' · '+it.title; out.appendChild(d); }); }
+document.getElementById('go').onclick=run;
+document.addEventListener('DOMContentLoaded', ()=>{ document.getElementById('q').focus(); });
+</script>
+<script src="assets/app_a11y.js"></script>
+<script src="assets/csrf.js"></script>
+</body></html>
