@@ -451,7 +451,10 @@ class MediaHubEnhancedApp:
             recents_bp, rename_bp, reports_bp, rss_bp, rss_automation_bp, scheduler_bp,
             search_bp, security_bp, settings_bp, smart_col_bp, smart_rails_bp,
             sources_bp, stats2_bp, storage_bp, stream_bp, sub_bp, sync_bp, sys_bp,
-            tags_bp, tasks_bp, tmpl_bp, themes_bp, tmdb_bp, tools_bp, transcode_bp
+            tags_bp, tasks_bp, tmpl_bp, themes_bp, tmdb_bp, tools_bp, transcode_bp,
+            # BATCH 8: Final Routes - UI, Upload, Watchlist & Utilities - Added Oct 7, 2025
+            tv_bp, ui_bp, upload_bp, prefs_bp, utils_bp, val_bp, ver_bp, vp_bp,
+            wh_bp, wl_bp, webhook_bp, widgets_bp, ws_bp, writer_bp
         ]
         
         for bp in existing_blueprints:
@@ -827,3 +830,19 @@ from routes.themes import themes_bp
 from routes.tmdb_scraper import tmdb_bp
 from routes.tools import tools_bp
 from routes.transcoding import transcode_bp
+
+# BATCH 8: Final Routes - UI, Upload, Watchlist & Utilities (15 routes)
+from routes.tv_shows import tv_bp
+from routes.ui_state import ui_bp
+from routes.upload import upload_bp
+from routes.user_prefs import prefs_bp
+from routes.utils import utils_bp
+from routes.validation import val_bp
+from routes.versions import ver_bp
+from routes.video_player import vp_bp
+from routes.watch_history import wh_bp
+from routes.watchlist import wl_bp
+from routes.webhooks import webhook_bp
+from routes.widgets import widgets_bp
+from routes.workspace import ws_bp
+from routes.writer import writer_bp
