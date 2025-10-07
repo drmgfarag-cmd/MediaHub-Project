@@ -436,7 +436,15 @@ class MediaHubEnhancedApp:
             cap_bp, catalogs_bp, conn_bp, curations_bp, dashboard_custom_bp,
             dd_bp, dedupe_bp, diag_bp, dl_col_bp,
             # BATCH 5: Editor & Tools - Added Oct 7, 2025
-            ed_bp, tb_bp, ei_bp, feat_bp, flags_bp, lg_bp
+            ed_bp, tb_bp, ei_bp, feat_bp, flags_bp, lg_bp,
+            # BATCH 6: Core Infrastructure & Media Management - Added Oct 7, 2025
+            advanced_dedupe_bp, aria2_bp, audio_enhanced_bp, casting_integration_bp,
+            cfg_bp, core_infra_bp, xref_bp, db_bp, debrid_bp, downloader_enhanced_bp,
+            downloader_rd_api_bp, editor_bp, editor_plugins_bp, faceted_db_bp, feeds_bp,
+            fr_bp, foundation_bp, hash_bp, health_bp, hls_bp, pins_bp, hooks_bp,
+            imdb_bp, jobs_bp, lib_bp, cache_bp, integrity_bp, links_bp, lists_bp,
+            lists_api_bp, logs_api_bp, lyrics_api_bp, med_bp, mi_bp, mm_bp,
+            metadata_bp, notif_bp, org_bp
         ]
         
         for bp in existing_blueprints:
@@ -731,3 +739,43 @@ if __name__ == '__main__':
     
     app = create_app()
     app.run(host=args.host, port=args.port, debug=args.debug)
+
+# BATCH 6: Core Infrastructure & Media Management (40 routes)
+from routes.advanced_dedupe_api import advanced_dedupe_bp
+from routes.aria2 import aria2_bp
+from routes.audio_enhanced import audio_enhanced_bp
+from routes.casting_integration import casting_integration_bp
+from routes.config import cfg_bp
+from routes.core_infrastructure_api import core_infra_bp
+from routes.cross_references import xref_bp
+from routes.db_tools import db_bp
+from routes.debrid import debrid_bp
+from routes.downloader_enhanced import downloader_enhanced_bp
+from routes.downloader_rd_api import downloader_rd_api_bp
+from routes.editor import editor_bp
+from routes.editor_plugins import editor_plugins_bp
+from routes.faceted_database import faceted_db_bp
+from routes.feeds import feeds_bp
+from routes.findreplace import fr_bp
+from routes.foundation import foundation_bp
+from routes.hash import hash_bp
+from routes.health import health_bp
+from routes.hls_mgr import hls_bp
+from routes.home_pins import pins_bp
+from routes.hooks import hooks_bp
+from routes.imdb_scraper import imdb_bp
+from routes.jobs import jobs_bp
+from routes.library import lib_bp
+from routes.library_cache import cache_bp
+from routes.library_integrity import integrity_bp
+from routes.links import links_bp
+from routes.lists import lists_bp
+from routes.lists_api import lists_api_bp
+from routes.logs_api import logs_api_bp
+from routes.lyrics_api import lyrics_api_bp
+from routes.media_editor import med_bp
+from routes.media_info import mi_bp
+from routes.media_manager import mm_bp
+from routes.metadata import metadata_bp
+from routes.notifications import notif_bp
+from routes.organizer import org_bp
