@@ -29,6 +29,14 @@ routes_to_test = [
     ('routes.collections_timeline', 'timeline_bp'),
     ('routes.library_scan', 'scan_bp'),
     ('routes.media_collections', 'col_bp'),
+    # Batch 3
+    ('routes.downloader', 'dl_bp'),
+    ('routes.downloader_api', 'dlx_bp'),
+    ('routes.downloader_packages', 'pkg_bp'),
+    ('routes.downloader_view', 'view_bp'),
+    ('routes.qbittorrent', 'qb_bp'),
+    ('routes.rss_enhanced', 'rss_enhanced_bp'),
+    ('routes.rss_feeder', 'rss_feeder_bp'),
 ]
 
 success_count = 0

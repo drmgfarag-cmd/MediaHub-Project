@@ -47,3 +47,15 @@ def require_api_key(f):
         # For now, just pass through - can add actual API key checking later
         return f(*args, **kwargs)
     return decorated_function
+
+
+# Rate limiting decorator (placeholder for now)
+def rate_limited(max_per_minute=60):
+    """Decorator to rate limit endpoints (placeholder for now)"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # For now, just pass through - can add actual rate limiting later
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator

@@ -91,6 +91,16 @@ from routes.collections_timeline import timeline_bp
 from routes.library_scan import scan_bp
 from routes.media_collections import col_bp as media_col_bp
 
+# BATCH 3: Automation Routes (Downloaders, RSS, Torrents)
+from routes.downloader import dl_bp
+from routes.downloader_api import dlx_bp
+from routes.downloader_packages import pkg_bp
+from routes.downloader_view import view_bp
+from routes.qbittorrent import qb_bp
+from routes.rss_enhanced import rss_enhanced_bp
+from routes.rss_feeder import rss_feeder_bp
+# Note: rss_scheduler and torrent_inspector skipped due to dependency issues
+
 # Import new enhanced route modules
 from config.api_keys import APIKeyManager
 from config.profiles import ProfileManager
@@ -386,7 +396,9 @@ class MediaHubEnhancedApp:
             # BATCH 1: Critical Routes (Issue #14) - Added Oct 7, 2025
             ap_bp, disc_bp, discovery_advanced_bp, tl_bp,
             # BATCH 2: Audio + Media Routes - Added Oct 7, 2025
-            mix_bp, rg_bp, aset_bp, coll_bp, cols_bp, timeline_bp, scan_bp, media_col_bp
+            mix_bp, rg_bp, aset_bp, coll_bp, cols_bp, timeline_bp, scan_bp, media_col_bp,
+            # BATCH 3: Automation Routes - Added Oct 7, 2025
+            dl_bp, dlx_bp, pkg_bp, view_bp, qb_bp, rss_enhanced_bp, rss_feeder_bp
         ]
         
         for bp in existing_blueprints:
