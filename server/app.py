@@ -129,7 +129,7 @@ from routes.editor_tabs import tb_bp
 from routes.export_import import ei_bp
 from routes.features import feat_bp
 from routes.flags import flags_bp
-from routes.link_grabber import lg_bp
+from routes.link_grabber import link_grabber_bp
 # Note: Many routes from original batch 5 don't exist as files
 
 # Import new enhanced route modules
@@ -786,7 +786,7 @@ from routes.lyrics_api import lyrics_api_bp
 from routes.media_editor import med_bp
 from routes.media_info import mi_bp
 from routes.media_manager import mm_bp
-from routes.metadata import metadata_bp
+from routes.metadata import md_bp
 from routes.notifications import notif_bp
 from routes.organizer import org_bp
 
@@ -798,7 +798,7 @@ from routes.presets import presets_bp
 from routes.profiles import prof_bp
 from routes.progress import progress_bp
 from routes.quality import qual_bp
-from routes.queue import queue_bp
+from routes.queue import q_bp
 from routes.ratings import ratings_bp
 from routes.rd_api import rd_bp
 from routes.reader import reader_bp
@@ -815,7 +815,7 @@ from routes.search import search_bp
 from routes.security import security_bp
 from routes.settings import settings_bp
 from routes.smart_collections import smart_col_bp
-from routes.smart_rails import smart_rails_bp
+from routes.smart_rails import sr_bp
 from routes.sources import sources_bp
 from routes.stats import stats_bp as stats2_bp
 from routes.storage import storage_bp
