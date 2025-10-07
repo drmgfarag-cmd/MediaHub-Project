@@ -1,0 +1,35 @@
+{
+  "bandwidth": {
+    "max_download_speed": 0,
+    "max_upload_speed": 0,
+    "per_download_limit": 0,
+    "schedule": []
+  },
+  "connections": {
+    "max_connections_per_server": 4,
+    "max_simultaneous_downloads": 3,
+    "connection_timeout": 30,
+    "retry_attempts": 3
+  },
+  "resume": {
+    "auto_resume": true,
+    "resume_on_startup": true,
+    "check_interval": 60
+  },
+  "verification": {
+    "auto_verify": true,
+    "verify_methods": [
+      "md5",
+      "sha1",
+      "sha256"
+    ],
+    "delete_on_fail": false
+  },
+  "post_download": {
+    "actions": [],
+    "move_to_library": false,
+    "trigger_renamer": false,
+    "run_custom_script": false,
+    "custom_script_path": ""
+  }
+}
