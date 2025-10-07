@@ -1,0 +1,2947 @@
+[
+  {
+    "id": 1,
+    "name": "accounts",
+    "blueprint": "acct_bp",
+    "url_prefix": "accounts",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/accounts/list",
+      "/api/accounts/add",
+      "/api/accounts/update",
+      "/api/accounts/remove",
+      "/api/accounts/refresh"
+    ],
+    "description": "No description found",
+    "lines": 58,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 2,
+    "name": "adv_search",
+    "blueprint": "adv_bp",
+    "url_prefix": "adv",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/search/advanced"
+    ],
+    "description": "No description found",
+    "lines": 70,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 3,
+    "name": "advanced_dedupe_api",
+    "blueprint": "advanced_dedupe_bp",
+    "url_prefix": "advanced_dedupe",
+    "endpoints": 6,
+    "endpoint_list": [
+      "/api/dedupe/hash_index",
+      "/api/dedupe/criteria_analysis",
+      "/api/dedupe/bulk_action",
+      "/api/dedupe/criteria_config",
+      "/api/dedupe/policy"
+    ],
+    "description": "Advanced Deduplication API - Master Rulebook Golden Surface Wraps existing dedupe.py and dedupe_editor.py functionality",
+    "lines": 429,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 4,
+    "name": "advanced_downloader_api",
+    "blueprint": "advanced_dl_bp",
+    "url_prefix": "advanced_downloader",
+    "endpoints": 17,
+    "endpoint_list": [
+      "/api/downloader/advanced/status",
+      "/api/downloader/advanced/start",
+      "/api/downloader/advanced/stop",
+      "/api/downloader/advanced/queue",
+      "/api/downloader/advanced/add"
+    ],
+    "description": "Advanced Downloader API - Endpoints for clipboard watcher and password manager Provides RESTful API access to advanced downloader functionality",
+    "lines": 494,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 5,
+    "name": "advanced_text_editor",
+    "blueprint": "advanced_editor_bp",
+    "url_prefix": "advanced_text_editor",
+    "endpoints": 12,
+    "endpoint_list": [
+      "/api/editor/advanced/info",
+      "/api/editor/advanced/session/create",
+      "/api/editor/advanced/session/<session_id>",
+      "/api/editor/advanced/session/<session_id>/content",
+      "/api/editor/advanced/session/<session_id>/content"
+    ],
+    "description": "Advanced Text Editor - Complete Notepad++ Parity Implementation Phase 1 Implementation - Restoring lost text editor functionality Based on the Ultimate Complete Integrated Plan",
+    "lines": 1102,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 6,
+    "name": "advanced_ui",
+    "blueprint": "advanced_ui_bp",
+    "url_prefix": "advanced_ui",
+    "endpoints": 15,
+    "endpoint_list": [
+      "/api/ui/preferences",
+      "/api/ui/preferences",
+      "/api/ui/themes",
+      "/api/ui/themes/<theme_name>",
+      "/api/ui/themes/<theme_name>/activate"
+    ],
+    "description": "Phase 5: Advanced UI & User Experience Implements modern UI components, themes, accessibility, and enhanced user experience features",
+    "lines": 993,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 7,
+    "name": "aria2",
+    "blueprint": "aria2_bp",
+    "url_prefix": "aria2",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/aria2/config",
+      "/api/aria2/list",
+      "/api/aria2/add",
+      "/api/aria2/pause",
+      "/api/aria2/resume"
+    ],
+    "description": "No description found",
+    "lines": 95,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 8,
+    "name": "audio_enhanced",
+    "blueprint": "audio_enhanced_bp",
+    "url_prefix": "audio_enhanced",
+    "endpoints": 13,
+    "endpoint_list": [
+      "/api/audio/config",
+      "/api/audio/config",
+      "/api/audio/library/tracks",
+      "/api/audio/library/albums",
+      "/api/audio/library/artists"
+    ],
+    "description": "Load audio configuration",
+    "lines": 409,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 9,
+    "name": "audio_player",
+    "blueprint": "ap_bp",
+    "url_prefix": "audio",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/audio/state",
+      "/api/audio/queue_add",
+      "/api/audio/queue_clear",
+      "/api/audio/play",
+      "/api/audio/next"
+    ],
+    "description": "No description found",
+    "lines": 60,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 10,
+    "name": "audio_playlists",
+    "blueprint": "mix_bp",
+    "url_prefix": "mix",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/audio/mixes/auto",
+      "/api/audio/mixes/list",
+      "/api/audio/mixes/create",
+      "/api/audio/mixes/delete"
+    ],
+    "description": "No description found",
+    "lines": 77,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 11,
+    "name": "audio_replaygain",
+    "blueprint": "rg_bp",
+    "url_prefix": "rg",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/audio/rg/list",
+      "/api/audio/rg/scan",
+      "/api/audio/rg/set"
+    ],
+    "description": "No description found",
+    "lines": 54,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 12,
+    "name": "audio_settings",
+    "blueprint": "aset_bp",
+    "url_prefix": "aset",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/audio/settings_get",
+      "/api/audio/settings_set"
+    ],
+    "description": "No description found",
+    "lines": 26,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 13,
+    "name": "auto_explain",
+    "blueprint": "autoex_bp",
+    "url_prefix": "autoex",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/auto/candidates_explain"
+    ],
+    "description": "No description found",
+    "lines": 27,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 14,
+    "name": "auto_select",
+    "blueprint": "auto_bp",
+    "url_prefix": "auto",
+    "endpoints": 10,
+    "endpoint_list": [
+      "/api/auto/rules_get",
+      "/api/auto/rules_set",
+      "/api/auto/candidates",
+      "/api/auto/select",
+      "/api/auto/queue_best"
+    ],
+    "description": "No description found",
+    "lines": 227,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 15,
+    "name": "backup",
+    "blueprint": "backup_bp",
+    "url_prefix": "backup",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/backup/export",
+      "/api/backup/import"
+    ],
+    "description": "No description found",
+    "lines": 28,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 16,
+    "name": "batchrename",
+    "blueprint": "br_bp",
+    "url_prefix": "br",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/rename/preview",
+      "/api/rename/apply",
+      "/api/rename/undo"
+    ],
+    "description": "No description found",
+    "lines": 113,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 17,
+    "name": "books_enhanced",
+    "blueprint": "books_enhanced_bp",
+    "url_prefix": "books_enhanced",
+    "endpoints": 13,
+    "endpoint_list": [
+      "/api/books/config",
+      "/api/books/config",
+      "/api/books/library",
+      "/api/books/search",
+      "/api/books/add"
+    ],
+    "description": "Load books configuration",
+    "lines": 437,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 18,
+    "name": "captcha_prefs",
+    "blueprint": "cap_bp",
+    "url_prefix": "captcha",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/captcha/prefs/get",
+      "/api/captcha/prefs/set"
+    ],
+    "description": "No description found",
+    "lines": 21,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 19,
+    "name": "casting_integration",
+    "blueprint": "casting_integration_bp",
+    "url_prefix": "casting_integration",
+    "endpoints": 14,
+    "endpoint_list": [
+      "/api/casting/devices/discover",
+      "/api/casting/devices",
+      "/api/casting/devices/<device_id>",
+      "/api/casting/cast",
+      "/api/casting/sessions"
+    ],
+    "description": "Discover available casting devices on the network",
+    "lines": 359,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 20,
+    "name": "catalogs",
+    "blueprint": "catalogs_bp",
+    "url_prefix": "catalogs",
+    "endpoints": 9,
+    "endpoint_list": [
+      "/api/catalogs/config",
+      "/api/catalogs/config",
+      "/api/catalogs/tmdb/trending/<media_type>",
+      "/api/catalogs/tmdb/top-rated/<media_type>",
+      "/api/catalogs/tmdb/list/<list_id>"
+    ],
+    "description": "Load catalogs configuration",
+    "lines": 451,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 21,
+    "name": "collections",
+    "blueprint": "col_bp",
+    "url_prefix": "collections",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/collections/list",
+      "/api/collections/run",
+      "/api/collections/timeline"
+    ],
+    "description": "No description found",
+    "lines": 51,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 22,
+    "name": "collections_api",
+    "blueprint": "coll_bp",
+    "url_prefix": "coll",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/collections/list",
+      "/api/collections/create",
+      "/api/collections/delete"
+    ],
+    "description": "No description found",
+    "lines": 39,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 23,
+    "name": "collections_import",
+    "blueprint": "coll_bp",
+    "url_prefix": "collections_import",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/collections/imports",
+      "/api/collections/refresh"
+    ],
+    "description": "No description found",
+    "lines": 47,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 24,
+    "name": "collections_manage",
+    "blueprint": "col_bp",
+    "url_prefix": "cols",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/collections/presets",
+      "/api/collections/list",
+      "/api/collections/create",
+      "/api/collections/import_preset",
+      "/api/collections/refresh_now"
+    ],
+    "description": "No description found",
+    "lines": 94,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 25,
+    "name": "collections_timeline",
+    "blueprint": "timeline_bp",
+    "url_prefix": "collections_timeline",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/collections/timeline"
+    ],
+    "description": "No description found",
+    "lines": 43,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 26,
+    "name": "comics_enhanced",
+    "blueprint": "comics_enhanced_bp",
+    "url_prefix": "comics_enhanced",
+    "endpoints": 10,
+    "endpoint_list": [
+      "/api/comics/config",
+      "/api/comics/config",
+      "/api/comics/library",
+      "/api/comics/add",
+      "/api/comics/<comic_id>"
+    ],
+    "description": "Load comics configuration",
+    "lines": 371,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 27,
+    "name": "config",
+    "blueprint": "cfg_bp",
+    "url_prefix": "config",
+    "endpoints": 8,
+    "endpoint_list": [
+      "/api/config/get",
+      "/api/config/set",
+      "/api/gates/get",
+      "/api/gates/set",
+      "/api/rss/feeds"
+    ],
+    "description": "No description found",
+    "lines": 34,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 28,
+    "name": "connectors",
+    "blueprint": "conn_bp",
+    "url_prefix": "connectors",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/connectors/list",
+      "/api/connectors/enable"
+    ],
+    "description": "No description found",
+    "lines": 23,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 29,
+    "name": "core_infrastructure_api",
+    "blueprint": "core_infra_bp",
+    "url_prefix": "core_infra",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/integrations/status",
+      "/api/health/comprehensive"
+    ],
+    "description": "Core Infrastructure Golden Surface APIs - Master Rulebook Compliance Provides system health and integrations status",
+    "lines": 257,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 30,
+    "name": "cross_references",
+    "blueprint": "xref_bp",
+    "url_prefix": "xref",
+    "endpoints": 12,
+    "endpoint_list": [
+      "/api/franchises",
+      "/api/franchises",
+      "/api/franchises/<int:franchise_id>",
+      "/api/franchises/<int:franchise_id>/add",
+      "/api/universes"
+    ],
+    "description": "Manage cross-references between media items (franchises, universes, connections)",
+    "lines": 433,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 31,
+    "name": "curations",
+    "blueprint": "curations_bp",
+    "url_prefix": "curations",
+    "endpoints": 11,
+    "endpoint_list": [
+      "/api/curations",
+      "/api/curations/<curation_id>",
+      "/api/curations",
+      "/api/curations/<curation_id>",
+      "/api/curations/<curation_id>"
+    ],
+    "description": "Load curations data",
+    "lines": 409,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 32,
+    "name": "dashboard_custom",
+    "blueprint": "dashboard_custom_bp",
+    "url_prefix": "dashboard_custom",
+    "endpoints": 12,
+    "endpoint_list": [
+      "/api/dashboard/config",
+      "/api/dashboard/config",
+      "/api/dashboard/tree/<category>",
+      "/api/dashboard/tree/<category>/nodes",
+      "/api/dashboard/tree/<category>/nodes/<node_id>"
+    ],
+    "description": "Load dashboard configuration",
+    "lines": 397,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 33,
+    "name": "db_tools",
+    "blueprint": "db_bp",
+    "url_prefix": "db",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/db/migrate",
+      "/api/db/query"
+    ],
+    "description": "No description found",
+    "lines": 16,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 34,
+    "name": "debrid",
+    "blueprint": "debrid_bp",
+    "url_prefix": "debrid",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/debrid/list",
+      "/api/debrid/add_magnet",
+      "/api/debrid/delete",
+      "/api/debrid/unrestrict",
+      "/api/debrid/account"
+    ],
+    "description": "No description found",
+    "lines": 76,
+    "has_database": true,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 35,
+    "name": "dedupe",
+    "blueprint": "dd_bp",
+    "url_prefix": "dd",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/dedupe/downloader",
+      "/api/dedupe/rd"
+    ],
+    "description": "No description found",
+    "lines": 60,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 36,
+    "name": "dedupe_editor",
+    "blueprint": "dedupe_bp",
+    "url_prefix": "dedupe",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/dedupe/scan"
+    ],
+    "description": "No description found",
+    "lines": 27,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 37,
+    "name": "diagnostics",
+    "blueprint": "diag_bp",
+    "url_prefix": "diag",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/diagnostics"
+    ],
+    "description": "No description found",
+    "lines": 38,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 38,
+    "name": "discovery",
+    "blueprint": "disc_bp",
+    "url_prefix": "disc",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/discovery/config",
+      "/api/discovery/config_set",
+      "/api/discovery/rails"
+    ],
+    "description": "No description found",
+    "lines": 125,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 39,
+    "name": "discovery_advanced",
+    "blueprint": "discovery_advanced_bp",
+    "url_prefix": "discovery_advanced",
+    "endpoints": 8,
+    "endpoint_list": [
+      "/api/discovery/search",
+      "/api/discovery/facets",
+      "/api/discovery/visual_search",
+      "/api/discovery/query_builder",
+      "/api/discovery/search_history"
+    ],
+    "description": "Universal cross-category search with faceted filtering",
+    "lines": 437,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 40,
+    "name": "dl_columns",
+    "blueprint": "col_bp",
+    "url_prefix": "col",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/dl/columns_get",
+      "/api/dl/columns_set",
+      "/api/dl/columns_preset"
+    ],
+    "description": "No description found",
+    "lines": 38,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 41,
+    "name": "downloader",
+    "blueprint": "dl_bp",
+    "url_prefix": "dl",
+    "endpoints": 8,
+    "endpoint_list": [
+      "/api/dl/queue_get",
+      "/api/dl/queue_add",
+      "/api/dl/queue_update",
+      "/api/dl/queue_remove",
+      "/api/dl/file_update"
+    ],
+    "description": "No description found",
+    "lines": 93,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 42,
+    "name": "downloader_api",
+    "blueprint": "dlx_bp",
+    "url_prefix": "dlx",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/downloader/mark_complete"
+    ],
+    "description": "No description found",
+    "lines": 31,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 43,
+    "name": "downloader_enhanced",
+    "blueprint": "downloader_enhanced_bp",
+    "url_prefix": "downloader_enhanced",
+    "endpoints": 15,
+    "endpoint_list": [
+      "/api/downloader/linkgrabber/scan",
+      "/api/downloader/linkgrabber/validate",
+      "/api/downloader/linkgrabber/rules",
+      "/api/downloader/linkgrabber/extractors",
+      "/api/downloader/settings"
+    ],
+    "description": "Deep scan URLs to extract all potential download links",
+    "lines": 422,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 44,
+    "name": "downloader_packages",
+    "blueprint": "pkg_bp",
+    "url_prefix": "packages",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/downloader/queue_grouped",
+      "/api/downloader/package/create",
+      "/api/downloader/package/update",
+      "/api/downloader/package/delete",
+      "/api/downloader/clipboard/ingest"
+    ],
+    "description": "No description found",
+    "lines": 99,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 45,
+    "name": "downloader_rd_api",
+    "blueprint": "downloader_rd_api_bp",
+    "url_prefix": "downloader_rd_api",
+    "endpoints": 11,
+    "endpoint_list": [
+      "/api/downloader/queue",
+      "/api/downloader/queue",
+      "/api/downloader/auto",
+      "/api/downloader/auto",
+      "/api/downloader/extraction"
+    ],
+    "description": "Downloader & RD Manager API - Golden Surface Endpoints Wraps PyQt6 downloader.py and real_debrid_manager.py functionality with Flask APIs",
+    "lines": 593,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 46,
+    "name": "downloader_view",
+    "blueprint": "view_bp",
+    "url_prefix": "dlview",
+    "endpoints": 9,
+    "endpoint_list": [
+      "/api/downloader/queue_get",
+      "/api/downloader/settings_get",
+      "/api/downloader/settings_set",
+      "/api/downloader/queue_ops",
+      "/api/downloader/presets_get"
+    ],
+    "description": "No description found",
+    "lines": 110,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 47,
+    "name": "editor",
+    "blueprint": "editor_bp",
+    "url_prefix": "ed",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/editor/settings_get",
+      "/api/editor/settings_set"
+    ],
+    "description": "No description found",
+    "lines": 25,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 48,
+    "name": "editor_plugins",
+    "blueprint": "editor_plugins_bp",
+    "url_prefix": "editor_plugins",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/editor/plugins/list",
+      "/api/editor/plugins/<plugin_id>/enable",
+      "/api/editor/plugins/<plugin_id>/disable",
+      "/api/editor/plugins/<plugin_id>/execute",
+      "/api/editor/plugins/<plugin_id>/info"
+    ],
+    "description": "Plugin System for MediaHub Text Editor Provides extensibility through Python-based plugins",
+    "lines": 350,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 49,
+    "name": "editor_pro",
+    "blueprint": "ed_bp",
+    "url_prefix": "ed",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/editor/monaco_update",
+      "/api/editor/open",
+      "/api/editor/save"
+    ],
+    "description": "No description found",
+    "lines": 41,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 50,
+    "name": "editor_tabs",
+    "blueprint": "tb_bp",
+    "url_prefix": "tabs",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/editor/tabs",
+      "/api/editor/tabs_set"
+    ],
+    "description": "No description found",
+    "lines": 22,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 51,
+    "name": "enhanced_media_management",
+    "blueprint": "enhanced_media_bp",
+    "url_prefix": "enhanced_media",
+    "endpoints": 0,
+    "endpoint_list": [],
+    "description": "Phase 2: Enhanced Media Management & Real-Debrid Integration Implements advanced media library management, metadata integration, and enhanced Real-Debrid features",
+    "lines": 26,
+    "has_database": true,
+    "has_realdebrid": true,
+    "has_api_routes": false
+  },
+  {
+    "id": 52,
+    "name": "export_import",
+    "blueprint": "ei_bp",
+    "url_prefix": "export_import",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/export/do",
+      "/api/import/preview",
+      "/api/import/apply"
+    ],
+    "description": "No description found",
+    "lines": 62,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 53,
+    "name": "faceted_database",
+    "blueprint": "faceted_db_bp",
+    "url_prefix": "faceted_db",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/faceted/search",
+      "/api/faceted/tags",
+      "/api/faceted/tags/categories",
+      "/api/faceted/timeline/<universe_name>",
+      "/api/faceted/detail/<item_id>"
+    ],
+    "description": "Phase 3: Faceted Database & Timeline Visualization Implements cross-category search, clickable tags, timeline views, and detail pages",
+    "lines": 798,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 54,
+    "name": "features",
+    "blueprint": "feat_bp",
+    "url_prefix": "feat",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/features/get",
+      "/api/features/set"
+    ],
+    "description": "No description found",
+    "lines": 21,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 55,
+    "name": "feeds",
+    "blueprint": "feeds_bp",
+    "url_prefix": "feeds",
+    "endpoints": 10,
+    "endpoint_list": [
+      "/api/feeds/get",
+      "/api/feeds/set",
+      "/api/feeds/add",
+      "/api/feeds/refresh",
+      "/api/feeds/items"
+    ],
+    "description": "No description found",
+    "lines": 108,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 56,
+    "name": "findreplace",
+    "blueprint": "fr_bp",
+    "url_prefix": "findrep",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/findreplace/preview",
+      "/api/findreplace/apply",
+      "/api/findreplace/undo"
+    ],
+    "description": "No description found",
+    "lines": 123,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 57,
+    "name": "flags",
+    "blueprint": "flags_bp",
+    "url_prefix": "flags",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/flags",
+      "/api/flags",
+      "/api/flags/<flag_name>",
+      "/api/flags/<flag_name>",
+      "/api/flags/reset"
+    ],
+    "description": "Feature Flags Management Provides runtime feature toggles for MediaHub functionality",
+    "lines": 194,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 58,
+    "name": "foundation",
+    "blueprint": "foundation_bp",
+    "url_prefix": "foundation",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/foundation/verify"
+    ],
+    "description": "Foundation Verification API Verifies build foundation integrity and completeness",
+    "lines": 49,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 59,
+    "name": "frontend_apis",
+    "blueprint": "NOT_FOUND",
+    "url_prefix": "",
+    "endpoints": 0,
+    "endpoint_list": [],
+    "description": "API Routes for Frontend Pages Connects new frontend pages to database models",
+    "lines": 197,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 60,
+    "name": "guard_enforcer",
+    "blueprint": "guard_bp",
+    "url_prefix": "guard",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/guard/scan"
+    ],
+    "description": "Checks for the presence of essential UI pillar pages. These are the core HTML files that form the main sections of the UI.",
+    "lines": 208,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 61,
+    "name": "hash",
+    "blueprint": "hash_bp",
+    "url_prefix": "hash",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/tools/hash"
+    ],
+    "description": "No description found",
+    "lines": 22,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 62,
+    "name": "health",
+    "blueprint": "health_bp",
+    "url_prefix": "health",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/health",
+      "/api/health/ping"
+    ],
+    "description": "No description found",
+    "lines": 47,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 63,
+    "name": "hls_mgr",
+    "blueprint": "hls_bp",
+    "url_prefix": "hls",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/hls/status",
+      "/api/hls/fetch"
+    ],
+    "description": "No description found",
+    "lines": 56,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 64,
+    "name": "home_pins",
+    "blueprint": "pins_bp",
+    "url_prefix": "home_pins",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/home/rails/order",
+      "/api/home/rails/order"
+    ],
+    "description": "No description found",
+    "lines": 30,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 65,
+    "name": "hooks",
+    "blueprint": "hooks_bp",
+    "url_prefix": "hooks",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/hooks/config_get",
+      "/api/hooks/config_set",
+      "/api/hooks/run_for_package"
+    ],
+    "description": "No description found",
+    "lines": 152,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 66,
+    "name": "i18n",
+    "blueprint": "i18n_bp",
+    "url_prefix": "i18n",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/i18n/get",
+      "/api/i18n/set"
+    ],
+    "description": "No description found",
+    "lines": 41,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 67,
+    "name": "indexing",
+    "blueprint": "idx_bp",
+    "url_prefix": "idx",
+    "endpoints": 6,
+    "endpoint_list": [
+      "/api/index/sqlite_build",
+      "/api/index/sqlite_status",
+      "/api/search/spotlight",
+      "/api/index/query",
+      "/api/ffprobe/batch"
+    ],
+    "description": "No description found",
+    "lines": 117,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 68,
+    "name": "integrations",
+    "blueprint": "integ_bp",
+    "url_prefix": "integrations",
+    "endpoints": 6,
+    "endpoint_list": [
+      "/api/integrations",
+      "/api/integrations",
+      "/api/integrations/<service>",
+      "/api/integrations/<service>",
+      "/api/integrations/test/<service>"
+    ],
+    "description": "Third-Party Integrations Management Handles API keys and credentials for external services (TMDb, Trakt, etc.)",
+    "lines": 241,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 69,
+    "name": "jobs",
+    "blueprint": "jobs_bp",
+    "url_prefix": "jobs",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/jobs/submit",
+      "/api/jobs/status",
+      "/api/jobs/list",
+      "/api/jobs/cancel"
+    ],
+    "description": "No description found",
+    "lines": 146,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 70,
+    "name": "kids",
+    "blueprint": "kids_bp",
+    "url_prefix": "kids",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/kids/state",
+      "/api/kids/time_add",
+      "/api/kids/filter_preview",
+      "/api/library/filtered"
+    ],
+    "description": "No description found",
+    "lines": 121,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 71,
+    "name": "kids_parental_controls",
+    "blueprint": "kids_parental_controls_bp",
+    "url_prefix": "kids_parental_controls",
+    "endpoints": 15,
+    "endpoint_list": [
+      "/api/parental-controls/settings",
+      "/api/parental-controls/verify-pin",
+      "/api/kids/profiles",
+      "/api/kids/profiles/<int:profile_id>",
+      "/api/parental-controls/content/check"
+    ],
+    "description": "Get or update parental control settings",
+    "lines": 596,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 72,
+    "name": "library",
+    "blueprint": "lib_bp",
+    "url_prefix": "library",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/library/get",
+      "/api/library/scan",
+      "/api/library/search"
+    ],
+    "description": "No description found",
+    "lines": 33,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 73,
+    "name": "library_local",
+    "blueprint": "lib_bp",
+    "url_prefix": "library_local",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/library/rails",
+      "/api/library/title/<title_id>",
+      "/api/library/episodes/<sid>"
+    ],
+    "description": "Local Library Management Routes Provides access to local media library with rails, titles, and episodes",
+    "lines": 163,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 74,
+    "name": "library_scan",
+    "blueprint": "scan_bp",
+    "url_prefix": "scan",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/library/scan",
+      "/api/library/facets",
+      "/api/library/search",
+      "/api/library/item/<id>"
+    ],
+    "description": "detect trailer",
+    "lines": 237,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 75,
+    "name": "libsearch",
+    "blueprint": "libsearch_bp",
+    "url_prefix": "libsearch",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/library/search"
+    ],
+    "description": "No description found",
+    "lines": 40,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 76,
+    "name": "limits",
+    "blueprint": "lim_bp",
+    "url_prefix": "limits",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/limits/presets",
+      "/api/limits/presets/save",
+      "/api/limits/presets/apply"
+    ],
+    "description": "No description found",
+    "lines": 65,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 77,
+    "name": "link_grabber",
+    "blueprint": "link_grabber_bp",
+    "url_prefix": "link_grabber",
+    "endpoints": 9,
+    "endpoint_list": [
+      "/api/link-grabber/add",
+      "/api/link-grabber/queue",
+      "/api/link-grabber/queue/<item_id>",
+      "/api/link-grabber/queue/clear",
+      "/api/link-grabber/filters"
+    ],
+    "description": "Load link grabber queue",
+    "lines": 480,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 78,
+    "name": "linkgrabber_templates",
+    "blueprint": "tmpl_bp",
+    "url_prefix": "link_templates",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/linkgrabber/templates/get",
+      "/api/linkgrabber/templates/save",
+      "/api/linkgrabber/templates/delete"
+    ],
+    "description": "No description found",
+    "lines": 29,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 79,
+    "name": "lists",
+    "blueprint": "lists_bp",
+    "url_prefix": "lists",
+    "endpoints": 8,
+    "endpoint_list": [
+      "/api/lists/catalog",
+      "/api/lists/imports",
+      "/api/lists/schedule_get",
+      "/api/lists/schedule_set",
+      "/api/lists/import"
+    ],
+    "description": "No description found",
+    "lines": 151,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 80,
+    "name": "lists_catalog",
+    "blueprint": "cat_bp",
+    "url_prefix": "cat",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/lists/catalog",
+      "/api/lists/catalog_set"
+    ],
+    "description": "No description found",
+    "lines": 27,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 81,
+    "name": "logs",
+    "blueprint": "logs_bp",
+    "url_prefix": "logs",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/logs/tail"
+    ],
+    "description": "No description found",
+    "lines": 19,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 82,
+    "name": "lyrics",
+    "blueprint": "lyr_bp",
+    "url_prefix": "lyrics",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/lyrics/provider_get",
+      "/api/lyrics/provider_set",
+      "/api/lyrics/get",
+      "/api/lyrics/put",
+      "/api/lyrics/fetch_url"
+    ],
+    "description": "No description found",
+    "lines": 89,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 83,
+    "name": "media_collections",
+    "blueprint": "col_bp",
+    "url_prefix": "collections",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/collections/list",
+      "/api/collections/run",
+      "/api/collections/timeline"
+    ],
+    "description": "No description found",
+    "lines": 51,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 84,
+    "name": "media_management_api",
+    "blueprint": "media_mgmt_api_bp",
+    "url_prefix": "media_mgmt_api",
+    "endpoints": 11,
+    "endpoint_list": [
+      "/api/media/organize",
+      "/api/media/organize/config",
+      "/api/media/organize/config",
+      "/api/media/subtitles/policy",
+      "/api/media/subtitles/policy"
+    ],
+    "description": "Media Management API - Remaining Golden Surface Endpoints Implements missing media management features",
+    "lines": 469,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 85,
+    "name": "media_management_golden_api",
+    "blueprint": "media_mgmt_golden_bp",
+    "url_prefix": "media_mgmt_golden",
+    "endpoints": 6,
+    "endpoint_list": [
+      "/api/rd/filters/config",
+      "/api/rss/filters/config",
+      "/api/providers/profiles",
+      "/api/subs/policy",
+      "/api/collections/manage"
+    ],
+    "description": "Media Management Golden Surface APIs - Master Rulebook Compliance Wraps existing RSS, filters, collections, and subtitle modules",
+    "lines": 333,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 86,
+    "name": "mediahub_home_api",
+    "blueprint": "home_api_bp",
+    "url_prefix": "home_api",
+    "endpoints": 9,
+    "endpoint_list": [
+      "/api/home/hero",
+      "/api/home/hero",
+      "/api/home/carousels",
+      "/api/home/carousels",
+      "/api/home/carousels/<carousel_id>"
+    ],
+    "description": "MediaHub Home API - Golden Surface Endpoints Wraps PyQt6 mediahub_home.py functionality with Flask APIs",
+    "lines": 403,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 87,
+    "name": "metadata",
+    "blueprint": "md_bp",
+    "url_prefix": "md",
+    "endpoints": 8,
+    "endpoint_list": [
+      "/api/metadata/providers",
+      "/api/metadata/config",
+      "/api/metadata/cache_put",
+      "/api/metadata/cache_get",
+      "/api/metadata/keys_status"
+    ],
+    "description": "No description found",
+    "lines": 121,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 88,
+    "name": "metadata_export",
+    "blueprint": "metadata_export_bp",
+    "url_prefix": "metadata_export",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/metadata/config",
+      "/api/metadata/config",
+      "/api/metadata/export",
+      "/api/metadata/cache/artwork",
+      "/api/metadata/cache/list"
+    ],
+    "description": "Load metadata export configuration",
+    "lines": 508,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 89,
+    "name": "metrics_speed",
+    "blueprint": "sp_bp",
+    "url_prefix": "metrics_speed",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/metrics/speed_series"
+    ],
+    "description": "No description found",
+    "lines": 21,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 90,
+    "name": "missing",
+    "blueprint": "miss_bp",
+    "url_prefix": "miss",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/missing/scan"
+    ],
+    "description": "No description found",
+    "lines": 37,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 91,
+    "name": "mobile_smart_rails_api",
+    "blueprint": "mobile_rails_bp",
+    "url_prefix": "mobile_smart_rails",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/smart_rails/mobile/<rail_type>",
+      "/api/smart_rails/mobile/refresh/<rail_type>",
+      "/api/smart_rails/mobile/all",
+      "/api/smart_rails/mobile/item/<item_id>",
+      "/api/smart_rails/mobile/search"
+    ],
+    "description": "Mobile Smart Rails API - Optimized endpoints for mobile interface Provides mobile-optimized data for touch-friendly smart rails interface",
+    "lines": 419,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 92,
+    "name": "mobile_streaming",
+    "blueprint": "mobile_streaming_bp",
+    "url_prefix": "mobile_streaming",
+    "endpoints": 11,
+    "endpoint_list": [
+      "/api/stream/mobile/info",
+      "/api/stream/mobile/create",
+      "/api/stream/mobile/status/<session_id>",
+      "/api/stream/mobile/direct/<session_id>",
+      "/api/stream/mobile/hls/<session_id>/<path:filename>"
+    ],
+    "description": "Mobile Streaming Infrastructure - Phase 1 Implementation Complete mobile streaming system with HTTP Range support and mobile-optimized endpoints Based on the Ultimate Complete Integrated Plan",
+    "lines": 595,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 93,
+    "name": "monaco_mgr",
+    "blueprint": "monaco_bp",
+    "url_prefix": "monaco",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/editor/monaco/status",
+      "/api/editor/monaco/fetch"
+    ],
+    "description": "No description found",
+    "lines": 56,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 94,
+    "name": "movies_enhanced",
+    "blueprint": "movies_enhanced_bp",
+    "url_prefix": "movies_enhanced",
+    "endpoints": 15,
+    "endpoint_list": [
+      "/api/movies/collections",
+      "/api/movies/collections/<int:collection_id>",
+      "/api/movies/collections/auto-generate",
+      "/api/movies/watch-history",
+      "/api/movies/<int:movie_id>/progress"
+    ],
+    "description": "Manage movie collections (franchises, custom sets)",
+    "lines": 422,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 95,
+    "name": "music_queue",
+    "blueprint": "mq_bp",
+    "url_prefix": "music_queue",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/music/queue",
+      "/api/music/queue"
+    ],
+    "description": "No description found",
+    "lines": 61,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 96,
+    "name": "opds",
+    "blueprint": "opds_bp",
+    "url_prefix": "opds",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/opds/feed",
+      "/opds/books/comics",
+      "/opds/books"
+    ],
+    "description": "return Response(xml, mimetype='application/atom+xml') @opds_bp.route('/opds/books/comics') def comics(): xml =",
+    "lines": 22,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 97,
+    "name": "opds_books",
+    "blueprint": "opds_books_bp",
+    "url_prefix": "opds_books",
+    "endpoints": 10,
+    "endpoint_list": [
+      "/opds",
+      "/opds/all",
+      "/opds/recent",
+      "/opds/search",
+      "/api/books/config"
+    ],
+    "description": "Load OPDS configuration",
+    "lines": 405,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 98,
+    "name": "organizer",
+    "blueprint": "org_bp",
+    "url_prefix": "org",
+    "endpoints": 8,
+    "endpoint_list": [
+      "/api/organizer/patterns",
+      "/api/organizer/preview",
+      "/api/organizer/apply",
+      "/api/organizer/scan",
+      "/api/organizer/jobs"
+    ],
+    "description": "No description found",
+    "lines": 264,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 99,
+    "name": "packages",
+    "blueprint": "packages_bp",
+    "url_prefix": "packages",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/packages",
+      "/api/packages/save",
+      "/api/packages/group_suggest",
+      "/api/packages/rollup",
+      "/api/packages/item_status"
+    ],
+    "description": "No description found",
+    "lines": 142,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 100,
+    "name": "pinboard",
+    "blueprint": "pin_bp",
+    "url_prefix": "pin",
+    "endpoints": 6,
+    "endpoint_list": [
+      "/api/pin/get",
+      "/api/pin/set",
+      "/api/pin/add",
+      "/api/pin/remove",
+      "/api/pin/list_sources"
+    ],
+    "description": "No description found",
+    "lines": 85,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 101,
+    "name": "pinned",
+    "blueprint": "pin_bp",
+    "url_prefix": "pin",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/pinned/list",
+      "/api/pinned/toggle"
+    ],
+    "description": "No description found",
+    "lines": 64,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 102,
+    "name": "pins",
+    "blueprint": "pins_bp",
+    "url_prefix": "pins",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/pins"
+    ],
+    "description": "No description found",
+    "lines": 12,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 103,
+    "name": "playlists",
+    "blueprint": "pl_bp",
+    "url_prefix": "pl",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/music/playlists",
+      "/api/music/playlist_create",
+      "/api/music/playlist_add",
+      "/api/music/playlist_remove"
+    ],
+    "description": "No description found",
+    "lines": 42,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 104,
+    "name": "presets",
+    "blueprint": "presets_bp",
+    "url_prefix": "presets",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/presets",
+      "/api/presets",
+      "/api/presets/run",
+      "/api/presets/state",
+      "/api/presets/pause"
+    ],
+    "description": "Collections Presets Management Provides preset configurations for automated collection imports with scheduling",
+    "lines": 420,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 105,
+    "name": "profile_management",
+    "blueprint": "profile_management_bp",
+    "url_prefix": "profile_management",
+    "endpoints": 9,
+    "endpoint_list": [
+      "/api/profiles",
+      "/api/profiles/<int:profile_id>",
+      "/api/profiles/<int:profile_id>/verify-pin",
+      "/api/profiles/<int:profile_id>/preferences",
+      "/api/profiles/<int:profile_id>/watch-history"
+    ],
+    "description": "Get all profiles or create a new one",
+    "lines": 422,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 106,
+    "name": "profiles",
+    "blueprint": "prof_bp",
+    "url_prefix": "prof",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/profiles/list",
+      "/api/profiles/active",
+      "/api/profiles/set_active",
+      "/api/profiles/create",
+      "/api/profiles/delete"
+    ],
+    "description": "No description found",
+    "lines": 91,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 107,
+    "name": "qbittorrent",
+    "blueprint": "qb_bp",
+    "url_prefix": "qb",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/qb/config",
+      "/api/qb/list",
+      "/api/qb/add",
+      "/api/qb/pause",
+      "/api/qb/resume"
+    ],
+    "description": "No description found",
+    "lines": 100,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 108,
+    "name": "queue",
+    "blueprint": "q_bp",
+    "url_prefix": "queue",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/queue/list"
+    ],
+    "description": "No description found",
+    "lines": 46,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 109,
+    "name": "queue_combined",
+    "blueprint": "combo_bp",
+    "url_prefix": "queue_combo",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/downloader/combined"
+    ],
+    "description": "No description found",
+    "lines": 36,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 110,
+    "name": "queue_meta",
+    "blueprint": "qm_bp",
+    "url_prefix": "queue_meta",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/queue/meta/set"
+    ],
+    "description": "No description found",
+    "lines": 29,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 111,
+    "name": "rails",
+    "blueprint": "rails_bp",
+    "url_prefix": "rails",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/rails"
+    ],
+    "description": "No description found",
+    "lines": 33,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 112,
+    "name": "rails_extra",
+    "blueprint": "extra_bp",
+    "url_prefix": "rails_extra",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/library/rails_extra"
+    ],
+    "description": "No description found",
+    "lines": 41,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 113,
+    "name": "rails_polish",
+    "blueprint": "rails_bp",
+    "url_prefix": "rails_polish",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/rails/polish",
+      "/api/rails/polish_ext",
+      "/api/rails/kids"
+    ],
+    "description": "No description found",
+    "lines": 131,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 114,
+    "name": "rd",
+    "blueprint": "rd_bp",
+    "url_prefix": "rd",
+    "endpoints": 9,
+    "endpoint_list": [
+      "/api/rd/dedup",
+      "/api/rd/cloudpull",
+      "/api/rd/list",
+      "/api/rd/add_magnet",
+      "/api/rd/delete"
+    ],
+    "description": "No description found",
+    "lines": 122,
+    "has_database": true,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 115,
+    "name": "rd_analyze",
+    "blueprint": "ra_bp",
+    "url_prefix": "ra",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/rd/analyze",
+      "/api/rd/auto_select",
+      "/api/rd/analysis_stats"
+    ],
+    "description": "Get overall analysis statistics",
+    "lines": 145,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 116,
+    "name": "rd_cloudpull",
+    "blueprint": "cloud_bp",
+    "url_prefix": "rd_cloudpull",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/rd/cloudpull/start",
+      "/api/rd/cloudpull/stop",
+      "/api/rd/cloudpull/status",
+      "/api/rd/cloudpull/config"
+    ],
+    "description": "No description found",
+    "lines": 95,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 117,
+    "name": "rd_dedup",
+    "blueprint": "dedup_bp",
+    "url_prefix": "rd_dedup",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/rd/dedup"
+    ],
+    "description": "No description found",
+    "lines": 36,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 118,
+    "name": "rd_inbox",
+    "blueprint": "in_bp",
+    "url_prefix": "inbox",
+    "endpoints": 9,
+    "endpoint_list": [
+      "/api/rd/inbox",
+      "/api/rd/inbox_add",
+      "/api/rd/inbox_remove",
+      "/api/rd/inbox_dedupe",
+      "/api/rd/inbox_copy_paths"
+    ],
+    "description": "No description found",
+    "lines": 141,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 119,
+    "name": "rd_manager",
+    "blueprint": "rd_bp",
+    "url_prefix": "rd",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/rd/groups",
+      "/api/rd/pick_best"
+    ],
+    "description": "No description found",
+    "lines": 76,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 120,
+    "name": "rd_manager_enhanced",
+    "blueprint": "rd_manager_enhanced_bp",
+    "url_prefix": "rd_manager_enhanced",
+    "endpoints": 15,
+    "endpoint_list": [
+      "/api/rd/links",
+      "/api/rd/links/bulk",
+      "/api/rd/links/categorize",
+      "/api/rd/links/tag",
+      "/api/rd/links/expiration"
+    ],
+    "description": "Get all Real-Debrid links with advanced filtering",
+    "lines": 477,
+    "has_database": true,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 121,
+    "name": "rd_parser",
+    "blueprint": "rd_parser_bp",
+    "url_prefix": "rd_parser",
+    "endpoints": 6,
+    "endpoint_list": [
+      "/api/rd/parse/magnet",
+      "/api/rd/parse/torrent",
+      "/api/rd/parse/text",
+      "/api/rd/parse/link",
+      "/api/rd/compare"
+    ],
+    "description": "Parse Real-Debrid links and extract torrent information",
+    "lines": 311,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 122,
+    "name": "reader",
+    "blueprint": "reader_bp",
+    "url_prefix": "reader",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/reader/prefs_get",
+      "/api/reader/prefs_set",
+      "/api/continue/get",
+      "/api/continue/add",
+      "/api/continue/clear"
+    ],
+    "description": "No description found",
+    "lines": 55,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 123,
+    "name": "reader_cbz",
+    "blueprint": "cbz_bp",
+    "url_prefix": "cbz_reader",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/reader/cbz_pages",
+      "/media/cbz_image"
+    ],
+    "description": "No description found",
+    "lines": 29,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 124,
+    "name": "reader_extract",
+    "blueprint": "readerx_bp",
+    "url_prefix": "readerx",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/reader/cbz_extract"
+    ],
+    "description": "No description found",
+    "lines": 21,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 125,
+    "name": "realdebrid",
+    "blueprint": "rd_bp",
+    "url_prefix": "rd",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/rd/config",
+      "/api/rd/user",
+      "/api/rd/torrents",
+      "/api/rd/torrent/addMagnet",
+      "/api/rd/unrestrict"
+    ],
+    "description": "No description found",
+    "lines": 98,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 126,
+    "name": "recipes",
+    "blueprint": "recipes_bp",
+    "url_prefix": "recipes",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/recipes/list",
+      "/api/recipes/set",
+      "/api/recipes/emit"
+    ],
+    "description": "No description found",
+    "lines": 59,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 127,
+    "name": "renamer_advanced",
+    "blueprint": "renamer_advanced_bp",
+    "url_prefix": "renamer_advanced",
+    "endpoints": 0,
+    "endpoint_list": [],
+    "description": "No description found",
+    "lines": 19,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": false
+  },
+  {
+    "id": 128,
+    "name": "rss",
+    "blueprint": "rss_bp",
+    "url_prefix": "rss",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/rss/list",
+      "/api/rss/set",
+      "/api/rss/scan"
+    ],
+    "description": "No description found",
+    "lines": 42,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 129,
+    "name": "rss_automation",
+    "blueprint": "rss_automation_bp",
+    "url_prefix": "rss_automation",
+    "endpoints": 0,
+    "endpoint_list": [],
+    "description": "Phase 4: RSS Automation & Quality Management Implements advanced RSS feed automation, quality profiles, and automatic content acquisition",
+    "lines": 27,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": false
+  },
+  {
+    "id": 130,
+    "name": "rss_enhanced",
+    "blueprint": "rss_enhanced_bp",
+    "url_prefix": "rss_enhanced",
+    "endpoints": 7,
+    "endpoint_list": [
+      "/api/rss/enhanced/config",
+      "/api/rss/enhanced/config",
+      "/api/rss/enhanced/scan",
+      "/api/rss/enhanced/history",
+      "/api/rss/enhanced/qbittorrent/feeds"
+    ],
+    "description": "Load RSS enhanced configuration",
+    "lines": 402,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 131,
+    "name": "rss_feeder",
+    "blueprint": "rss_feeder_bp",
+    "url_prefix": "rss",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/rss/feeds",
+      "/api/rss/add",
+      "/api/rss/remove",
+      "/api/rss/refresh"
+    ],
+    "description": "No description found",
+    "lines": 48,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 132,
+    "name": "rss_scheduler",
+    "blueprint": "sched_bp",
+    "url_prefix": "rss_sched",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/rss/scheduler/start",
+      "/api/rss/scheduler/stop"
+    ],
+    "description": "No description found",
+    "lines": 75,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 133,
+    "name": "rules_audit",
+    "blueprint": "rules_audit_bp",
+    "url_prefix": "rules_audit",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/rules_audit",
+      "/api/rules_audit/summary",
+      "/api/rules_audit/golden_surfaces",
+      "/api/rules_audit/four_pillars"
+    ],
+    "description": "Rules Audit API Validates compliance with Master Rulebook and Golden Surface requirements",
+    "lines": 398,
+    "has_database": false,
+    "has_realdebrid": true,
+    "has_api_routes": true
+  },
+  {
+    "id": 134,
+    "name": "scheduler",
+    "blueprint": "sched_bp",
+    "url_prefix": "sched",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/scheduler/get",
+      "/api/scheduler/set"
+    ],
+    "description": "No description found",
+    "lines": 23,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 135,
+    "name": "scoring_engine",
+    "blueprint": "scoring_bp",
+    "url_prefix": "scoring",
+    "endpoints": 8,
+    "endpoint_list": [
+      "/api/scoring/profiles",
+      "/api/scoring/profiles/<profile_name>",
+      "/api/scoring/profiles",
+      "/api/scoring/profiles/<profile_name>",
+      "/api/scoring/set-default"
+    ],
+    "description": "Load scoring profiles from configuration",
+    "lines": 384,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 136,
+    "name": "secrets",
+    "blueprint": "secrets_bp",
+    "url_prefix": "secrets",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/secrets/set_master",
+      "/api/secrets/list",
+      "/api/secrets/put",
+      "/api/secrets/get",
+      "/api/secrets/delete"
+    ],
+    "description": "No description found",
+    "lines": 110,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 137,
+    "name": "security",
+    "blueprint": "security_bp",
+    "url_prefix": "security",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/csrf/token",
+      "/api/security/get"
+    ],
+    "description": "Decorator to require API key for endpoints (placeholder for now)",
+    "lines": 62,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 138,
+    "name": "selftest",
+    "blueprint": "selftest_bp",
+    "url_prefix": "selftest",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/selftest/run"
+    ],
+    "description": "No description found",
+    "lines": 42,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 139,
+    "name": "smart_rails",
+    "blueprint": "sr_bp",
+    "url_prefix": "smart",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/smart_rails/state",
+      "/api/smart_rails/get",
+      "/api/smart_rails/refresh",
+      "/api/smart_rails/config_get",
+      "/api/smart_rails/config_set"
+    ],
+    "description": "No description found",
+    "lines": 184,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 140,
+    "name": "smart_rails_api",
+    "blueprint": "smart_rails_bp",
+    "url_prefix": "smart_rails_api",
+    "endpoints": 6,
+    "endpoint_list": [
+      "/api/smart_rails/generate",
+      "/api/smart_rails/list",
+      "/api/smart_rails/get/<rail_name>",
+      "/api/smart_rails/refresh",
+      "/api/smart_rails/stats"
+    ],
+    "description": "Smart Rails API - Endpoints for intelligent content organization Provides API access to smart rails functionality",
+    "lines": 354,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 141,
+    "name": "smartplaylists",
+    "blueprint": "sp_bp",
+    "url_prefix": "smartpl",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/smartplaylists/list",
+      "/api/smartplaylists/set",
+      "/api/smartplaylists/eval"
+    ],
+    "description": "No description found",
+    "lines": 77,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 142,
+    "name": "sort_editor",
+    "blueprint": "sort_bp",
+    "url_prefix": "sort",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/sort/suggest",
+      "/api/sort/rules"
+    ],
+    "description": "No description found",
+    "lines": 35,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 143,
+    "name": "stream",
+    "blueprint": "stream_bp",
+    "url_prefix": "stream",
+    "endpoints": 5,
+    "endpoint_list": [
+      "/api/stream/hls",
+      "/api/stream/status",
+      "/stream/<sid>/<path:p>",
+      "/api/stream/audio",
+      "/api/stream/auto"
+    ],
+    "description": "No description found",
+    "lines": 97,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 144,
+    "name": "stream_audio_norm",
+    "blueprint": "anorm_bp",
+    "url_prefix": "anorm",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/stream/audio_norm"
+    ],
+    "description": "No description found",
+    "lines": 44,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 145,
+    "name": "stubs_extra",
+    "blueprint": "stubs_bp",
+    "url_prefix": "stubs_extra",
+    "endpoints": 8,
+    "endpoint_list": [
+      "/api/backup/restore",
+      "/api/collections/",
+      "/api/collections/rest",
+      "/api/library/item/",
+      "/api/library/search"
+    ],
+    "description": "No description found",
+    "lines": 41,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 146,
+    "name": "subtitles_advanced",
+    "blueprint": "subtitles_advanced_bp",
+    "url_prefix": "subtitles_advanced",
+    "endpoints": 16,
+    "endpoint_list": [
+      "/api/subtitles/config",
+      "/api/subtitles/config",
+      "/api/subtitles/priority/global",
+      "/api/subtitles/priority/global",
+      "/api/subtitles/priority/category/<category>"
+    ],
+    "description": "Load subtitle configuration",
+    "lines": 483,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 147,
+    "name": "support_pack",
+    "blueprint": "support_bp",
+    "url_prefix": "support",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/support/pack"
+    ],
+    "description": "Recursively redact sensitive information from configuration data",
+    "lines": 259,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 148,
+    "name": "synopsis_overlay",
+    "blueprint": "synopsis_bp",
+    "url_prefix": "synopsis",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/synopsis/search",
+      "/api/synopsis/movie/<int:movie_id>",
+      "/api/synopsis/tv/<int:tv_id>",
+      "/api/synopsis/person/<int:person_id>"
+    ],
+    "description": "Client for TMDB API integration",
+    "lines": 333,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 149,
+    "name": "system",
+    "blueprint": "sys_bp",
+    "url_prefix": "sys",
+    "endpoints": 10,
+    "endpoint_list": [
+      "/api/sys/logs_tail",
+      "/api/sys/logs_append",
+      "/api/sys/logs_overlay",
+      "/api/sys/deps_get",
+      "/api/sys/deps_locate"
+    ],
+    "description": "No description found",
+    "lines": 128,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 150,
+    "name": "tags_system",
+    "blueprint": "tags_bp",
+    "url_prefix": "tags",
+    "endpoints": 9,
+    "endpoint_list": [
+      "/api/tags/types",
+      "/api/tags/<tag_type>",
+      "/api/tags/add",
+      "/api/tags/link",
+      "/api/tags/<int:tag_id>/media"
+    ],
+    "description": "Manage clickable tags for genres, directors, actors, franchises",
+    "lines": 325,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 151,
+    "name": "taxonomy",
+    "blueprint": "tax_bp",
+    "url_prefix": "taxonomy",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/taxonomy",
+      "/api/taxonomy"
+    ],
+    "description": "No description found",
+    "lines": 116,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 152,
+    "name": "text_editor_api",
+    "blueprint": "editor_api_bp",
+    "url_prefix": "editor_api",
+    "endpoints": 14,
+    "endpoint_list": [
+      "/api/editor/documents",
+      "/api/editor/documents",
+      "/api/editor/documents/<doc_id>",
+      "/api/editor/documents/<doc_id>",
+      "/api/editor/documents/<doc_id>"
+    ],
+    "description": "Text Editor API - Golden Surface Endpoints Wraps PyQt6 text_editor.py functionality with Flask APIs",
+    "lines": 449,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 153,
+    "name": "text_editor_enhanced",
+    "blueprint": "text_editor_enhanced_bp",
+    "url_prefix": "text_editor_enhanced",
+    "endpoints": 18,
+    "endpoint_list": [
+      "/api/editor/sessions",
+      "/api/editor/sessions/<int:session_id>",
+      "/api/editor/compare",
+      "/api/editor/macros",
+      "/api/editor/macros/<int:macro_id>/execute"
+    ],
+    "description": "Manage multi-document editing sessions",
+    "lines": 524,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 154,
+    "name": "thumbs",
+    "blueprint": "thumbs_bp",
+    "url_prefix": "thumbs",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/tools/thumbs/create",
+      "/thumbs/<sid>/<path:p>"
+    ],
+    "description": "No description found",
+    "lines": 64,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 155,
+    "name": "timeline",
+    "blueprint": "tl_bp",
+    "url_prefix": "tl",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/timeline/by_year",
+      "/api/timeline/for_collection"
+    ],
+    "description": "No description found",
+    "lines": 63,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 156,
+    "name": "timelines",
+    "blueprint": "tl_bp",
+    "url_prefix": "tl",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/timeline/by_collection"
+    ],
+    "description": "No description found",
+    "lines": 46,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 157,
+    "name": "tools",
+    "blueprint": "tools_bp",
+    "url_prefix": "tools",
+    "endpoints": 2,
+    "endpoint_list": [
+      "/api/tools/ffmpeg/info",
+      "/api/tools/7zip/info"
+    ],
+    "description": "No description found",
+    "lines": 28,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 158,
+    "name": "toplists",
+    "blueprint": "tl_bp",
+    "url_prefix": "toplists",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/toplists"
+    ],
+    "description": "No description found",
+    "lines": 12,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 159,
+    "name": "toplists_directory",
+    "blueprint": "td_bp",
+    "url_prefix": "toplists_directory",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/toplists/dir",
+      "/api/toplists/set_config",
+      "/api/toplists/refresh"
+    ],
+    "description": "No description found",
+    "lines": 77,
+    "has_database": true,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 160,
+    "name": "torrent_inspector",
+    "blueprint": "torrent_inspector_bp",
+    "url_prefix": "torrent_inspector",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/torrent/inspect",
+      "/api/torrent/tree",
+      "/api/torrent/select-media",
+      "/api/torrent/copy-filenames"
+    ],
+    "description": "Parse a .torrent file and extract metadata Returns dict with: name, files, total_size, piece_length, announce, comment, created_by",
+    "lines": 438,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 161,
+    "name": "trailer",
+    "blueprint": "tr_bp",
+    "url_prefix": "trailer",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/trailer/hero"
+    ],
+    "description": "No description found",
+    "lines": 47,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 162,
+    "name": "tree_view",
+    "blueprint": "tree_bp",
+    "url_prefix": "tree",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/tree"
+    ],
+    "description": "No description found",
+    "lines": 27,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 163,
+    "name": "tv_shows_enhanced",
+    "blueprint": "tv_shows_enhanced_bp",
+    "url_prefix": "tv_shows_enhanced",
+    "endpoints": 15,
+    "endpoint_list": [
+      "/api/tv/shows/<int:show_id>/seasons",
+      "/api/tv/shows/<int:show_id>/seasons/<int:season_number>/episodes",
+      "/api/tv/shows/<int:show_id>/missing-episodes",
+      "/api/tv/missing-episodes/all",
+      "/api/tv/progress"
+    ],
+    "description": "Get all seasons for a TV show",
+    "lines": 378,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 164,
+    "name": "ui",
+    "blueprint": "ui_bp",
+    "url_prefix": "ui",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/ui/search",
+      "/api/ui/palette_get",
+      "/api/ui/rails_config_get",
+      "/api/ui/rails_config_set"
+    ],
+    "description": "No description found",
+    "lines": 62,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 165,
+    "name": "ui_features_api",
+    "blueprint": "ui_features_bp",
+    "url_prefix": "ui_features",
+    "endpoints": 6,
+    "endpoint_list": [
+      "/api/home/hero",
+      "/api/home/hero",
+      "/api/watch_history/recent",
+      "/api/watch_history/update",
+      "/api/watch_history/reset"
+    ],
+    "description": "UI Features API - MediaHub v5.6 Backend APIs for hero banner, watch history, and UI enhancements",
+    "lines": 382,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 166,
+    "name": "ui_features_v57_api",
+    "blueprint": "ui_features_v57_bp",
+    "url_prefix": "ui_features_v57",
+    "endpoints": 11,
+    "endpoint_list": [
+      "/api/v57/performance/metrics",
+      "/api/v57/performance/metrics",
+      "/api/v57/scroll/track",
+      "/api/v57/scroll/analytics",
+      "/api/v57/interactions/track"
+    ],
+    "description": "UI Features API v5.7 - MediaHub Advanced UI features including performance metrics, scroll tracking, and interaction analytics",
+    "lines": 384,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 167,
+    "name": "uiux_golden_api",
+    "blueprint": "uiux_golden_bp",
+    "url_prefix": "uiux_golden",
+    "endpoints": 4,
+    "endpoint_list": [
+      "/api/ui/locale",
+      "/api/streaming/hls",
+      "/api/streaming/hls/<session_id>/playlist.m3u8",
+      "/api/streaming/hls/<session_id>/segment/<int:segment_id>.ts"
+    ],
+    "description": "UI/UX Golden Surface APIs - Master Rulebook Compliance Provides locale/i18n and HLS streaming functionality",
+    "lines": 297,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 168,
+    "name": "views_counts",
+    "blueprint": "vc_bp",
+    "url_prefix": "views_counts",
+    "endpoints": 1,
+    "endpoint_list": [
+      "/api/views/counts"
+    ],
+    "description": "No description found",
+    "lines": 29,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 169,
+    "name": "visual_search",
+    "blueprint": "visual_search_bp",
+    "url_prefix": "visual_search",
+    "endpoints": 3,
+    "endpoint_list": [
+      "/api/search/visual/upload",
+      "/api/search/visual/find",
+      "/api/search/visual/status"
+    ],
+    "description": "Visual Search Module for MediaHub Provides image-based content discovery using image hashing and metadata analysis",
+    "lines": 149,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  },
+  {
+    "id": 170,
+    "name": "wanted",
+    "blueprint": "want_bp",
+    "url_prefix": "want",
+    "endpoints": 13,
+    "endpoint_list": [
+      "/api/wanted/get",
+      "/api/wanted/add",
+      "/api/wanted/remove",
+      "/api/wanted/search_task",
+      "/api/wanted/auto_queue"
+    ],
+    "description": "No description found",
+    "lines": 269,
+    "has_database": false,
+    "has_realdebrid": false,
+    "has_api_routes": true
+  }
+]

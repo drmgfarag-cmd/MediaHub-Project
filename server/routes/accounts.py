@@ -1,7 +1,7 @@
 from .security import require_api_key
 from flask import Blueprint, request, jsonify
 import os, json, time
-from ..utils.secret_store import seal, open_sealed
+from utils.secret_store import seal, open_sealed
 acct_bp = Blueprint('accounts', __name__)
 def _root(): return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 def _file(): return os.path.join(_root(), "storage", "accounts.json")

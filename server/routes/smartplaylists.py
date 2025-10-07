@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, request
 import os, json, re
-from .lib import load_index
 
 sp_bp = Blueprint('smartpl', __name__)
 ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))

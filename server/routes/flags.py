@@ -191,3 +191,9 @@ def is_enabled(flag_name):
     """Check if a feature flag is enabled"""
     flags = _load_flags()
     return flags.get(flag_name, False)
+
+
+def _load(key, default=None):
+    """Load a specific flag value (alias for compatibility)"""
+    flags = _load_flags()
+    return flags.get(key, default)

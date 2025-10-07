@@ -194,6 +194,13 @@ from routes.tv_shows_enhanced import tv_shows_enhanced_bp
 from routes.ui import ui_bp as ui_enhanced_bp
 from routes.views_counts import vc_bp
 from routes.wanted import want_bp
+from routes.frontend_apis import bp as frontend_apis_bp
+from routes.smartplaylists import sp_bp as smart_playlists_bp
+from routes.rss_scheduler import sched_bp as rss_sched_bp
+from routes.packages import packages_bp
+from routes.guard_enforcer import guard_bp
+from routes.collections_import import coll_bp as coll_import_bp
+from routes.accounts import acct_bp
 
 class MediaHubEnhancedApp:
     """Enhanced MediaHub application with complete feature set"""

@@ -1,0 +1,51 @@
+[
+  {
+    "route": "accounts",
+    "blueprint": "acct_bp",
+    "endpoints": 5,
+    "description": "No description",
+    "imports": 3
+  },
+  {
+    "route": "collections_import",
+    "blueprint": "coll_bp",
+    "endpoints": 2,
+    "description": "No description",
+    "imports": 3
+  },
+  {
+    "route": "frontend_apis",
+    "blueprint": "NOT FOUND",
+    "endpoints": 0,
+    "description": "API Routes for Frontend Pages\nConnects new frontend pages to database models",
+    "imports": 2
+  },
+  {
+    "route": "guard_enforcer",
+    "blueprint": "guard_bp",
+    "endpoints": 1,
+    "description": "Checks for the presence of essential UI pillar pages.\n    These are the core HTML files that form th",
+    "imports": 1
+  },
+  {
+    "route": "packages",
+    "blueprint": "packages_bp",
+    "endpoints": 7,
+    "description": "No description",
+    "imports": 3
+  },
+  {
+    "route": "rss_scheduler",
+    "blueprint": "sched_bp",
+    "endpoints": 2,
+    "description": "No description",
+    "imports": 2
+  },
+  {
+    "route": "smartplaylists",
+    "blueprint": "sp_bp",
+    "endpoints": 3,
+    "description": "No description",
+    "imports": 2
+  }
+]

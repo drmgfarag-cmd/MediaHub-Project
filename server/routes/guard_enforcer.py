@@ -10,7 +10,13 @@ import json
 
 guard_bp = Blueprint("guard", __name__)
 
-STO = os.path.join(current_app.root_path, "..", os.environ.get("MH_STORAGE", "storage"))
+def _get_storage_path():
+    """Get storage path (deferred to avoid Flask context issues)"""
+    try:
+        return os.path.join(current_app.root_path, "..", os.environ.get("MH_STORAGE", "storage"))
+    except:
+        # Fallback if no app context
+        return os.path.join(os.path.dirname(__file__), "..", "..", "storage")
 
 def check_pillars():
     """
@@ -39,7 +45,7 @@ def check_profiles():
     """
     Checks for the presence and validity of essential configuration files (profiles).
     """
-    config_dir = os.path.join(STO, "config")
+    config_dir = os.path.join(_get_storage_path(), "config")
     required_configs = [
         "subtitles.json", "providers.json", "rd_filters.json", 
         "rss_filters.json", "dedupe_policy.json", "renamer_patterns.json", 
@@ -107,7 +113,7 @@ def check_status():
         status_checks.append({"check": "Provider API Keys", "passed": True, "reason": "All required provider API keys are configured."})
 
     # 3. Check subtitles priority
-    subtitles_config_path = os.path.join(STO, "config", "subtitles.json")
+    subtitles_config_path = os.path.join(_get_storage_path(), "config", "subtitles.json")
     subtitles_priority_status = False
     reason = "Subtitles language priorities are not configured."
     if os.path.exists(subtitles_config_path):
@@ -122,7 +128,7 @@ def check_status():
     status_checks.append({"check": "Subtitles Priority", "passed": subtitles_priority_status, "reason": reason})
 
     # 4. Check downloader cap
-    limits_config_path = os.path.join(STO, "config", "downloader_limits.json")
+    limits_config_path = os.path.join(_get_storage_path(), "config", "downloader_limits.json")
     downloader_cap_status = False
     reason = "Downloader max_kbps is not set to 10000."
     if os.path.exists(limits_config_path):
@@ -158,14 +164,14 @@ def check_seeds():
     current_app.logger.debug(f"Seed check - current_app.root_path: {current_app.root_path}")
     seed_files = [
         # Config files
-        os.path.join(STO, "config", "subtitles.json"),
-        os.path.join(STO, "config", "providers.json"),
-        os.path.join(STO, "config", "rd_filters.json"),
-        os.path.join(STO, "config", "rss_filters.json"),
-        os.path.join(STO, "config", "dedupe_policy.json"),
-        os.path.join(STO, "config", "renamer_patterns.json"),
-        os.path.join(STO, "config", "org_rules.json"),
-        os.path.join(STO, "config", "services.json"),
+        os.path.join(_get_storage_path(), "config", "subtitles.json"),
+        os.path.join(_get_storage_path(), "config", "providers.json"),
+        os.path.join(_get_storage_path(), "config", "rd_filters.json"),
+        os.path.join(_get_storage_path(), "config", "rss_filters.json"),
+        os.path.join(_get_storage_path(), "config", "dedupe_policy.json"),
+        os.path.join(_get_storage_path(), "config", "renamer_patterns.json"),
+        os.path.join(_get_storage_path(), "config", "org_rules.json"),
+        os.path.join(_get_storage_path(), "config", "services.json"),
         # Script files
         os.path.join(current_app.root_path, "..", "scripts", "setup.cmd"),
         os.path.join(current_app.root_path, "..", "scripts", "setup.sh"),
