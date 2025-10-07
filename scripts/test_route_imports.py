@@ -15,10 +15,20 @@ print("=" * 80)
 print()
 
 routes_to_test = [
+    # Batch 1
     ('routes.audio_player', 'ap_bp'),
     ('routes.discovery', 'disc_bp'),
     ('routes.discovery_advanced', 'discovery_advanced_bp'),
     ('routes.toplists', 'tl_bp'),
+    # Batch 2
+    ('routes.audio_playlists', 'mix_bp'),
+    ('routes.audio_replaygain', 'rg_bp'),
+    ('routes.audio_settings', 'aset_bp'),
+    ('routes.collections_api', 'coll_bp'),
+    ('routes.collections_manage', 'col_bp'),
+    ('routes.collections_timeline', 'timeline_bp'),
+    ('routes.library_scan', 'scan_bp'),
+    ('routes.media_collections', 'col_bp'),
 ]
 
 success_count = 0

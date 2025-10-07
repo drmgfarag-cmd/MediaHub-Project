@@ -79,6 +79,18 @@ from routes.discovery import disc_bp
 from routes.discovery_advanced import discovery_advanced_bp
 from routes.toplists import tl_bp
 
+# BATCH 2: Remaining Critical + Media Routes (Issue #14 continued)
+# Audio features
+from routes.audio_playlists import mix_bp
+from routes.audio_replaygain import rg_bp
+from routes.audio_settings import aset_bp
+# Media management
+from routes.collections_api import coll_bp
+from routes.collections_manage import col_bp as cols_bp
+from routes.collections_timeline import timeline_bp
+from routes.library_scan import scan_bp
+from routes.media_collections import col_bp as media_col_bp
+
 # Import new enhanced route modules
 from config.api_keys import APIKeyManager
 from config.profiles import ProfileManager
@@ -372,7 +384,9 @@ class MediaHubEnhancedApp:
             # Phase 2-5 Ultimate Features
             enhanced_media_bp, faceted_db_bp, rss_automation_bp, advanced_ui_bp,
             # BATCH 1: Critical Routes (Issue #14) - Added Oct 7, 2025
-            ap_bp, disc_bp, discovery_advanced_bp, tl_bp
+            ap_bp, disc_bp, discovery_advanced_bp, tl_bp,
+            # BATCH 2: Audio + Media Routes - Added Oct 7, 2025
+            mix_bp, rg_bp, aset_bp, coll_bp, cols_bp, timeline_bp, scan_bp, media_col_bp
         ]
         
         for bp in existing_blueprints:
