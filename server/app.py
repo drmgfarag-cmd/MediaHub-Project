@@ -149,6 +149,52 @@ from routes.enhanced import (
 # Import guard rails system
 from routes.enhanced.implementation_guard_rails import guard_rails_bp
 
+# BATCH 9: Previously Missing Routes - Added Oct 7, 2025 (44 routes)
+from routes.i18n import i18n_bp
+from routes.indexing import idx_bp
+from routes.integrations import integ_bp
+from routes.kids import kids_bp
+from routes.kids_parental_controls import kids_parental_controls_bp
+from routes.linkgrabber_templates import tmpl_bp as lg_tmpl_bp
+from routes.metrics_speed import sp_bp
+from routes.missing import miss_bp
+from routes.monaco_mgr import monaco_bp
+from routes.movies_enhanced import movies_enhanced_bp
+from routes.music_queue import mq_bp
+from routes.opds_books import opds_books_bp
+from routes.pinboard import pin_bp as pinboard_bp
+from routes.pinned import pin_bp as pinned_bp
+from routes.pins import pins_bp as pins_extra_bp
+from routes.profile_management import profile_management_bp
+from routes.queue_combined import combo_bp
+from routes.queue_meta import qm_bp
+from routes.rails_extra import extra_bp
+from routes.rails_polish import rails_bp
+from routes.rd_cloudpull import cloud_bp
+from routes.rd_dedup import dedup_bp as rd_dedup_bp
+from routes.rd_inbox import in_bp
+from routes.rd_manager import rd_bp as rd_mgr_bp
+from routes.rd_manager_enhanced import rd_manager_enhanced_bp
+from routes.realdebrid import rd_bp as realdebrid_bp
+from routes.renamer_advanced import renamer_advanced_bp
+from routes.rules_audit import rules_audit_bp
+from routes.scoring_engine import scoring_bp
+from routes.secrets import secrets_bp
+from routes.sort_editor import sort_bp
+from routes.stubs_extra import stubs_bp
+from routes.subtitles_advanced import subtitles_advanced_bp
+from routes.support_pack import support_bp
+from routes.taxonomy import tax_bp
+from routes.text_editor_enhanced import text_editor_enhanced_bp
+from routes.timeline import tl_bp as timeline_bp
+from routes.timelines import tl_bp as timelines_bp
+from routes.torrent_inspector import torrent_inspector_bp
+from routes.tree_view import tree_bp
+from routes.tv_shows_enhanced import tv_shows_enhanced_bp
+from routes.ui import ui_bp as ui_enhanced_bp
+from routes.views_counts import vc_bp
+from routes.wanted import want_bp
+
 class MediaHubEnhancedApp:
     """Enhanced MediaHub application with complete feature set"""
     
@@ -449,7 +495,18 @@ class MediaHubEnhancedApp:
             security_bp, smart_rails_bp,
             stats2_bp, stream_bp, sys_bp,
             tags_bp, tools_bp, # BATCH 8: Final Routes - UI, Upload, Watchlist & Utilities - Added Oct 7, 2025
-            writer_bp
+            writer_bp,
+            # BATCH 9: Previously Missing Routes - Added Oct 7, 2025 (44 routes)
+            i18n_bp, idx_bp, integ_bp, kids_bp, kids_parental_controls_bp,
+            lg_tmpl_bp, sp_bp, miss_bp, monaco_bp, movies_enhanced_bp,
+            mq_bp, opds_books_bp, pinboard_bp, pinned_bp, pins_extra_bp,
+            profile_management_bp, combo_bp, qm_bp, extra_bp, rails_bp,
+            cloud_bp, rd_dedup_bp, in_bp, rd_mgr_bp, rd_manager_enhanced_bp,
+            realdebrid_bp, renamer_advanced_bp, rules_audit_bp, scoring_bp,
+            secrets_bp, sort_bp, stubs_bp, subtitles_advanced_bp, support_bp,
+            tax_bp, text_editor_enhanced_bp, timeline_bp, timelines_bp,
+            torrent_inspector_bp, tree_bp, tv_shows_enhanced_bp, ui_enhanced_bp,
+            vc_bp, want_bp
         ]
         
         for bp in existing_blueprints:
