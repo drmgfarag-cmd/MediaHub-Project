@@ -1,0 +1,859 @@
+================================================================================
+MediaHub - All Route Files Inventory
+Generated: register_routes.py
+================================================================================
+
+Total route files: 170
+Currently registered: 35
+Unregistered: 146
+
+❌ NOT REGISTERED - accounts.py
+  Blueprint: acct_bp ('accounts')
+  Import: from routes.accounts import acct_bp
+  Register: app.register_blueprint(acct_bp, url_prefix='/accounts')
+
+❌ NOT REGISTERED - adv_search.py
+  Blueprint: adv_bp ('adv')
+  Import: from routes.adv_search import adv_bp
+  Register: app.register_blueprint(adv_bp, url_prefix='/adv')
+
+✅ REGISTERED - advanced_dedupe_api.py
+  Blueprint: advanced_dedupe_bp ('advanced_dedupe')
+  Import: from routes.advanced_dedupe_api import advanced_dedupe_bp
+  Register: app.register_blueprint(advanced_dedupe_bp, url_prefix='/advanced-dedupe')
+
+❌ NOT REGISTERED - advanced_downloader_api.py
+  Blueprint: advanced_dl_bp ('advanced_downloader')
+  Import: from routes.advanced_downloader_api import advanced_dl_bp
+  Register: app.register_blueprint(advanced_dl_bp, url_prefix='/advanced-downloader')
+
+❌ NOT REGISTERED - advanced_text_editor.py
+  Blueprint: advanced_editor_bp ('advanced_text_editor')
+  Import: from routes.advanced_text_editor import advanced_editor_bp
+  Register: app.register_blueprint(advanced_editor_bp, url_prefix='/advanced-text-editor')
+
+✅ REGISTERED - advanced_ui.py
+  Blueprint: advanced_ui_bp ('advanced_ui')
+  Import: from routes.advanced_ui import advanced_ui_bp
+  Register: app.register_blueprint(advanced_ui_bp, url_prefix='/advanced-ui')
+
+✅ REGISTERED - aria2.py
+  Blueprint: aria2_bp ('aria2')
+  Import: from routes.aria2 import aria2_bp
+  Register: app.register_blueprint(aria2_bp, url_prefix='/aria2')
+
+❌ NOT REGISTERED - audio_enhanced.py
+  Blueprint: audio_enhanced_bp ('audio_enhanced')
+  Import: from routes.audio_enhanced import audio_enhanced_bp
+  Register: app.register_blueprint(audio_enhanced_bp, url_prefix='/audio-enhanced')
+
+❌ NOT REGISTERED - audio_player.py
+  Blueprint: ap_bp ('audio')
+  Import: from routes.audio_player import ap_bp
+  Register: app.register_blueprint(ap_bp, url_prefix='/audio')
+
+❌ NOT REGISTERED - audio_playlists.py
+  Blueprint: mix_bp ('mix')
+  Import: from routes.audio_playlists import mix_bp
+  Register: app.register_blueprint(mix_bp, url_prefix='/mix')
+
+❌ NOT REGISTERED - audio_replaygain.py
+  Blueprint: rg_bp ('rg')
+  Import: from routes.audio_replaygain import rg_bp
+  Register: app.register_blueprint(rg_bp, url_prefix='/rg')
+
+❌ NOT REGISTERED - audio_settings.py
+  Blueprint: aset_bp ('aset')
+  Import: from routes.audio_settings import aset_bp
+  Register: app.register_blueprint(aset_bp, url_prefix='/aset')
+
+❌ NOT REGISTERED - auto_explain.py
+  Blueprint: autoex_bp ('autoex')
+  Import: from routes.auto_explain import autoex_bp
+  Register: app.register_blueprint(autoex_bp, url_prefix='/autoex')
+
+❌ NOT REGISTERED - auto_select.py
+  Blueprint: auto_bp ('auto')
+  Import: from routes.auto_select import auto_bp
+  Register: app.register_blueprint(auto_bp, url_prefix='/auto')
+
+❌ NOT REGISTERED - backup.py
+  Blueprint: backup_bp ('backup')
+  Import: from routes.backup import backup_bp
+  Register: app.register_blueprint(backup_bp, url_prefix='/backup')
+
+❌ NOT REGISTERED - batchrename.py
+  Blueprint: br_bp ('br')
+  Import: from routes.batchrename import br_bp
+  Register: app.register_blueprint(br_bp, url_prefix='/br')
+
+❌ NOT REGISTERED - books_enhanced.py
+  Blueprint: books_enhanced_bp ('books_enhanced')
+  Import: from routes.books_enhanced import books_enhanced_bp
+  Register: app.register_blueprint(books_enhanced_bp, url_prefix='/books-enhanced')
+
+❌ NOT REGISTERED - captcha_prefs.py
+  Blueprint: cap_bp ('captcha')
+  Import: from routes.captcha_prefs import cap_bp
+  Register: app.register_blueprint(cap_bp, url_prefix='/captcha')
+
+✅ REGISTERED - casting_integration.py
+  Blueprint: casting_integration_bp ('casting_integration')
+  Import: from routes.casting_integration import casting_integration_bp
+  Register: app.register_blueprint(casting_integration_bp, url_prefix='/casting-integration')
+
+❌ NOT REGISTERED - catalogs.py
+  Blueprint: catalogs_bp ('catalogs')
+  Import: from routes.catalogs import catalogs_bp
+  Register: app.register_blueprint(catalogs_bp, url_prefix='/catalogs')
+
+❌ NOT REGISTERED - collections.py
+  Blueprint: col_bp ('collections')
+  Import: from routes.collections import col_bp
+  Register: app.register_blueprint(col_bp, url_prefix='/collections')
+
+❌ NOT REGISTERED - collections_api.py
+  Blueprint: coll_bp ('coll')
+  Import: from routes.collections_api import coll_bp
+  Register: app.register_blueprint(coll_bp, url_prefix='/coll')
+
+❌ NOT REGISTERED - collections_import.py
+  Blueprint: coll_bp ('collections_import')
+  Import: from routes.collections_import import coll_bp
+  Register: app.register_blueprint(coll_bp, url_prefix='/collections-import')
+
+❌ NOT REGISTERED - collections_manage.py
+  Blueprint: col_bp ('cols')
+  Import: from routes.collections_manage import col_bp
+  Register: app.register_blueprint(col_bp, url_prefix='/cols')
+
+❌ NOT REGISTERED - collections_timeline.py
+  Blueprint: timeline_bp ('collections_timeline')
+  Import: from routes.collections_timeline import timeline_bp
+  Register: app.register_blueprint(timeline_bp, url_prefix='/collections-timeline')
+
+❌ NOT REGISTERED - comics_enhanced.py
+  Blueprint: comics_enhanced_bp ('comics_enhanced')
+  Import: from routes.comics_enhanced import comics_enhanced_bp
+  Register: app.register_blueprint(comics_enhanced_bp, url_prefix='/comics-enhanced')
+
+❌ NOT REGISTERED - config.py
+  Blueprint: cfg_bp ('config')
+  Import: from routes.config import cfg_bp
+  Register: app.register_blueprint(cfg_bp, url_prefix='/config')
+
+❌ NOT REGISTERED - connectors.py
+  Blueprint: conn_bp ('connectors')
+  Import: from routes.connectors import conn_bp
+  Register: app.register_blueprint(conn_bp, url_prefix='/connectors')
+
+✅ REGISTERED - core_infrastructure_api.py
+  Blueprint: core_infra_bp ('core_infra')
+  Import: from routes.core_infrastructure_api import core_infra_bp
+  Register: app.register_blueprint(core_infra_bp, url_prefix='/core-infra')
+
+✅ REGISTERED - cross_references.py
+  Blueprint: xref_bp ('xref')
+  Import: from routes.cross_references import xref_bp
+  Register: app.register_blueprint(xref_bp, url_prefix='/xref')
+
+❌ NOT REGISTERED - curations.py
+  Blueprint: curations_bp ('curations')
+  Import: from routes.curations import curations_bp
+  Register: app.register_blueprint(curations_bp, url_prefix='/curations')
+
+❌ NOT REGISTERED - dashboard_custom.py
+  Blueprint: dashboard_custom_bp ('dashboard_custom')
+  Import: from routes.dashboard_custom import dashboard_custom_bp
+  Register: app.register_blueprint(dashboard_custom_bp, url_prefix='/dashboard-custom')
+
+❌ NOT REGISTERED - db_tools.py
+  Blueprint: db_bp ('db')
+  Import: from routes.db_tools import db_bp
+  Register: app.register_blueprint(db_bp, url_prefix='/db')
+
+❌ NOT REGISTERED - debrid.py
+  Blueprint: debrid_bp ('debrid')
+  Import: from routes.debrid import debrid_bp
+  Register: app.register_blueprint(debrid_bp, url_prefix='/debrid')
+
+❌ NOT REGISTERED - dedupe.py
+  Blueprint: dd_bp ('dd')
+  Import: from routes.dedupe import dd_bp
+  Register: app.register_blueprint(dd_bp, url_prefix='/dd')
+
+❌ NOT REGISTERED - dedupe_editor.py
+  Blueprint: dedupe_bp ('dedupe')
+  Import: from routes.dedupe_editor import dedupe_bp
+  Register: app.register_blueprint(dedupe_bp, url_prefix='/dedupe')
+
+❌ NOT REGISTERED - diagnostics.py
+  Blueprint: diag_bp ('diag')
+  Import: from routes.diagnostics import diag_bp
+  Register: app.register_blueprint(diag_bp, url_prefix='/diag')
+
+❌ NOT REGISTERED - discovery.py
+  Blueprint: disc_bp ('disc')
+  Import: from routes.discovery import disc_bp
+  Register: app.register_blueprint(disc_bp, url_prefix='/disc')
+
+❌ NOT REGISTERED - discovery_advanced.py
+  Blueprint: discovery_advanced_bp ('discovery_advanced')
+  Import: from routes.discovery_advanced import discovery_advanced_bp
+  Register: app.register_blueprint(discovery_advanced_bp, url_prefix='/discovery-advanced')
+
+❌ NOT REGISTERED - dl_columns.py
+  Blueprint: col_bp ('col')
+  Import: from routes.dl_columns import col_bp
+  Register: app.register_blueprint(col_bp, url_prefix='/col')
+
+❌ NOT REGISTERED - downloader.py
+  Blueprint: dl_bp ('dl')
+  Import: from routes.downloader import dl_bp
+  Register: app.register_blueprint(dl_bp, url_prefix='/dl')
+
+❌ NOT REGISTERED - downloader_api.py
+  Blueprint: dlx_bp ('dlx')
+  Import: from routes.downloader_api import dlx_bp
+  Register: app.register_blueprint(dlx_bp, url_prefix='/dlx')
+
+❌ NOT REGISTERED - downloader_enhanced.py
+  Blueprint: downloader_enhanced_bp ('downloader_enhanced')
+  Import: from routes.downloader_enhanced import downloader_enhanced_bp
+  Register: app.register_blueprint(downloader_enhanced_bp, url_prefix='/downloader-enhanced')
+
+❌ NOT REGISTERED - downloader_packages.py
+  Blueprint: pkg_bp ('packages')
+  Import: from routes.downloader_packages import pkg_bp
+  Register: app.register_blueprint(pkg_bp, url_prefix='/packages')
+
+✅ REGISTERED - downloader_rd_api.py
+  Blueprint: downloader_rd_api_bp ('downloader_rd_api')
+  Import: from routes.downloader_rd_api import downloader_rd_api_bp
+  Register: app.register_blueprint(downloader_rd_api_bp, url_prefix='/downloader-rd-api')
+
+❌ NOT REGISTERED - downloader_view.py
+  Blueprint: view_bp ('dlview')
+  Import: from routes.downloader_view import view_bp
+  Register: app.register_blueprint(view_bp, url_prefix='/dlview')
+
+❌ NOT REGISTERED - editor.py
+  Blueprint: editor_bp ('ed')
+  Import: from routes.editor import editor_bp
+  Register: app.register_blueprint(editor_bp, url_prefix='/ed')
+
+✅ REGISTERED - editor_plugins.py
+  Blueprint: editor_plugins_bp ('editor_plugins')
+  Import: from routes.editor_plugins import editor_plugins_bp
+  Register: app.register_blueprint(editor_plugins_bp, url_prefix='/editor-plugins')
+
+❌ NOT REGISTERED - editor_pro.py
+  Blueprint: ed_bp ('ed')
+  Import: from routes.editor_pro import ed_bp
+  Register: app.register_blueprint(ed_bp, url_prefix='/ed')
+
+❌ NOT REGISTERED - editor_tabs.py
+  Blueprint: tb_bp ('tabs')
+  Import: from routes.editor_tabs import tb_bp
+  Register: app.register_blueprint(tb_bp, url_prefix='/tabs')
+
+❌ NOT REGISTERED - enhanced_media_management.py
+  Blueprint: enhanced_media_bp ('enhanced_media')
+  Import: from routes.enhanced_media_management import enhanced_media_bp
+  Register: app.register_blueprint(enhanced_media_bp, url_prefix='/enhanced-media')
+
+❌ NOT REGISTERED - export_import.py
+  Blueprint: ei_bp ('export_import')
+  Import: from routes.export_import import ei_bp
+  Register: app.register_blueprint(ei_bp, url_prefix='/export-import')
+
+❌ NOT REGISTERED - faceted_database.py
+  Blueprint: faceted_db_bp ('faceted_db')
+  Import: from routes.faceted_database import faceted_db_bp
+  Register: app.register_blueprint(faceted_db_bp, url_prefix='/faceted-db')
+
+❌ NOT REGISTERED - features.py
+  Blueprint: feat_bp ('feat')
+  Import: from routes.features import feat_bp
+  Register: app.register_blueprint(feat_bp, url_prefix='/feat')
+
+❌ NOT REGISTERED - feeds.py
+  Blueprint: feeds_bp ('feeds')
+  Import: from routes.feeds import feeds_bp
+  Register: app.register_blueprint(feeds_bp, url_prefix='/feeds')
+
+❌ NOT REGISTERED - findreplace.py
+  Blueprint: fr_bp ('findrep')
+  Import: from routes.findreplace import fr_bp
+  Register: app.register_blueprint(fr_bp, url_prefix='/findrep')
+
+❌ NOT REGISTERED - flags.py
+  Blueprint: flags_bp ('flags')
+  Import: from routes.flags import flags_bp
+  Register: app.register_blueprint(flags_bp, url_prefix='/flags')
+
+❌ NOT REGISTERED - foundation.py
+  Blueprint: foundation_bp ('foundation')
+  Import: from routes.foundation import foundation_bp
+  Register: app.register_blueprint(foundation_bp, url_prefix='/foundation')
+
+✅ REGISTERED - frontend_apis.py
+  Blueprint: bp ('frontend_apis')
+  Import: from routes.frontend_apis import bp
+  Register: app.register_blueprint(bp, url_prefix='/frontend-apis')
+
+❌ NOT REGISTERED - guard_enforcer.py
+  Blueprint: guard_bp ('guard')
+  Import: from routes.guard_enforcer import guard_bp
+  Register: app.register_blueprint(guard_bp, url_prefix='/guard')
+
+❌ NOT REGISTERED - hash.py
+  Blueprint: hash_bp ('hash')
+  Import: from routes.hash import hash_bp
+  Register: app.register_blueprint(hash_bp, url_prefix='/hash')
+
+❌ NOT REGISTERED - health.py
+  Blueprint: health_bp ('health')
+  Import: from routes.health import health_bp
+  Register: app.register_blueprint(health_bp, url_prefix='/health')
+
+❌ NOT REGISTERED - hls_mgr.py
+  Blueprint: hls_bp ('hls')
+  Import: from routes.hls_mgr import hls_bp
+  Register: app.register_blueprint(hls_bp, url_prefix='/hls')
+
+❌ NOT REGISTERED - home_pins.py
+  Blueprint: pins_bp ('home_pins')
+  Import: from routes.home_pins import pins_bp
+  Register: app.register_blueprint(pins_bp, url_prefix='/home-pins')
+
+❌ NOT REGISTERED - hooks.py
+  Blueprint: hooks_bp ('hooks')
+  Import: from routes.hooks import hooks_bp
+  Register: app.register_blueprint(hooks_bp, url_prefix='/hooks')
+
+❌ NOT REGISTERED - i18n.py
+  Blueprint: i18n_bp ('i18n')
+  Import: from routes.i18n import i18n_bp
+  Register: app.register_blueprint(i18n_bp, url_prefix='/i18n')
+
+❌ NOT REGISTERED - indexing.py
+  Blueprint: idx_bp ('idx')
+  Import: from routes.indexing import idx_bp
+  Register: app.register_blueprint(idx_bp, url_prefix='/idx')
+
+❌ NOT REGISTERED - integrations.py
+  Blueprint: integ_bp ('integrations')
+  Import: from routes.integrations import integ_bp
+  Register: app.register_blueprint(integ_bp, url_prefix='/integrations')
+
+❌ NOT REGISTERED - jobs.py
+  Blueprint: jobs_bp ('jobs')
+  Import: from routes.jobs import jobs_bp
+  Register: app.register_blueprint(jobs_bp, url_prefix='/jobs')
+
+❌ NOT REGISTERED - kids.py
+  Blueprint: kids_bp ('kids')
+  Import: from routes.kids import kids_bp
+  Register: app.register_blueprint(kids_bp, url_prefix='/kids')
+
+❌ NOT REGISTERED - kids_parental_controls.py
+  Blueprint: kids_parental_controls_bp ('kids_parental_controls')
+  Import: from routes.kids_parental_controls import kids_parental_controls_bp
+  Register: app.register_blueprint(kids_parental_controls_bp, url_prefix='/kids-parental-controls')
+
+❌ NOT REGISTERED - library.py
+  Blueprint: lib_bp ('library')
+  Import: from routes.library import lib_bp
+  Register: app.register_blueprint(lib_bp, url_prefix='/library')
+
+❌ NOT REGISTERED - library_local.py
+  Blueprint: lib_bp ('library_local')
+  Import: from routes.library_local import lib_bp
+  Register: app.register_blueprint(lib_bp, url_prefix='/library-local')
+
+❌ NOT REGISTERED - library_scan.py
+  Blueprint: scan_bp ('scan')
+  Import: from routes.library_scan import scan_bp
+  Register: app.register_blueprint(scan_bp, url_prefix='/scan')
+
+❌ NOT REGISTERED - libsearch.py
+  Blueprint: libsearch_bp ('libsearch')
+  Import: from routes.libsearch import libsearch_bp
+  Register: app.register_blueprint(libsearch_bp, url_prefix='/libsearch')
+
+❌ NOT REGISTERED - limits.py
+  Blueprint: lim_bp ('limits')
+  Import: from routes.limits import lim_bp
+  Register: app.register_blueprint(lim_bp, url_prefix='/limits')
+
+❌ NOT REGISTERED - link_grabber.py
+  Blueprint: link_grabber_bp ('link_grabber')
+  Import: from routes.link_grabber import link_grabber_bp
+  Register: app.register_blueprint(link_grabber_bp, url_prefix='/link-grabber')
+
+❌ NOT REGISTERED - linkgrabber_templates.py
+  Blueprint: tmpl_bp ('link_templates')
+  Import: from routes.linkgrabber_templates import tmpl_bp
+  Register: app.register_blueprint(tmpl_bp, url_prefix='/link-templates')
+
+❌ NOT REGISTERED - lists.py
+  Blueprint: lists_bp ('lists')
+  Import: from routes.lists import lists_bp
+  Register: app.register_blueprint(lists_bp, url_prefix='/lists')
+
+❌ NOT REGISTERED - lists_catalog.py
+  Blueprint: cat_bp ('cat')
+  Import: from routes.lists_catalog import cat_bp
+  Register: app.register_blueprint(cat_bp, url_prefix='/cat')
+
+❌ NOT REGISTERED - logs.py
+  Blueprint: logs_bp ('logs')
+  Import: from routes.logs import logs_bp
+  Register: app.register_blueprint(logs_bp, url_prefix='/logs')
+
+❌ NOT REGISTERED - lyrics.py
+  Blueprint: lyr_bp ('lyrics')
+  Import: from routes.lyrics import lyr_bp
+  Register: app.register_blueprint(lyr_bp, url_prefix='/lyrics')
+
+❌ NOT REGISTERED - media_collections.py
+  Blueprint: col_bp ('collections')
+  Import: from routes.media_collections import col_bp
+  Register: app.register_blueprint(col_bp, url_prefix='/collections')
+
+✅ REGISTERED - media_management_api.py
+  Blueprint: media_mgmt_api_bp ('media_mgmt_api')
+  Import: from routes.media_management_api import media_mgmt_api_bp
+  Register: app.register_blueprint(media_mgmt_api_bp, url_prefix='/media-mgmt-api')
+
+✅ REGISTERED - media_management_golden_api.py
+  Blueprint: media_mgmt_golden_bp ('media_mgmt_golden')
+  Import: from routes.media_management_golden_api import media_mgmt_golden_bp
+  Register: app.register_blueprint(media_mgmt_golden_bp, url_prefix='/media-mgmt-golden')
+
+✅ REGISTERED - mediahub_home_api.py
+  Blueprint: home_api_bp ('home_api')
+  Import: from routes.mediahub_home_api import home_api_bp
+  Register: app.register_blueprint(home_api_bp, url_prefix='/home-api')
+
+❌ NOT REGISTERED - metadata.py
+  Blueprint: md_bp ('md')
+  Import: from routes.metadata import md_bp
+  Register: app.register_blueprint(md_bp, url_prefix='/md')
+
+✅ REGISTERED - metadata_export.py
+  Blueprint: metadata_export_bp ('metadata_export')
+  Import: from routes.metadata_export import metadata_export_bp
+  Register: app.register_blueprint(metadata_export_bp, url_prefix='/metadata-export')
+
+❌ NOT REGISTERED - metrics_speed.py
+  Blueprint: sp_bp ('metrics_speed')
+  Import: from routes.metrics_speed import sp_bp
+  Register: app.register_blueprint(sp_bp, url_prefix='/metrics-speed')
+
+❌ NOT REGISTERED - missing.py
+  Blueprint: miss_bp ('miss')
+  Import: from routes.missing import miss_bp
+  Register: app.register_blueprint(miss_bp, url_prefix='/miss')
+
+❌ NOT REGISTERED - mobile_smart_rails_api.py
+  Blueprint: mobile_rails_bp ('mobile_smart_rails')
+  Import: from routes.mobile_smart_rails_api import mobile_rails_bp
+  Register: app.register_blueprint(mobile_rails_bp, url_prefix='/mobile-smart-rails')
+
+✅ REGISTERED - mobile_streaming.py
+  Blueprint: mobile_streaming_bp ('mobile_streaming')
+  Import: from routes.mobile_streaming import mobile_streaming_bp
+  Register: app.register_blueprint(mobile_streaming_bp, url_prefix='/mobile-streaming')
+
+❌ NOT REGISTERED - monaco_mgr.py
+  Blueprint: monaco_bp ('monaco')
+  Import: from routes.monaco_mgr import monaco_bp
+  Register: app.register_blueprint(monaco_bp, url_prefix='/monaco')
+
+❌ NOT REGISTERED - movies_enhanced.py
+  Blueprint: movies_enhanced_bp ('movies_enhanced')
+  Import: from routes.movies_enhanced import movies_enhanced_bp
+  Register: app.register_blueprint(movies_enhanced_bp, url_prefix='/movies-enhanced')
+
+❌ NOT REGISTERED - music_queue.py
+  Blueprint: mq_bp ('music_queue')
+  Import: from routes.music_queue import mq_bp
+  Register: app.register_blueprint(mq_bp, url_prefix='/music-queue')
+
+❌ NOT REGISTERED - opds.py
+  Blueprint: opds_bp ('opds')
+  Import: from routes.opds import opds_bp
+  Register: app.register_blueprint(opds_bp, url_prefix='/opds')
+
+❌ NOT REGISTERED - opds_books.py
+  Blueprint: opds_books_bp ('opds_books')
+  Import: from routes.opds_books import opds_books_bp
+  Register: app.register_blueprint(opds_books_bp, url_prefix='/opds-books')
+
+❌ NOT REGISTERED - organizer.py
+  Blueprint: org_bp ('org')
+  Import: from routes.organizer import org_bp
+  Register: app.register_blueprint(org_bp, url_prefix='/org')
+
+❌ NOT REGISTERED - packages.py
+  Blueprint: packages_bp ('packages')
+  Import: from routes.packages import packages_bp
+  Register: app.register_blueprint(packages_bp, url_prefix='/packages')
+
+❌ NOT REGISTERED - pinboard.py
+  Blueprint: pin_bp ('pin')
+  Import: from routes.pinboard import pin_bp
+  Register: app.register_blueprint(pin_bp, url_prefix='/pin')
+
+❌ NOT REGISTERED - pinned.py
+  Blueprint: pin_bp ('pin')
+  Import: from routes.pinned import pin_bp
+  Register: app.register_blueprint(pin_bp, url_prefix='/pin')
+
+❌ NOT REGISTERED - pins.py
+  Blueprint: pins_bp ('pins')
+  Import: from routes.pins import pins_bp
+  Register: app.register_blueprint(pins_bp, url_prefix='/pins')
+
+❌ NOT REGISTERED - playlists.py
+  Blueprint: pl_bp ('pl')
+  Import: from routes.playlists import pl_bp
+  Register: app.register_blueprint(pl_bp, url_prefix='/pl')
+
+❌ NOT REGISTERED - presets.py
+  Blueprint: presets_bp ('presets')
+  Import: from routes.presets import presets_bp
+  Register: app.register_blueprint(presets_bp, url_prefix='/presets')
+
+❌ NOT REGISTERED - profile_management.py
+  Blueprint: profile_management_bp ('profile_management')
+  Import: from routes.profile_management import profile_management_bp
+  Register: app.register_blueprint(profile_management_bp, url_prefix='/profile-management')
+
+❌ NOT REGISTERED - profiles.py
+  Blueprint: prof_bp ('prof')
+  Import: from routes.profiles import prof_bp
+  Register: app.register_blueprint(prof_bp, url_prefix='/prof')
+
+❌ NOT REGISTERED - qbittorrent.py
+  Blueprint: qb_bp ('qb')
+  Import: from routes.qbittorrent import qb_bp
+  Register: app.register_blueprint(qb_bp, url_prefix='/qb')
+
+❌ NOT REGISTERED - queue.py
+  Blueprint: q_bp ('queue')
+  Import: from routes.queue import q_bp
+  Register: app.register_blueprint(q_bp, url_prefix='/queue')
+
+❌ NOT REGISTERED - queue_combined.py
+  Blueprint: combo_bp ('queue_combo')
+  Import: from routes.queue_combined import combo_bp
+  Register: app.register_blueprint(combo_bp, url_prefix='/queue-combo')
+
+❌ NOT REGISTERED - queue_meta.py
+  Blueprint: qm_bp ('queue_meta')
+  Import: from routes.queue_meta import qm_bp
+  Register: app.register_blueprint(qm_bp, url_prefix='/queue-meta')
+
+❌ NOT REGISTERED - rails.py
+  Blueprint: rails_bp ('rails')
+  Import: from routes.rails import rails_bp
+  Register: app.register_blueprint(rails_bp, url_prefix='/rails')
+
+❌ NOT REGISTERED - rails_extra.py
+  Blueprint: extra_bp ('rails_extra')
+  Import: from routes.rails_extra import extra_bp
+  Register: app.register_blueprint(extra_bp, url_prefix='/rails-extra')
+
+❌ NOT REGISTERED - rails_polish.py
+  Blueprint: rails_bp ('rails_polish')
+  Import: from routes.rails_polish import rails_bp
+  Register: app.register_blueprint(rails_bp, url_prefix='/rails-polish')
+
+❌ NOT REGISTERED - rd.py
+  Blueprint: rd_bp ('rd')
+  Import: from routes.rd import rd_bp
+  Register: app.register_blueprint(rd_bp, url_prefix='/rd')
+
+❌ NOT REGISTERED - rd_analyze.py
+  Blueprint: ra_bp ('ra')
+  Import: from routes.rd_analyze import ra_bp
+  Register: app.register_blueprint(ra_bp, url_prefix='/ra')
+
+❌ NOT REGISTERED - rd_cloudpull.py
+  Blueprint: cloud_bp ('rd_cloudpull')
+  Import: from routes.rd_cloudpull import cloud_bp
+  Register: app.register_blueprint(cloud_bp, url_prefix='/rd-cloudpull')
+
+❌ NOT REGISTERED - rd_dedup.py
+  Blueprint: dedup_bp ('rd_dedup')
+  Import: from routes.rd_dedup import dedup_bp
+  Register: app.register_blueprint(dedup_bp, url_prefix='/rd-dedup')
+
+❌ NOT REGISTERED - rd_inbox.py
+  Blueprint: in_bp ('inbox')
+  Import: from routes.rd_inbox import in_bp
+  Register: app.register_blueprint(in_bp, url_prefix='/inbox')
+
+❌ NOT REGISTERED - rd_manager.py
+  Blueprint: rd_bp ('rd')
+  Import: from routes.rd_manager import rd_bp
+  Register: app.register_blueprint(rd_bp, url_prefix='/rd')
+
+❌ NOT REGISTERED - rd_manager_enhanced.py
+  Blueprint: rd_manager_enhanced_bp ('rd_manager_enhanced')
+  Import: from routes.rd_manager_enhanced import rd_manager_enhanced_bp
+  Register: app.register_blueprint(rd_manager_enhanced_bp, url_prefix='/rd-manager-enhanced')
+
+✅ REGISTERED - rd_parser.py
+  Blueprint: rd_parser_bp ('rd_parser')
+  Import: from routes.rd_parser import rd_parser_bp
+  Register: app.register_blueprint(rd_parser_bp, url_prefix='/rd-parser')
+
+❌ NOT REGISTERED - reader.py
+  Blueprint: reader_bp ('reader')
+  Import: from routes.reader import reader_bp
+  Register: app.register_blueprint(reader_bp, url_prefix='/reader')
+
+❌ NOT REGISTERED - reader_cbz.py
+  Blueprint: cbz_bp ('cbz_reader')
+  Import: from routes.reader_cbz import cbz_bp
+  Register: app.register_blueprint(cbz_bp, url_prefix='/cbz-reader')
+
+❌ NOT REGISTERED - reader_extract.py
+  Blueprint: readerx_bp ('readerx')
+  Import: from routes.reader_extract import readerx_bp
+  Register: app.register_blueprint(readerx_bp, url_prefix='/readerx')
+
+❌ NOT REGISTERED - realdebrid.py
+  Blueprint: rd_bp ('rd')
+  Import: from routes.realdebrid import rd_bp
+  Register: app.register_blueprint(rd_bp, url_prefix='/rd')
+
+❌ NOT REGISTERED - recipes.py
+  Blueprint: recipes_bp ('recipes')
+  Import: from routes.recipes import recipes_bp
+  Register: app.register_blueprint(recipes_bp, url_prefix='/recipes')
+
+❌ NOT REGISTERED - renamer_advanced.py
+  Blueprint: renamer_advanced_bp ('renamer_advanced')
+  Import: from routes.renamer_advanced import renamer_advanced_bp
+  Register: app.register_blueprint(renamer_advanced_bp, url_prefix='/renamer-advanced')
+
+❌ NOT REGISTERED - rss.py
+  Blueprint: rss_bp ('rss')
+  Import: from routes.rss import rss_bp
+  Register: app.register_blueprint(rss_bp, url_prefix='/rss')
+
+✅ REGISTERED - rss_automation.py
+  Blueprint: rss_automation_bp ('rss_automation')
+  Import: from routes.rss_automation import rss_automation_bp
+  Register: app.register_blueprint(rss_automation_bp, url_prefix='/rss-automation')
+
+❌ NOT REGISTERED - rss_enhanced.py
+  Blueprint: rss_enhanced_bp ('rss_enhanced')
+  Import: from routes.rss_enhanced import rss_enhanced_bp
+  Register: app.register_blueprint(rss_enhanced_bp, url_prefix='/rss-enhanced')
+
+❌ NOT REGISTERED - rss_feeder.py
+  Blueprint: rss_feeder_bp ('rss')
+  Import: from routes.rss_feeder import rss_feeder_bp
+  Register: app.register_blueprint(rss_feeder_bp, url_prefix='/rss')
+
+❌ NOT REGISTERED - rss_scheduler.py
+  Blueprint: sched_bp ('rss_sched')
+  Import: from routes.rss_scheduler import sched_bp
+  Register: app.register_blueprint(sched_bp, url_prefix='/rss-sched')
+
+❌ NOT REGISTERED - rules_audit.py
+  Blueprint: rules_audit_bp ('rules_audit')
+  Import: from routes.rules_audit import rules_audit_bp
+  Register: app.register_blueprint(rules_audit_bp, url_prefix='/rules-audit')
+
+❌ NOT REGISTERED - scheduler.py
+  Blueprint: sched_bp ('sched')
+  Import: from routes.scheduler import sched_bp
+  Register: app.register_blueprint(sched_bp, url_prefix='/sched')
+
+❌ NOT REGISTERED - scoring_engine.py
+  Blueprint: scoring_bp ('scoring')
+  Import: from routes.scoring_engine import scoring_bp
+  Register: app.register_blueprint(scoring_bp, url_prefix='/scoring')
+
+❌ NOT REGISTERED - secrets.py
+  Blueprint: secrets_bp ('secrets')
+  Import: from routes.secrets import secrets_bp
+  Register: app.register_blueprint(secrets_bp, url_prefix='/secrets')
+
+❌ NOT REGISTERED - security.py
+  Blueprint: security_bp ('security')
+  Import: from routes.security import security_bp
+  Register: app.register_blueprint(security_bp, url_prefix='/security')
+
+❌ NOT REGISTERED - selftest.py
+  Blueprint: selftest_bp ('selftest')
+  Import: from routes.selftest import selftest_bp
+  Register: app.register_blueprint(selftest_bp, url_prefix='/selftest')
+
+❌ NOT REGISTERED - smart_rails.py
+  Blueprint: sr_bp ('smart')
+  Import: from routes.smart_rails import sr_bp
+  Register: app.register_blueprint(sr_bp, url_prefix='/smart')
+
+❌ NOT REGISTERED - smart_rails_api.py
+  Blueprint: smart_rails_bp ('smart_rails_api')
+  Import: from routes.smart_rails_api import smart_rails_bp
+  Register: app.register_blueprint(smart_rails_bp, url_prefix='/smart-rails-api')
+
+❌ NOT REGISTERED - smartplaylists.py
+  Blueprint: sp_bp ('smartpl')
+  Import: from routes.smartplaylists import sp_bp
+  Register: app.register_blueprint(sp_bp, url_prefix='/smartpl')
+
+❌ NOT REGISTERED - sort_editor.py
+  Blueprint: sort_bp ('sort')
+  Import: from routes.sort_editor import sort_bp
+  Register: app.register_blueprint(sort_bp, url_prefix='/sort')
+
+❌ NOT REGISTERED - stream.py
+  Blueprint: stream_bp ('stream')
+  Import: from routes.stream import stream_bp
+  Register: app.register_blueprint(stream_bp, url_prefix='/stream')
+
+✅ REGISTERED - stream_audio_norm.py
+  Blueprint: anorm_bp ('anorm')
+  Import: from routes.stream_audio_norm import anorm_bp
+  Register: app.register_blueprint(anorm_bp, url_prefix='/anorm')
+
+❌ NOT REGISTERED - stubs_extra.py
+  Blueprint: stubs_bp ('stubs_extra')
+  Import: from routes.stubs_extra import stubs_bp
+  Register: app.register_blueprint(stubs_bp, url_prefix='/stubs-extra')
+
+❌ NOT REGISTERED - subtitles_advanced.py
+  Blueprint: subtitles_advanced_bp ('subtitles_advanced')
+  Import: from routes.subtitles_advanced import subtitles_advanced_bp
+  Register: app.register_blueprint(subtitles_advanced_bp, url_prefix='/subtitles-advanced')
+
+❌ NOT REGISTERED - support_pack.py
+  Blueprint: support_bp ('support')
+  Import: from routes.support_pack import support_bp
+  Register: app.register_blueprint(support_bp, url_prefix='/support')
+
+✅ REGISTERED - synopsis_overlay.py
+  Blueprint: synopsis_bp ('synopsis')
+  Import: from routes.synopsis_overlay import synopsis_bp
+  Register: app.register_blueprint(synopsis_bp, url_prefix='/synopsis')
+
+❌ NOT REGISTERED - system.py
+  Blueprint: sys_bp ('sys')
+  Import: from routes.system import sys_bp
+  Register: app.register_blueprint(sys_bp, url_prefix='/sys')
+
+✅ REGISTERED - tags_system.py
+  Blueprint: tags_bp ('tags')
+  Import: from routes.tags_system import tags_bp
+  Register: app.register_blueprint(tags_bp, url_prefix='/tags')
+
+❌ NOT REGISTERED - taxonomy.py
+  Blueprint: tax_bp ('taxonomy')
+  Import: from routes.taxonomy import tax_bp
+  Register: app.register_blueprint(tax_bp, url_prefix='/taxonomy')
+
+✅ REGISTERED - text_editor_api.py
+  Blueprint: editor_api_bp ('editor_api')
+  Import: from routes.text_editor_api import editor_api_bp
+  Register: app.register_blueprint(editor_api_bp, url_prefix='/editor-api')
+
+❌ NOT REGISTERED - text_editor_enhanced.py
+  Blueprint: text_editor_enhanced_bp ('text_editor_enhanced')
+  Import: from routes.text_editor_enhanced import text_editor_enhanced_bp
+  Register: app.register_blueprint(text_editor_enhanced_bp, url_prefix='/text-editor-enhanced')
+
+❌ NOT REGISTERED - thumbs.py
+  Blueprint: thumbs_bp ('thumbs')
+  Import: from routes.thumbs import thumbs_bp
+  Register: app.register_blueprint(thumbs_bp, url_prefix='/thumbs')
+
+❌ NOT REGISTERED - timeline.py
+  Blueprint: tl_bp ('tl')
+  Import: from routes.timeline import tl_bp
+  Register: app.register_blueprint(tl_bp, url_prefix='/tl')
+
+❌ NOT REGISTERED - timelines.py
+  Blueprint: tl_bp ('tl')
+  Import: from routes.timelines import tl_bp
+  Register: app.register_blueprint(tl_bp, url_prefix='/tl')
+
+❌ NOT REGISTERED - tools.py
+  Blueprint: tools_bp ('tools')
+  Import: from routes.tools import tools_bp
+  Register: app.register_blueprint(tools_bp, url_prefix='/tools')
+
+❌ NOT REGISTERED - toplists.py
+  Blueprint: tl_bp ('toplists')
+  Import: from routes.toplists import tl_bp
+  Register: app.register_blueprint(tl_bp, url_prefix='/toplists')
+
+❌ NOT REGISTERED - toplists_directory.py
+  Blueprint: td_bp ('toplists_directory')
+  Import: from routes.toplists_directory import td_bp
+  Register: app.register_blueprint(td_bp, url_prefix='/toplists-directory')
+
+❌ NOT REGISTERED - torrent_inspector.py
+  Blueprint: torrent_inspector_bp ('torrent_inspector')
+  Import: from routes.torrent_inspector import torrent_inspector_bp
+  Register: app.register_blueprint(torrent_inspector_bp, url_prefix='/torrent-inspector')
+
+❌ NOT REGISTERED - trailer.py
+  Blueprint: tr_bp ('trailer')
+  Import: from routes.trailer import tr_bp
+  Register: app.register_blueprint(tr_bp, url_prefix='/trailer')
+
+❌ NOT REGISTERED - tree_view.py
+  Blueprint: tree_bp ('tree')
+  Import: from routes.tree_view import tree_bp
+  Register: app.register_blueprint(tree_bp, url_prefix='/tree')
+
+❌ NOT REGISTERED - tv_shows_enhanced.py
+  Blueprint: tv_shows_enhanced_bp ('tv_shows_enhanced')
+  Import: from routes.tv_shows_enhanced import tv_shows_enhanced_bp
+  Register: app.register_blueprint(tv_shows_enhanced_bp, url_prefix='/tv-shows-enhanced')
+
+❌ NOT REGISTERED - ui.py
+  Blueprint: ui_bp ('ui')
+  Import: from routes.ui import ui_bp
+  Register: app.register_blueprint(ui_bp, url_prefix='/ui')
+
+✅ REGISTERED - ui_features_api.py
+  Blueprint: ui_features_bp ('ui_features')
+  Import: from routes.ui_features_api import ui_features_bp
+  Register: app.register_blueprint(ui_features_bp, url_prefix='/ui-features')
+
+✅ REGISTERED - ui_features_v57_api.py
+  Blueprint: ui_features_v57_bp ('ui_features_v57')
+  Import: from routes.ui_features_v57_api import ui_features_v57_bp
+  Register: app.register_blueprint(ui_features_v57_bp, url_prefix='/ui-features-v57')
+
+✅ REGISTERED - uiux_golden_api.py
+  Blueprint: uiux_golden_bp ('uiux_golden')
+  Import: from routes.uiux_golden_api import uiux_golden_bp
+  Register: app.register_blueprint(uiux_golden_bp, url_prefix='/uiux-golden')
+
+❌ NOT REGISTERED - views_counts.py
+  Blueprint: vc_bp ('views_counts')
+  Import: from routes.views_counts import vc_bp
+  Register: app.register_blueprint(vc_bp, url_prefix='/views-counts')
+
+✅ REGISTERED - visual_search.py
+  Blueprint: visual_search_bp ('visual_search')
+  Import: from routes.visual_search import visual_search_bp
+  Register: app.register_blueprint(visual_search_bp, url_prefix='/visual-search')
+
+❌ NOT REGISTERED - wanted.py
+  Blueprint: want_bp ('want')
+  Import: from routes.wanted import want_bp
+  Register: app.register_blueprint(want_bp, url_prefix='/want')
+
