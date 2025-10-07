@@ -72,6 +72,13 @@ from utils.collections_auto_refresh import get_collections_auto_refresh
 from routes.rails import rails_bp
 from routes.backup import backup_bp
 
+# BATCH 1: Critical Routes Registration (Issue #14)
+# Added: October 7, 2025 - Bulletproof Implementation Plan Phase 1
+from routes.audio_player import ap_bp
+from routes.discovery import disc_bp
+from routes.discovery_advanced import discovery_advanced_bp
+from routes.toplists import tl_bp
+
 # Import new enhanced route modules
 from config.api_keys import APIKeyManager
 from config.profiles import ProfileManager
@@ -363,7 +370,9 @@ class MediaHubEnhancedApp:
             # Phase 1 restored features
             mobile_streaming_bp, advanced_editor_bp, advanced_dedup_bp,
             # Phase 2-5 Ultimate Features
-            enhanced_media_bp, faceted_db_bp, rss_automation_bp, advanced_ui_bp
+            enhanced_media_bp, faceted_db_bp, rss_automation_bp, advanced_ui_bp,
+            # BATCH 1: Critical Routes (Issue #14) - Added Oct 7, 2025
+            ap_bp, disc_bp, discovery_advanced_bp, tl_bp
         ]
         
         for bp in existing_blueprints:

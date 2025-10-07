@@ -5,14 +5,5 @@ feedparser
 beautifulsoup4
 lxml
 pillow
-sqlite3
-json
-datetime
-os
-re
-subprocess
-threading
-time
-urllib
 schedule
 pyperclip
