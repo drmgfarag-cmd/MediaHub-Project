@@ -101,6 +101,28 @@ from routes.rss_enhanced import rss_enhanced_bp
 from routes.rss_feeder import rss_feeder_bp
 # Note: rss_scheduler and torrent_inspector skipped due to dependency issues
 
+# BATCH 4: Media Readers & UI Routes (17 routes)
+from routes.comics_enhanced import comics_enhanced_bp
+from routes.library_local import lib_bp as lib_local_bp
+from routes.reader_cbz import cbz_bp
+from routes.reader_extract import readerx_bp
+# smartplaylists skipped - missing routes.lib dependency
+# accounts skipped - import error
+from routes.adv_search import adv_bp
+from routes.auto_explain import autoex_bp
+from routes.auto_select import auto_bp
+from routes.batchrename import br_bp
+from routes.books_enhanced import books_enhanced_bp
+from routes.captcha_prefs import cap_bp
+from routes.catalogs import catalogs_bp
+from routes.connectors import conn_bp
+from routes.curations import curations_bp
+from routes.dashboard_custom import dashboard_custom_bp
+from routes.dedupe import dd_bp
+from routes.dedupe_editor import dedupe_bp
+from routes.diagnostics import diag_bp
+from routes.dl_columns import col_bp as dl_col_bp
+
 # Import new enhanced route modules
 from config.api_keys import APIKeyManager
 from config.profiles import ProfileManager
@@ -398,7 +420,12 @@ class MediaHubEnhancedApp:
             # BATCH 2: Audio + Media Routes - Added Oct 7, 2025
             mix_bp, rg_bp, aset_bp, coll_bp, cols_bp, timeline_bp, scan_bp, media_col_bp,
             # BATCH 3: Automation Routes - Added Oct 7, 2025
-            dl_bp, dlx_bp, pkg_bp, view_bp, qb_bp, rss_enhanced_bp, rss_feeder_bp
+            dl_bp, dlx_bp, pkg_bp, view_bp, qb_bp, rss_enhanced_bp, rss_feeder_bp,
+            # BATCH 4: Media Readers & UI - Added Oct 7, 2025
+            comics_enhanced_bp, lib_local_bp, cbz_bp, readerx_bp,
+            adv_bp, autoex_bp, auto_bp, br_bp, books_enhanced_bp,
+            cap_bp, catalogs_bp, conn_bp, curations_bp, dashboard_custom_bp,
+            dd_bp, dedupe_bp, diag_bp, dl_col_bp
         ]
         
         for bp in existing_blueprints:
