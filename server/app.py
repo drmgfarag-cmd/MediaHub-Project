@@ -123,6 +123,29 @@ from routes.dedupe_editor import dedupe_bp
 from routes.diagnostics import diag_bp
 from routes.dl_columns import col_bp as dl_col_bp
 
+# BATCH 5: Library & Editor Routes (25 routes)
+from routes.editor_pro import ed_bp
+from routes.editor_tabs import tb_bp
+from routes.export_import import ei_bp
+from routes.features import feat_bp
+from routes.fileserve import fs_bp
+from routes.filters import filt_bp
+from routes.flags import flags_bp
+from routes.folders import fold_bp
+from routes.formats import fmt_bp
+from routes.genres import gen_bp
+from routes.global_undo import undo_bp
+from routes.history import hist_bp
+from routes.import_export import ie_bp
+from routes.kids_parental import kids_bp
+from routes.library_browse import browse_bp
+from routes.library_filters import libfilt_bp
+from routes.library_metadata import libmd_bp
+from routes.library_stats import stats_bp
+from routes.library_views import views_bp
+from routes.link_grabber import lg_bp
+from routes.manifest_verify import mv_bp
+
 # Import new enhanced route modules
 from config.api_keys import APIKeyManager
 from config.profiles import ProfileManager
@@ -425,7 +448,11 @@ class MediaHubEnhancedApp:
             comics_enhanced_bp, lib_local_bp, cbz_bp, readerx_bp,
             adv_bp, autoex_bp, auto_bp, br_bp, books_enhanced_bp,
             cap_bp, catalogs_bp, conn_bp, curations_bp, dashboard_custom_bp,
-            dd_bp, dedupe_bp, diag_bp, dl_col_bp
+            dd_bp, dedupe_bp, diag_bp, dl_col_bp,
+            # BATCH 5: Library & Editor - Added Oct 7, 2025
+            ed_bp, tb_bp, ei_bp, feat_bp, fs_bp, filt_bp, flags_bp, fold_bp,
+            fmt_bp, gen_bp, undo_bp, hist_bp, ie_bp, kids_bp, browse_bp,
+            libfilt_bp, libmd_bp, stats_bp, views_bp, lg_bp, mv_bp
         ]
         
         for bp in existing_blueprints:
