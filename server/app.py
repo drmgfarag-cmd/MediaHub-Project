@@ -414,7 +414,7 @@ class MediaHubEnhancedApp:
         
         # Register all existing blueprints
         existing_blueprints = [
-            cfg_bp, lim_bp, td_bp, opds_bp, rd_bp, q_bp, lib_bp, reader_bp,
+            cfg_bp, lim_bp, td_bp, opds_bp, q_bp, lib_bp, reader_bp,
             tr_bp, col_bp, rss_bp, rails_bp, backup_bp, tools_bp, stream_bp,
             thumbs_bp, logs_bp, selftest_bp, hash_bp, sched_bp, db_bp,
             debrid_bp, recipes_bp, libsearch_bp, pl_bp, lyr_bp, cat_bp,
@@ -442,19 +442,14 @@ class MediaHubEnhancedApp:
             cfg_bp, core_infra_bp, xref_bp, db_bp, debrid_bp, downloader_enhanced_bp,
             downloader_rd_api_bp, editor_bp, editor_plugins_bp, faceted_db_bp, feeds_bp,
             fr_bp, foundation_bp, hash_bp, health_bp, hls_bp, pins_bp, hooks_bp,
-            imdb_bp, jobs_bp, lib_bp, cache_bp, integrity_bp, links_bp, lists_bp,
-            lists_api_bp, logs_api_bp, lyrics_api_bp, med_bp, mi_bp, mm_bp,
-            metadata_bp, notif_bp, org_bp,
+            jobs_bp, lib_bp, lists_bp,
+            metadata_bp, org_bp,
             # BATCH 7: Players, Search, System & Tools - Added Oct 7, 2025
-            pat_bp, player_bp, pl_bp, presets_bp, prof_bp, progress_bp, qual_bp,
-            queue_bp, ratings_bp, rd_bp, reader_bp, rt_bp, recent_bp, rec_bp,
-            recents_bp, rename_bp, reports_bp, rss_bp, rss_automation_bp, scheduler_bp,
-            search_bp, security_bp, settings_bp, smart_col_bp, smart_rails_bp,
-            sources_bp, stats2_bp, storage_bp, stream_bp, sub_bp, sync_bp, sys_bp,
-            tags_bp, tasks_bp, tmpl_bp, themes_bp, tmdb_bp, tools_bp, transcode_bp,
-            # BATCH 8: Final Routes - UI, Upload, Watchlist & Utilities - Added Oct 7, 2025
-            tv_bp, ui_bp, upload_bp, prefs_bp, utils_bp, val_bp, ver_bp, vp_bp,
-            wh_bp, wl_bp, webhook_bp, widgets_bp, ws_bp, writer_bp
+            pl_bp, presets_bp, prof_bp, queue_bp, reader_bp, rss_bp, rss_automation_bp, scheduler_bp,
+            security_bp, smart_rails_bp,
+            stats2_bp, stream_bp, sys_bp,
+            tags_bp, tools_bp, # BATCH 8: Final Routes - UI, Upload, Watchlist & Utilities - Added Oct 7, 2025
+            writer_bp
         ]
         
         for bp in existing_blueprints:
@@ -773,76 +768,76 @@ from routes.health import health_bp
 from routes.hls_mgr import hls_bp
 from routes.home_pins import pins_bp
 from routes.hooks import hooks_bp
-from routes.imdb_scraper import imdb_bp
+# # from routes.imdb_scraper import imdb_bp  # File doesn't exist  # File doesn't exist
 from routes.jobs import jobs_bp
 from routes.library import lib_bp
-from routes.library_cache import cache_bp
-from routes.library_integrity import integrity_bp
-from routes.links import links_bp
+# from routes.library_cache import cache_bp  # File doesn't exist
+# from routes.library_integrity import integrity_bp  # File doesn't exist
+# from routes.links import links_bp  # File doesn't exist
 from routes.lists import lists_bp
-from routes.lists_api import lists_api_bp
-from routes.logs_api import logs_api_bp
-from routes.lyrics_api import lyrics_api_bp
-from routes.media_editor import med_bp
-from routes.media_info import mi_bp
-from routes.media_manager import mm_bp
+# from routes.lists_api import lists_api_bp  # File doesn't exist
+# from routes.logs_api import logs_api_bp  # File doesn't exist
+# from routes.lyrics_api import lyrics_api_bp  # File doesn't exist
+# from routes.media_editor import med_bp  # File doesn't exist
+# from routes.media_info import mi_bp  # File doesn't exist
+# from routes.media_manager import mm_bp  # File doesn't exist
 from routes.metadata import md_bp
-from routes.notifications import notif_bp
+# from routes.notifications import notif_bp  # File doesn't exist
 from routes.organizer import org_bp
 
 # BATCH 7: Players, Search, System & Tools (40 routes)
-from routes.patterns import pat_bp
-from routes.player import player_bp
+# from routes.patterns import pat_bp  # File doesn't exist
+# from routes.player import player_bp  # File doesn't exist
 from routes.playlists import pl_bp
 from routes.presets import presets_bp
 from routes.profiles import prof_bp
-from routes.progress import progress_bp
-from routes.quality import qual_bp
+# from routes.progress import progress_bp  # File doesn't exist
+# from routes.quality import qual_bp  # File doesn't exist
 from routes.queue import q_bp
-from routes.ratings import ratings_bp
-from routes.rd_api import rd_bp
+# from routes.ratings import ratings_bp  # File doesn't exist
+# from routes.rd_api import rd_bp  # File doesn't exist
 from routes.reader import reader_bp
-from routes.realtime import rt_bp
-from routes.recent import recent_bp
-from routes.recommendations import rec_bp
-from routes.recents import recents_bp
-from routes.rename import rename_bp
-from routes.reports import reports_bp
+# from routes.realtime import rt_bp  # File doesn't exist
+# from routes.recent import recent_bp  # File doesn't exist
+# from routes.recommendations import rec_bp  # File doesn't exist
+# from routes.recents import recents_bp  # File doesn't exist
+# from routes.rename import rename_bp  # File doesn't exist
+# from routes.reports import reports_bp  # File doesn't exist
 from routes.rss import rss_bp
 from routes.rss_automation import rss_automation_bp
 from routes.scheduler import sched_bp as scheduler_bp
-from routes.search import search_bp
+# from routes.search import search_bp  # File doesn't exist
 from routes.security import security_bp
-from routes.settings import settings_bp
-from routes.smart_collections import smart_col_bp
+# from routes.settings import settings_bp  # File doesn't exist
+# from routes.smart_collections import smart_col_bp  # File doesn't exist
 from routes.smart_rails import sr_bp
-from routes.sources import sources_bp
-from routes.stats import stats_bp as stats2_bp
-from routes.storage import storage_bp
+# from routes.sources import sources_bp  # File doesn't exist
+# from routes.stats import stats_bp  # File doesn't exist as stats2_bp
+# from routes.storage import storage_bp  # File doesn't exist
 from routes.stream import stream_bp
-from routes.subtitles import sub_bp
-from routes.sync import sync_bp
+# from routes.subtitles import sub_bp  # File doesn't exist
+# from routes.sync import sync_bp  # File doesn't exist
 from routes.system import sys_bp
 from routes.tags_system import tags_bp
-from routes.tasks import tasks_bp
-from routes.templates import tmpl_bp
-from routes.themes import themes_bp
-from routes.tmdb_scraper import tmdb_bp
+# from routes.tasks import tasks_bp  # File doesn't exist
+# from routes.templates import tmpl_bp  # File doesn't exist
+# from routes.themes import themes_bp  # File doesn't exist
+# from routes.tmdb_scraper import tmdb_bp  # File doesn't exist
 from routes.tools import tools_bp
-from routes.transcoding import transcode_bp
+# from routes.transcoding import transcode_bp  # File doesn't exist
 
 # BATCH 8: Final Routes - UI, Upload, Watchlist & Utilities (15 routes)
-from routes.tv_shows import tv_bp
-from routes.ui_state import ui_bp
-from routes.upload import upload_bp
-from routes.user_prefs import prefs_bp
-from routes.utils import utils_bp
-from routes.validation import val_bp
-from routes.versions import ver_bp
-from routes.video_player import vp_bp
-from routes.watch_history import wh_bp
-from routes.watchlist import wl_bp
-from routes.webhooks import webhook_bp
-from routes.widgets import widgets_bp
-from routes.workspace import ws_bp
-from routes.writer import writer_bp
+# from routes.tv_shows import tv_bp  # File doesn't exist
+# from routes.ui_state import ui_bp  # File doesn't exist
+# from routes.upload import upload_bp  # File doesn't exist
+# from routes.user_prefs import prefs_bp  # File doesn't exist
+# from routes.utils import utils_bp  # File doesn't exist
+# from routes.validation import val_bp  # File doesn't exist
+# from routes.versions import ver_bp  # File doesn't exist
+# from routes.video_player import vp_bp  # File doesn't exist
+# from routes.watch_history import wh_bp  # File doesn't exist
+# from routes.watchlist import wl_bp  # File doesn't exist
+# from routes.webhooks import webhook_bp  # File doesn't exist
+# from routes.widgets import widgets_bp  # File doesn't exist
+# from routes.workspace import ws_bp  # File doesn't exist
+# from routes.writer import writer_bp  # File doesn't exist
